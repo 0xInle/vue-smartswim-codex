@@ -400,6 +400,7 @@ onBeforeUnmount(() => {
   width: fit-content;
   max-width: 100%;
   padding: 12px 16px;
+  margin-bottom: 5px;
   border: 1px solid color-mix(in srgb, var(--white) 18%, transparent);
   border-radius: 10px;
   background: color-mix(in srgb, var(--white) 10%, transparent);
