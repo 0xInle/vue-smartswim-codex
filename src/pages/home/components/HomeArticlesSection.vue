@@ -7,6 +7,7 @@
         class="article__text"
         :class="{ 'article__text--visible': visibleItems[0] }"
       >
+        <span class="article__eyebrow">Подготовка</span>
         <h3 class="article__heading">Как стать чемпионом?</h3>
         <div class="article__descr">
           Секрет успеха в спорте — регулярная практика и правильная подготовка. <br />
@@ -24,6 +25,7 @@
         class="article__text"
         :class="{ 'article__text--visible': visibleItems[1] }"
       >
+        <span class="article__eyebrow">Техника</span>
         <h3 class="article__heading">Правила идеального старта</h3>
         <div class="article__descr">
           Правильный старт помогает максимально использовать силы и технику. Важно удерживать
@@ -42,6 +44,7 @@
         class="article__text"
         :class="{ 'article__text--visible': visibleItems[2] }"
       >
+        <span class="article__eyebrow">Практика</span>
         <h3 class="article__heading">В чем польза соревнований?</h3>
         <div class="article__descr">
           Соревнования развивают мотивацию и помогают оценить свои возможности. Они дают опыт работы
@@ -137,10 +140,31 @@ onBeforeUnmount(() => {
   margin-top: 48px;
 }
 
+.article__eyebrow,
 .article__heading,
 .article__descr {
   opacity: 0;
   transform: translateY(40px);
+}
+
+.article__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 18%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 58%, transparent);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--cyan) 80%, var(--black));
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
 }
 
 .article__heading {
@@ -155,6 +179,20 @@ onBeforeUnmount(() => {
     transform 0.7s ease 0.18s;
 }
 
+.article__text {
+  position: relative;
+  width: min(100%, 520px);
+  padding: 34px 32px 30px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 22%, transparent);
+  border-radius: 10px;
+
+  box-shadow:
+    0 18px 48px color-mix(in srgb, var(--black) 8%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--white) 70%, transparent);
+  overflow: hidden;
+}
+
+.article__text--visible .article__eyebrow,
 .article__text--visible .article__heading,
 .article__text--visible .article__descr {
   opacity: 1;
@@ -164,17 +202,24 @@ onBeforeUnmount(() => {
 .article__heading {
   margin: 0 0 20px;
   font-size: 36px;
+  line-height: 1.05;
   font-weight: 900;
 }
 
 .article__descr {
-  line-height: 2;
+  position: relative;
+  z-index: 1;
+  max-width: 440px;
+  font-size: 16px;
+  line-height: 1.85;
+  color: color-mix(in srgb, var(--black) 82%, var(--white));
 }
 
 .article__content img {
   width: 35%;
   height: auto;
   border-radius: 10px;
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--black) 12%, transparent);
 }
 
 @media (max-width: 768px) {
@@ -189,6 +234,16 @@ onBeforeUnmount(() => {
   .article__content {
     flex-direction: column;
     gap: 24px;
+  }
+
+  .article__text {
+    width: 100%;
+    padding: 28px 22px 24px;
+    border-radius: 10px;
+  }
+
+  .article__heading {
+    font-size: 30px;
   }
 
   .article__content img {

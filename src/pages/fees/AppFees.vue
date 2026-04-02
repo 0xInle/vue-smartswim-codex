@@ -165,7 +165,7 @@ import { feeCamps } from '@/pages/fees/feesData'
   justify-content: center;
   gap: 18px;
   padding: 100px 20px;
-  border-radius: 20px;
+  border-radius: 10px;
   background: rgb(from var(--white) r g b / 50%);
 }
 
@@ -175,7 +175,7 @@ import { feeCamps } from '@/pages/fees/feesData'
   align-self: center;
   height: fit-content;
   padding: 20px;
-  border-radius: 20px;
+  border-radius: 10px;
   background: rgb(from var(--cyan) r g b / 20%);
 }
 
@@ -214,7 +214,7 @@ import { feeCamps } from '@/pages/fees/feesData'
   flex-direction: column;
   gap: 10px;
   padding: 22px;
-  border-radius: 16px;
+  border-radius: 10px;
   background: rgb(from var(--white) r g b / 42%);
 }
 
@@ -249,7 +249,7 @@ import { feeCamps } from '@/pages/fees/feesData'
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  border-radius: 20px;
+  border-radius: 10px;
   overflow: hidden;
   background: rgb(from var(--white) r g b / 56%);
   transition:
@@ -330,7 +330,7 @@ import { feeCamps } from '@/pages/fees/feesData'
   gap: 4px;
   padding: 14px 16px;
   border: 1px solid rgb(from var(--cyan) r g b / 20%);
-  border-radius: 14px;
+  border-radius: 10px;
   background: rgb(from var(--white) r g b / 48%);
   box-shadow:
     0 10px 20px rgb(from var(--black) r g b / 5%),

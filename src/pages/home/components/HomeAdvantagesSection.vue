@@ -226,7 +226,6 @@ onBeforeUnmount(() => {
     color-mix(in srgb, var(--white) 18%, transparent) 0%,
     color-mix(in srgb, var(--cyan) 18%, transparent) 100%
   );
-  backdrop-filter: blur(10px);
   transform-style: preserve-3d;
   transition:
     transform 0.18s ease,

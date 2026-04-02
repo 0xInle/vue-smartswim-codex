@@ -166,7 +166,7 @@ function toggleFaqItem(key) {
   min-height: 86px;
   padding: 14px 16px;
   grid-column: span 2;
-  border-radius: 14px;
+  border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--cyan) 22%, var(--white));
   background: rgb(from var(--white) r g b / 82%);
   box-shadow:
@@ -207,7 +207,7 @@ function toggleFaqItem(key) {
   min-width: 34px;
   min-height: 22px;
   padding: 3px 6px;
-  border-radius: 6px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--cyan) 88%, var(--white));
   font-size: 8px;
   font-weight: 900;
@@ -232,7 +232,7 @@ function toggleFaqItem(key) {
   grid-row: 1 / 2;
   min-height: 36px;
   padding: 9px 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--orange) 88%, var(--white));
   color: var(--white);
   font-size: 13px;
@@ -291,7 +291,7 @@ function toggleFaqItem(key) {
   justify-content: center;
   min-height: 360px;
   border: 1px solid rgb(from var(--white) r g b / 18%);
-  border-radius: 18px;
+  border-radius: 10px;
   background: linear-gradient(
     180deg,
     rgb(from var(--white) r g b / 16%) 0%,
@@ -300,8 +300,6 @@ function toggleFaqItem(key) {
   box-shadow:
     inset 0 1px 0 rgb(from var(--white) r g b / 20%),
     0 10px 28px rgb(from var(--black) r g b / 8%);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
 }
 
 .documents__image-contact {
@@ -530,9 +528,7 @@ function toggleFaqItem(key) {
 
   .documents__image-panel {
     min-height: 180px;
-    border-radius: 14px;
-    backdrop-filter: blur(1px);
-    -webkit-backdrop-filter: blur(1px);
+    border-radius: 10px;
   }
 
   .documents__image-contact {

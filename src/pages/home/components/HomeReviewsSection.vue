@@ -301,7 +301,6 @@ onBeforeUnmount(() => {
     color-mix(in srgb, var(--white) 22%, transparent) 0%,
     color-mix(in srgb, var(--very-light-blue) 24%, transparent) 100%
   );
-  backdrop-filter: blur(14px);
   transition:
     transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.55s ease,
@@ -359,7 +358,6 @@ onBeforeUnmount(() => {
     color-mix(in srgb, var(--white) 20%, transparent) 0%,
     color-mix(in srgb, var(--very-light-blue) 22%, transparent) 100%
   );
-  backdrop-filter: blur(12px);
   transition:
     background 0.25s ease,
     border-color 0.25s ease,

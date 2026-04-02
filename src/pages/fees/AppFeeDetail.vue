@@ -363,7 +363,7 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 6px;
   padding: 16px;
-  border-radius: 16px;
+  border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--white) 26%, transparent);
   background: rgb(from var(--white) r g b / 12%);
   box-shadow:
@@ -410,7 +410,7 @@ onBeforeUnmount(() => {
   right: -50%;
   background: url('/images/16-img.jpg') center / cover no-repeat;
   opacity: 1;
-  border-radius: 28px;
+  border-radius: 10px;
   pointer-events: none;
 }
 
@@ -440,7 +440,7 @@ onBeforeUnmount(() => {
   width: max-content;
   min-height: 48px;
   padding: 12px 26px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--cyan) 84%, var(--white));
   font-weight: 800;
   color: var(--white);
@@ -531,8 +531,6 @@ onBeforeUnmount(() => {
 .fee-detail__program-copy {
   text-align: left;
   background: rgb(from var(--white) r g b / 26%);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
 }
 
 .fee-detail__program-grid {
@@ -549,8 +547,6 @@ onBeforeUnmount(() => {
   min-height: 132px;
   padding: 20px 18px;
   background: rgb(from var(--white) r g b / 24%);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
   box-shadow:
     0 14px 30px rgb(from var(--black) r g b / 10%),
     inset 0 1px 0 rgb(from var(--white) r g b / 32%);

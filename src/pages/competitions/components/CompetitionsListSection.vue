@@ -115,8 +115,7 @@ defineExpose({
 .competitions-list__media,
 .competitions-list__content {
   border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
-  border-radius: 20px;
-  backdrop-filter: blur(12px);
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -184,12 +183,11 @@ defineExpose({
   gap: 8px;
   padding: 16px;
   border: 1px solid color-mix(in srgb, var(--white) 28%, transparent);
-  border-radius: 16px;
+  border-radius: 10px;
   background: rgb(from var(--white) r g b / 10%);
   box-shadow:
     inset 0 1px 0 rgb(from var(--white) r g b / 20%),
     0 8px 24px rgb(from var(--black) r g b / 5%);
-  backdrop-filter: blur(14px);
 }
 
 .competitions-list__meta-label {

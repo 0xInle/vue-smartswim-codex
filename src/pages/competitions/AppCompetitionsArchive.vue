@@ -132,7 +132,7 @@ const archiveGalleryImages = [
   /* min-height: clamp(320px, 40vw, 640px); */
   padding: 20px;
   border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
-  border-radius: 18px;
+  border-radius: 10px;
   background: rgb(from var(--white) r g b / 28%);
   box-shadow: 0 10px 40px rgb(from var(--black) r g b / 6%);
 }
@@ -175,7 +175,7 @@ const archiveGalleryImages = [
   gap: 10px;
   padding: 20px;
   border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
-  border-radius: 18px;
+  border-radius: 10px;
   background: rgb(from var(--white) r g b / 28%);
   box-shadow: 0 10px 40px rgb(from var(--black) r g b / 6%);
 }
@@ -201,7 +201,7 @@ const archiveGalleryImages = [
   gap: 16px;
   padding: 100px 0;
   margin: 50px 0;
-  border-radius: 18px;
+  border-radius: 10px;
   z-index: 0;
 }
 
@@ -244,8 +244,6 @@ const archiveGalleryImages = [
   box-shadow:
     0 18px 38px rgb(from var(--black) r g b / 12%),
     inset 0 1px 0 rgb(from var(--white) r g b / 30%);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
 .competitions-archive__card-head {
@@ -279,7 +277,7 @@ const archiveGalleryImages = [
   min-height: 76px;
   padding: 12px 14px;
 
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgb(from var(--white) r g b / 10%);
   box-shadow:
     inset 0 1px 0 rgb(from var(--white) r g b / 18%),
@@ -300,7 +298,7 @@ const archiveGalleryImages = [
 .competitions-archive__gallery-item {
   position: relative;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 10px;
   background: var(--very-light-blue);
   box-shadow:
     0 18px 38px rgb(from var(--black) r g b / 10%),

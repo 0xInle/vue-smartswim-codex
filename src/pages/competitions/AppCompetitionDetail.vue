@@ -180,7 +180,7 @@ function formatCardDescription(description) {
 .competition-detail__content,
 .competition-detail__card {
   border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
-  border-radius: 20px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -240,7 +240,7 @@ function formatCardDescription(description) {
   gap: 8px;
   padding: 16px;
   border: 1px solid color-mix(in srgb, var(--white) 28%, transparent);
-  border-radius: 16px;
+  border-radius: 10px;
   background: rgb(from var(--white) r g b / 10%);
   box-shadow:
     inset 0 1px 0 rgb(from var(--white) r g b / 20%),

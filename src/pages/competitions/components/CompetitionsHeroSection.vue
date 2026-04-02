@@ -107,9 +107,8 @@ defineEmits(['explore'])
 .competitions-hero__panel {
   min-height: 480px;
   border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
-  border-radius: 18px;
+  border-radius: 10px;
   box-shadow: 0 10px 40px rgb(from var(--black) r g b / 6%);
-  backdrop-filter: blur(12px);
 }
 
 .competitions-hero__copy {
@@ -210,13 +209,11 @@ defineEmits(['explore'])
   background: rgb(from var(--white) r g b / 24%);
   border: 1px solid color-mix(in srgb, var(--white) 28%, transparent);
   border-radius: 10px;
-  backdrop-filter: blur(14px);
 }
 
 .competitions-hero__panel-card {
   border: 1px solid color-mix(in srgb, var(--white) 28%, transparent);
   border-radius: 10px;
-  backdrop-filter: blur(14px);
 }
 
 .competitions-hero__panel-label {
@@ -260,7 +257,6 @@ defineEmits(['explore'])
   border: 1px solid color-mix(in srgb, var(--cyan) 24%, var(--white));
   border-radius: 10px;
 
-  backdrop-filter: blur(14px);
   text-align: center;
 }
 
