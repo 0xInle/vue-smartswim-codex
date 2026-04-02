@@ -73,7 +73,7 @@ import { contactCards } from '@/pages/contacts/contactsData'
 
 .contacts__hero {
   position: relative;
-  padding: 28px 0 34px;
+  padding: 28px 0 100px;
 }
 
 .contacts__hero::before {

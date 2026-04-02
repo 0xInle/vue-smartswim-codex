@@ -418,7 +418,7 @@ function formatCardDescription(description) {
 }
 
 .competition-detail__faq {
-  padding: 70px 0;
+  padding: 70px 0 100px;
 }
 
 .competition-detail__faq-shell {

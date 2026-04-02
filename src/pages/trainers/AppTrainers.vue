@@ -234,7 +234,7 @@ onBeforeUnmount(() => {
 }
 
 .trainers__grid-section {
-  padding-bottom: 70px;
+  padding-bottom: 100px;
 }
 
 .trainers__image-showcase {

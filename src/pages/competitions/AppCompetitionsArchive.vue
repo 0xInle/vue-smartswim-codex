@@ -292,7 +292,7 @@ const archiveGalleryImages = [
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-auto-rows: 84px;
   gap: 16px;
-  margin: 50px 0 80px;
+  margin: 50px 0 100px;
 }
 
 .competitions-archive__gallery-item {

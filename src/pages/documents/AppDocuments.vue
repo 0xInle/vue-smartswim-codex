@@ -248,7 +248,7 @@ function toggleFaqItem(key) {
 }
 
 .documents__faq {
-  padding: 24px 0 84px;
+  padding: 24px 0 100px;
 }
 
 .documents__image-break {

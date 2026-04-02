@@ -362,7 +362,7 @@ import { feeCamps } from '@/pages/fees/feesData'
 }
 
 .fees__features {
-  padding: 12px 0 90px;
+  padding: 12px 0 100px;
 }
 
 .fees__feature-grid {

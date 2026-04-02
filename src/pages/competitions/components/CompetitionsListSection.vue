@@ -62,7 +62,7 @@ defineExpose({
 
 <style scoped>
 .competitions-list {
-  padding: 8px 0 70px;
+  padding: 8px 0 100px;
 }
 
 .competitions-list__head {

@@ -48,18 +48,19 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
+const HEADER_BOTTOM_OFFSET = 20
+const FOOTER_STOP_OFFSET = 30
+
 const headerRef = ref(null)
 const isHeaderStopped = ref(false)
 const isHeaderFloating = ref(false)
 const headerStyle = ref({
   top: 'auto',
-  bottom: '20px',
+  bottom: `${HEADER_BOTTOM_OFFSET}px`,
 })
 
 const headerMetrics = {
   revealPoint: 0,
-  stopScrollY: Number.POSITIVE_INFINITY,
-  maxHeaderTop: 0,
 }
 
 let scrollFrameId = 0
@@ -67,14 +68,14 @@ let resizeFrameId = 0
 let homeScrollFrameId = 0
 let resizeObserver = null
 let homeSectionRef = null
-let reviewsSectionRef = null
+let footerSectionRef = null
 
 const isHomeRoute = computed(() => route.path === '/')
 const isBrandVisible = computed(() => (isHomeRoute.value ? isHeaderFloating.value : true))
 
 function syncRouteTargets() {
   homeSectionRef = document.querySelector('.home')
-  reviewsSectionRef = document.querySelector('.reviews')
+  footerSectionRef = document.querySelector('.footer')
 }
 
 function resetHeaderState() {
@@ -82,28 +83,28 @@ function resetHeaderState() {
   isHeaderFloating.value = !isHomeRoute.value
   headerStyle.value = {
     top: 'auto',
-    bottom: '20px',
+    bottom: `${HEADER_BOTTOM_OFFSET}px`,
   }
 }
 
 function updateHeaderPosition() {
   if (!isHomeRoute.value) {
     isHeaderFloating.value = true
-    return
-  }
-
-  if (!homeSectionRef) {
+  } else if (!homeSectionRef) {
     isHeaderFloating.value = false
     return
+  } else {
+    const scrollY = window.scrollY
+    isHeaderFloating.value = scrollY >= headerMetrics.revealPoint
   }
 
   const scrollY = window.scrollY
-  isHeaderFloating.value = scrollY >= headerMetrics.revealPoint
-
-  const shouldStopHeader =
-    reviewsSectionRef && Number.isFinite(headerMetrics.stopScrollY)
-      ? scrollY >= headerMetrics.stopScrollY
-      : false
+  const headerHeight = headerRef.value?.offsetHeight ?? 0
+  const footerTop = footerSectionRef?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY
+  const floatingHeaderTop = window.innerHeight - HEADER_BOTTOM_OFFSET - headerHeight
+  const stopTriggerTop = window.innerHeight - HEADER_BOTTOM_OFFSET + FOOTER_STOP_OFFSET
+  const stopHeaderTop = footerTop - FOOTER_STOP_OFFSET - headerHeight
+  const shouldStopHeader = footerSectionRef ? footerTop <= stopTriggerTop : false
 
   if (shouldStopHeader === isHeaderStopped.value) {
     return
@@ -113,12 +114,12 @@ function updateHeaderPosition() {
 
   const nextStyle = shouldStopHeader
     ? {
-        top: `${headerMetrics.maxHeaderTop}px`,
+        top: `${scrollY + stopHeaderTop}px`,
         bottom: 'auto',
       }
     : {
         top: 'auto',
-        bottom: '20px',
+        bottom: `${HEADER_BOTTOM_OFFSET}px`,
       }
 
   if (headerStyle.value.top !== nextStyle.top || headerStyle.value.bottom !== nextStyle.bottom) {
@@ -133,29 +134,18 @@ function recalculateHeaderMetrics() {
 
   syncRouteTargets()
 
-  if (!isHomeRoute.value || !homeSectionRef) {
-    headerMetrics.revealPoint = 0
-    headerMetrics.stopScrollY = Number.POSITIVE_INFINITY
-    headerMetrics.maxHeaderTop = 0
+  if (!footerSectionRef) {
+    headerMetrics.revealPoint = isHomeRoute.value && homeSectionRef
+      ? homeSectionRef.offsetTop + homeSectionRef.offsetHeight * 0.75
+      : 0
     resetHeaderState()
     return
   }
 
-  if (!reviewsSectionRef) {
-    headerMetrics.revealPoint = homeSectionRef.offsetTop + homeSectionRef.offsetHeight * 0.75
-    headerMetrics.stopScrollY = Number.POSITIVE_INFINITY
-    headerMetrics.maxHeaderTop = 0
-    isHeaderStopped.value = false
-    updateHeaderPosition()
-    return
-  }
-
-  const headerHeight = headerRef.value.offsetHeight
-  const reviewsBottom = reviewsSectionRef.offsetTop + reviewsSectionRef.offsetHeight
-
-  headerMetrics.revealPoint = homeSectionRef.offsetTop + homeSectionRef.offsetHeight * 0.75
-  headerMetrics.stopScrollY = reviewsBottom - window.innerHeight
-  headerMetrics.maxHeaderTop = reviewsBottom - headerHeight - 20
+  headerMetrics.revealPoint =
+    isHomeRoute.value && homeSectionRef
+      ? homeSectionRef.offsetTop + homeSectionRef.offsetHeight * 0.75
+      : 0
   isHeaderStopped.value = false
 }
 
@@ -201,8 +191,8 @@ function observeLayout() {
     resizeObserver.observe(homeSectionRef)
   }
 
-  if (reviewsSectionRef) {
-    resizeObserver.observe(reviewsSectionRef)
+  if (footerSectionRef) {
+    resizeObserver.observe(footerSectionRef)
   }
 }
 
@@ -267,6 +257,8 @@ onMounted(() => {
 watch(
   () => route.fullPath,
   () => {
+    resetHeaderState()
+
     nextTick(() => {
       syncRouteTargets()
       observeLayout()
