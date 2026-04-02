@@ -389,7 +389,7 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
   gap: 10px;
   min-height: min(660px, calc(100vh - 156px));
-  padding: 24px 0;
+  padding: 20px 0;
   color: var(--white);
 }
 
