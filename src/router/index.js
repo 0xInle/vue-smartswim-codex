@@ -1,6 +1,6 @@
 import AppContacts from '@/pages/contacts/AppContacts.vue'
 import AppDocuments from '@/pages/documents/AppDocuments.vue'
-import AppTrainers from '@/pages/AppTrainers.vue'
+import AppTrainers from '@/pages/trainers/AppTrainers.vue'
 import AppCompetitionsArchive from '@/pages/competitions/AppCompetitionsArchive.vue'
 import AppCompetitionDetail from '@/pages/competitions/AppCompetitionDetail.vue'
 import AppCompetitions from '@/pages/competitions/AppCompetitions.vue'

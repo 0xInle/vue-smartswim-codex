@@ -207,7 +207,7 @@ function toggleFaqItem(key) {
   min-width: 34px;
   min-height: 22px;
   padding: 3px 6px;
-  border-radius: 10px;
+  border-radius: 5px;
   background: color-mix(in srgb, var(--cyan) 88%, var(--white));
   font-size: 8px;
   font-weight: 900;
