@@ -1,10 +1,11 @@
 import AppContacts from '@/pages/AppContacts.vue'
 import AppDocuments from '@/pages/AppDocuments.vue'
-import AppFees from '@/pages/AppFees.vue'
 import AppTrainers from '@/pages/AppTrainers.vue'
 import AppCompetitionsArchive from '@/pages/competitions/AppCompetitionsArchive.vue'
 import AppCompetitionDetail from '@/pages/competitions/AppCompetitionDetail.vue'
 import AppCompetitions from '@/pages/competitions/AppCompetitions.vue'
+import AppFeeDetail from '@/pages/fees/AppFeeDetail.vue'
+import AppFees from '@/pages/fees/AppFees.vue'
 import HomePage from '@/pages/home/AppHome.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -37,6 +38,10 @@ const router = createRouter({
     {
       path: '/fees',
       component: AppFees,
+    },
+    {
+      path: '/fees/:slug',
+      component: AppFeeDetail,
     },
     {
       path: '/documents',
