@@ -274,6 +274,21 @@ onBeforeUnmount(() => {
 .reviews__carousel {
   position: relative;
   outline: none;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    rgb(0 0 0 / 1) 8%,
+    rgb(0 0 0 / 1) 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    rgb(0 0 0 / 1) 8%,
+    rgb(0 0 0 / 1) 92%,
+    transparent 100%
+  );
 }
 
 .reviews__stage {
@@ -445,6 +460,11 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 640px) {
+  .reviews__carousel {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
   .reviews__stage {
     min-height: 200px;
     perspective: none;

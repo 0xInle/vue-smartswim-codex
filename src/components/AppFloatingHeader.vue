@@ -19,7 +19,9 @@
 
       <ul class="app-header__menu list-reset flex">
         <li class="app-header__item">
-          <RouterLink class="app-header__link link-reset" to="/competitions">Соревнования</RouterLink>
+          <RouterLink class="app-header__link link-reset" to="/competitions"
+            >Соревнования</RouterLink
+          >
         </li>
         <li class="app-header__item">
           <RouterLink class="app-header__link link-reset" to="/fees">Сборы</RouterLink>
@@ -306,11 +308,7 @@ onBeforeUnmount(() => {
   padding: 5px;
   border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
   border-radius: 10px;
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--white) 18%, transparent) 0%,
-    color-mix(in srgb, var(--cyan) 18%, transparent) 100%
-  );
+  background: color-mix(in srgb, var(--white) 50%, transparent);
   gap: 20px;
   z-index: 100;
 }

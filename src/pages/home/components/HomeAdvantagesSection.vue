@@ -8,65 +8,29 @@
 
       <div class="advantages__overlay">
         <div class="advantages__grid">
-          <div
-            :ref="(element) => setCardRef(element, 0)"
-            class="advantages__card advantages__card--wide"
-            @pointerenter="cacheCardRect($event, 0)"
-            @pointermove="updateCardTilt($event, 0)"
-            @pointerleave="resetCardTilt(0)"
-          >
+          <div class="advantages__card advantages__card--wide">
             <span class="advantages__text">Квалифицированные специалисты</span>
           </div>
 
-          <div
-            :ref="(element) => setCardRef(element, 1)"
-            class="advantages__card advantages__card--tall"
-            @pointerenter="cacheCardRect($event, 1)"
-            @pointermove="updateCardTilt($event, 1)"
-            @pointerleave="resetCardTilt(1)"
-          >
+          <div class="advantages__card advantages__card--tall">
             <span class="advantages__text">
               Программы тренировок для всех возрастов и уровней подготовки
             </span>
           </div>
 
-          <div
-            :ref="(element) => setCardRef(element, 2)"
-            class="advantages__card"
-            @pointerenter="cacheCardRect($event, 2)"
-            @pointermove="updateCardTilt($event, 2)"
-            @pointerleave="resetCardTilt(2)"
-          >
+          <div class="advantages__card">
             <span class="advantages__text">Проведение соревнований с присуждением разрядов</span>
           </div>
 
-          <div
-            :ref="(element) => setCardRef(element, 3)"
-            class="advantages__card advantages__card--accent"
-            @pointerenter="cacheCardRect($event, 3)"
-            @pointermove="updateCardTilt($event, 3)"
-            @pointerleave="resetCardTilt(3)"
-          >
+          <div class="advantages__card advantages__card--accent">
             <span class="advantages__text"> 15 лет успешной работы </span>
           </div>
 
-          <div
-            :ref="(element) => setCardRef(element, 4)"
-            class="advantages__card"
-            @pointerenter="cacheCardRect($event, 4)"
-            @pointermove="updateCardTilt($event, 4)"
-            @pointerleave="resetCardTilt(4)"
-          >
+          <div class="advantages__card">
             <span class="advantages__text">Индивидуальный подход к каждому</span>
           </div>
 
-          <div
-            :ref="(element) => setCardRef(element, 5)"
-            class="advantages__card advantages__card--wide"
-            @pointerenter="cacheCardRect($event, 5)"
-            @pointermove="updateCardTilt($event, 5)"
-            @pointerleave="resetCardTilt(5)"
-          >
+          <div class="advantages__card advantages__card--wide">
             <span class="advantages__text">Регулярные тренировочные сборы</span>
           </div>
         </div>
@@ -74,91 +38,6 @@
     </div>
   </section>
 </template>
-
-<script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-
-const defaultTransform = 'translate3d(0px, 0px, 0px) rotateX(0deg) rotateY(0deg) scale(1)'
-const cardRefs = ref([])
-const cardRects = []
-const pendingTransforms = Array(6).fill(defaultTransform)
-const frameIds = Array(6).fill(0)
-let supportsInteractiveTilt = false
-
-const setCardRef = (element, index) => {
-  cardRefs.value[index] = element
-
-  if (element) {
-    element.style.transform = defaultTransform
-  }
-}
-
-const scheduleTransformUpdate = (index) => {
-  if (frameIds[index]) {
-    return
-  }
-
-  frameIds[index] = window.requestAnimationFrame(() => {
-    frameIds[index] = 0
-
-    const element = cardRefs.value[index]
-
-    if (element) {
-      element.style.transform = pendingTransforms[index]
-    }
-  })
-}
-
-const cacheCardRect = (event, index) => {
-  if (!supportsInteractiveTilt) {
-    return
-  }
-
-  cardRects[index] = event.currentTarget.getBoundingClientRect()
-}
-
-const updateCardTilt = (event, index) => {
-  if (!supportsInteractiveTilt) {
-    return
-  }
-
-  const { currentTarget, clientX, clientY } = event
-  const rect = cardRects[index] ?? currentTarget.getBoundingClientRect()
-  const offsetX = (clientX - rect.left) / rect.width - 0.5
-  const offsetY = (clientY - rect.top) / rect.height - 0.5
-  const rotateY = offsetX * 10
-  const rotateX = offsetY * -10
-  const translateX = offsetX * 8
-  const translateY = offsetY * 8
-
-  cardRects[index] = rect
-  pendingTransforms[index] =
-    `translate3d(${translateX}px, ${translateY}px, 22px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`
-  scheduleTransformUpdate(index)
-}
-
-const resetCardTilt = (index) => {
-  if (!supportsInteractiveTilt) {
-    return
-  }
-
-  cardRects[index] = null
-  pendingTransforms[index] = defaultTransform
-  scheduleTransformUpdate(index)
-}
-
-onMounted(() => {
-  supportsInteractiveTilt = window.matchMedia('(hover: hover) and (pointer: fine)').matches
-})
-
-onBeforeUnmount(() => {
-  frameIds.forEach((frameId) => {
-    if (frameId) {
-      window.cancelAnimationFrame(frameId)
-    }
-  })
-})
-</script>
 
 <style scoped>
 .advantages {
@@ -212,7 +91,6 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   justify-content: space-between;
-  perspective: 1200px;
 }
 
 .advantages__card {
@@ -226,13 +104,9 @@ onBeforeUnmount(() => {
     color-mix(in srgb, var(--white) 18%, transparent) 0%,
     color-mix(in srgb, var(--cyan) 18%, transparent) 100%
   );
-  transform-style: preserve-3d;
   transition:
-    transform 0.18s ease,
     border-color 0.18s ease,
     background 0.18s ease;
-  will-change: transform;
-  transform: translate3d(0px, 0px, 0px) rotateX(0deg) rotateY(0deg) scale(1);
 }
 
 .advantages__card--wide {

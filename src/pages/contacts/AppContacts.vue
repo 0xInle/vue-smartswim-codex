@@ -123,7 +123,6 @@ import { contactCards } from '@/pages/contacts/contactsData'
   gap: 12px;
 }
 
-.contacts__eyebrow,
 .contacts__item-label,
 .contacts__overlay-label {
   display: inline-flex;
@@ -220,7 +219,6 @@ import { contactCards } from '@/pages/contacts/contactsData'
 
 .contacts__item-value--link:hover,
 .contacts__overlay-link:hover {
-  /* color: color-mix(in srgb, var(--orange) 88%, var(--black)); */
   transform: translateX(2px);
 }
 
@@ -289,10 +287,6 @@ import { contactCards } from '@/pages/contacts/contactsData'
 
   .contacts__hero-copy {
     padding: 38px 24px;
-  }
-
-  .contacts__item {
-    min-height: auto;
   }
 }
 
