@@ -7,9 +7,14 @@
       :style="headerStyle"
     >
       <div class="app-header__brand" :class="{ 'app-header__brand--visible': isBrandVisible }">
-        <RouterLink class="app-header__home btn-reset link-reset" :tabindex="isBrandVisible ? 0 : -1" to="/">
+        <button
+          type="button"
+          class="app-header__home btn-reset link-reset"
+          :tabindex="isBrandVisible ? 0 : -1"
+          @click="handleHomeClick"
+        >
           Главная
-        </RouterLink>
+        </button>
       </div>
 
       <ul class="app-header__menu list-reset flex">
@@ -37,9 +42,10 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const headerRef = ref(null)
 const isHeaderStopped = ref(false)
 const isHeaderFloating = ref(false)
@@ -56,6 +62,7 @@ const headerMetrics = {
 
 let scrollFrameId = 0
 let resizeFrameId = 0
+let homeScrollFrameId = 0
 let resizeObserver = null
 let homeSectionRef = null
 let reviewsSectionRef = null
@@ -197,6 +204,53 @@ function observeLayout() {
   }
 }
 
+function smoothScrollToTop() {
+  if (homeScrollFrameId) {
+    window.cancelAnimationFrame(homeScrollFrameId)
+  }
+
+  const startY = window.scrollY
+
+  if (startY <= 0) {
+    return
+  }
+
+  const duration = 550
+  const startTime = window.performance.now()
+
+  const easeOutCubic = (progress) => 1 - (1 - progress) ** 3
+
+  const tick = (currentTime) => {
+    const elapsed = currentTime - startTime
+    const progress = Math.min(elapsed / duration, 1)
+    const nextY = Math.round(startY * (1 - easeOutCubic(progress)))
+
+    window.scrollTo({
+      top: nextY,
+      left: 0,
+      behavior: 'auto',
+    })
+
+    if (progress < 1) {
+      homeScrollFrameId = window.requestAnimationFrame(tick)
+      return
+    }
+
+    homeScrollFrameId = 0
+  }
+
+  homeScrollFrameId = window.requestAnimationFrame(tick)
+}
+
+function handleHomeClick() {
+  if (!isHomeRoute.value) {
+    router.push('/')
+    return
+  }
+
+  smoothScrollToTop()
+}
+
 onMounted(() => {
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('resize', handleResize)
@@ -229,6 +283,10 @@ onBeforeUnmount(() => {
 
   if (resizeFrameId) {
     window.cancelAnimationFrame(resizeFrameId)
+  }
+
+  if (homeScrollFrameId) {
+    window.cancelAnimationFrame(homeScrollFrameId)
   }
 
   if (resizeObserver) {

@@ -8,7 +8,26 @@ if ('scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual'
 }
 
-window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+function resetScrollPosition() {
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+
+  window.requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    })
+  })
+
+  window.setTimeout(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, 120)
+}
+
+window.addEventListener('pageshow', resetScrollPosition)
+window.addEventListener('load', resetScrollPosition)
+
+resetScrollPosition()
 
 const app = createApp(App)
 

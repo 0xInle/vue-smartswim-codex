@@ -148,12 +148,12 @@ const transforms = {
   '-2': 'translateX(calc(-50% - 470px)) rotateY(18deg) scale(0.82)',
 }
 
-const opacityMap = {
-  0: 1,
-  1: 0.72,
-  '-1': 0.72,
-  2: 0.34,
-  '-2': 0.34,
+const filterMap = {
+  0: 'none',
+  1: 'saturate(0.92) brightness(0.98)',
+  '-1': 'saturate(0.92) brightness(0.98)',
+  2: 'saturate(0.84) brightness(0.94)',
+  '-2': 'saturate(0.84) brightness(0.94)',
 }
 
 const cardStyles = computed(() =>
@@ -166,12 +166,14 @@ const cardStyles = computed(() =>
         opacity: 0,
         pointerEvents: 'none',
         transform: 'translateX(-50%) scale(0.84)',
+        filter: 'none',
         zIndex: 0,
       }
     }
 
     return {
-      opacity: opacityMap[relativeIndex],
+      opacity: 1,
+      filter: filterMap[relativeIndex],
       transform: transforms[relativeIndex],
       zIndex: 10 - absIndex,
     }
@@ -296,25 +298,26 @@ onBeforeUnmount(() => {
   overflow: hidden;
   isolation: isolate;
   backface-visibility: hidden;
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--white) 22%, transparent) 0%,
-    color-mix(in srgb, var(--very-light-blue) 24%, transparent) 100%
-  );
+  box-shadow:
+    0 20px 44px color-mix(in srgb, var(--black) 14%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--white) 78%, transparent);
+  background: var(--white);
   transition:
     transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.55s ease,
+    filter 0.55s ease,
     border-color 0.4s ease,
-    background 0.4s ease;
+    background 0.4s ease,
+    box-shadow 0.4s ease;
 }
 
 .reviews__card--active {
   border-color: color-mix(in srgb, var(--cyan) 42%, var(--white));
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--white) 34%, transparent) 0%,
-    color-mix(in srgb, var(--very-light-blue) 30%, transparent) 100%
-  );
+  box-shadow:
+    0 26px 52px color-mix(in srgb, var(--cyan) 16%, transparent),
+    0 20px 44px color-mix(in srgb, var(--black) 14%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--white) 86%, transparent);
+  background: var(--white);
 }
 
 .reviews__text {
