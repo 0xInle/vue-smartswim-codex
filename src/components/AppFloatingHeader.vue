@@ -19,12 +19,14 @@
 
       <ul class="app-header__menu list-reset flex">
         <li class="app-header__item">
-          <RouterLink class="app-header__link link-reset" to="/competitions"
+          <RouterLink class="app-header__link app-header__link--color link-reset" to="/competitions"
             >Соревнования</RouterLink
           >
         </li>
         <li class="app-header__item">
-          <RouterLink class="app-header__link link-reset" to="/fees">Сборы</RouterLink>
+          <RouterLink class="app-header__link app-header__link--color link-reset" to="/fees"
+            >Сборы</RouterLink
+          >
         </li>
         <li class="app-header__item">
           <RouterLink class="app-header__link link-reset" to="/documents">Документы</RouterLink>
@@ -101,7 +103,7 @@ function updateHeaderPosition() {
   const scrollY = window.scrollY
   const headerHeight = headerRef.value?.offsetHeight ?? 0
   const footerTop = footerSectionRef?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY
-  const floatingHeaderTop = window.innerHeight - HEADER_BOTTOM_OFFSET - headerHeight
+  // const floatingHeaderTop = window.innerHeight - HEADER_BOTTOM_OFFSET - headerHeight
   const stopTriggerTop = window.innerHeight - HEADER_BOTTOM_OFFSET + FOOTER_STOP_OFFSET
   const stopHeaderTop = footerTop - FOOTER_STOP_OFFSET - headerHeight
   const shouldStopHeader = footerSectionRef ? footerTop <= stopTriggerTop : false
@@ -135,9 +137,10 @@ function recalculateHeaderMetrics() {
   syncRouteTargets()
 
   if (!footerSectionRef) {
-    headerMetrics.revealPoint = isHomeRoute.value && homeSectionRef
-      ? homeSectionRef.offsetTop + homeSectionRef.offsetHeight * 0.75
-      : 0
+    headerMetrics.revealPoint =
+      isHomeRoute.value && homeSectionRef
+        ? homeSectionRef.offsetTop + homeSectionRef.offsetHeight * 0.75
+        : 0
     resetHeaderState()
     return
   }
@@ -300,7 +303,8 @@ onBeforeUnmount(() => {
   padding: 5px;
   border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--white) 50%, transparent);
+  /* background: color-mix(in srgb, var(--white) 50%, transparent); */
+  background: color-mix(in srgb, var(--white) 95%, transparent);
   gap: 20px;
   z-index: 100;
 }
@@ -313,11 +317,8 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   max-width: 0;
   padding: 15px 0;
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--cyan) 34%, transparent) 0%,
-    color-mix(in srgb, var(--light-blue) 24%, transparent) 100%
-  );
+  background-color: color-mix(in srgb, var(--light-blue) 90%, transparent);
+
   border-radius: 10px;
   overflow: hidden;
   transform-origin: right center;
@@ -379,11 +380,27 @@ onBeforeUnmount(() => {
   transform: scaleX(1);
 }
 
+.app-header__link--color {
+  display: block;
+  height: 47px;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 13.25px 30px;
+  background-color: color-mix(in srgb, var(--cyan) 90%, transparent);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--black);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
 .app-header__login {
   appearance: none;
   -webkit-appearance: none;
   padding: 15px 30px;
-  background-color: color-mix(in srgb, var(--orange) 78%, transparent);
+  background-color: color-mix(in srgb, var(--orange) 90%, transparent);
   border-radius: 10px;
   font-size: 15px;
   font-weight: 500;

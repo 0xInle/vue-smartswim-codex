@@ -187,7 +187,7 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   box-shadow:
     0 18px 48px color-mix(in srgb, var(--black) 8%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--white) 70%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--white) 0%, transparent);
   overflow: hidden;
 }
 

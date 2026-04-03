@@ -8,11 +8,11 @@
 
       <div class="advantages__overlay">
         <div class="advantages__grid">
-          <div class="advantages__card advantages__card--wide">
+          <div class="advantages__card">
             <span class="advantages__text">Квалифицированные специалисты</span>
           </div>
 
-          <div class="advantages__card advantages__card--tall">
+          <div class="advantages__card">
             <span class="advantages__text">
               Программы тренировок для всех возрастов и уровней подготовки
             </span>
@@ -30,7 +30,7 @@
             <span class="advantages__text">Индивидуальный подход к каждому</span>
           </div>
 
-          <div class="advantages__card advantages__card--wide">
+          <div class="advantages__card">
             <span class="advantages__text">Регулярные тренировочные сборы</span>
           </div>
         </div>
@@ -85,12 +85,11 @@
 
 .advantages__grid {
   display: grid;
-  grid-template-columns: 36% 27% 27%;
-  grid-template-rows: repeat(3, minmax(140px, 33.33%));
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(140px, 1fr));
+  gap: 50px;
   width: 100%;
   height: 100%;
-  justify-content: space-between;
 }
 
 .advantages__card {
@@ -109,14 +108,6 @@
     background 0.18s ease;
 }
 
-.advantages__card--wide {
-  grid-column: span 2;
-}
-
-.advantages__card--tall {
-  grid-row: span 2;
-}
-
 .advantages__card--accent {
   background: linear-gradient(
     160deg,
@@ -126,10 +117,10 @@
 }
 
 .advantages__text {
-  max-width: 320px;
   font-size: 36px;
   font-weight: 900;
   line-height: 1.05;
+  font-family: Oswald;
   color: var(--white);
   text-wrap: balance;
   text-shadow: 0 2px 12px color-mix(in srgb, var(--black) 28%, transparent);
@@ -145,12 +136,6 @@
     grid-template-columns: 48% 48%;
     grid-template-rows: repeat(4, minmax(120px, 25%));
     justify-content: space-between;
-  }
-
-  .advantages__card--wide,
-  .advantages__card--tall {
-    grid-column: span 1;
-    grid-row: span 1;
   }
 
   .advantages__text {
