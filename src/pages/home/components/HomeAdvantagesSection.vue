@@ -147,6 +147,7 @@
 @media (max-width: 640px) {
   .advantages {
     padding: 24px 0;
+    margin-bottom: 30px;
   }
 
   .advantages__video,

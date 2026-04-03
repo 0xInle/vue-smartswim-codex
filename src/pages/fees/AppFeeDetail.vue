@@ -623,6 +623,10 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 720px) {
+  .fee-detail__title {
+    font-size: clamp(34px, 10vw, 42px);
+  }
+
   .fee-detail__content,
   .fee-detail__intro-copy,
   .fee-detail__program-copy,
@@ -654,6 +658,12 @@ onBeforeUnmount(() => {
   .fee-detail__media,
   .fee-detail__image {
     min-height: 280px;
+  }
+}
+
+@media (max-width: 420px) {
+  .fee-detail__title {
+    font-size: clamp(30px, 9vw, 34px);
   }
 }
 </style>

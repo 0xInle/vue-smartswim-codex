@@ -531,7 +531,7 @@ onBeforeUnmount(() => {
   border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
   border-radius: 10px;
   box-shadow: 0 24px 60px color-mix(in srgb, var(--black) 18%, transparent);
-  z-index: 3;
+  z-index: 10;
 }
 
 .home__form-header {
@@ -683,7 +683,7 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   box-shadow: 0 18px 40px color-mix(in srgb, var(--black) 14%, transparent);
   overflow-y: auto;
-  z-index: 15;
+  z-index: 30;
 }
 
 .home__dropdown-panel--date {
@@ -803,7 +803,7 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   background: rgb(from var(--white) r g b / 18%);
   background-clip: padding-box;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--black);
   transition:
@@ -840,13 +840,13 @@ onBeforeUnmount(() => {
 }
 
 .home__time-chip {
-  min-height: 40px;
-  padding: 10px 12px;
+  min-height: 36px;
+  padding: 8px 10px;
   border: 1px solid rgb(from var(--white) r g b / 18%);
   border-radius: 10px;
   background: color-mix(in srgb, var(--white) 18%, transparent);
   background-clip: padding-box;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--black);
   text-align: center;
@@ -931,9 +931,19 @@ onBeforeUnmount(() => {
   transform: translateY(-8px);
 }
 
+@media (max-width: 1316px) {
+  .home__dropdown-trigger {
+    background: color-mix(in srgb, var(--white) 96%, var(--very-light-blue) 4%);
+  }
+
+  .home__dropdown-panel {
+    background: color-mix(in srgb, var(--white) 98%, var(--very-light-blue) 2%);
+  }
+}
+
 @media (max-width: 768px) {
   .home__overlay {
-    padding: 96px 0 36px;
+    padding: 20px 0 30px;
   }
 
   .home__grid {
@@ -978,18 +988,23 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
-  .home__dropdown-trigger {
-    min-height: 102px;
+  .home__dropdown--date,
+  .home__dropdown--time {
+    position: relative;
   }
 
   .home__dropdown-panel {
+    top: auto;
+    bottom: calc(100% + 12px);
     left: 0;
     right: 0;
+    z-index: 20;
   }
 
   .home__dropdown-panel--date,
   .home__dropdown-panel--time {
-    top: calc(100% + 12px);
+    top: auto;
+    bottom: calc(100% + 12px);
     left: 0;
     right: 0;
     width: 100%;
@@ -997,7 +1012,7 @@ onBeforeUnmount(() => {
   }
 
   .home__time-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 </style>

@@ -398,16 +398,33 @@ const archiveGalleryImages = [
 }
 
 @media (max-width: 768px) {
+  .competitions-archive__hero {
+    margin-bottom: 30px;
+  }
+
+  .competitions-archive__title {
+    font-size: clamp(34px, 10vw, 42px);
+  }
+
   .competitions-archive__dates {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .competitions-archive__grid {
+    margin: 30px 0;
+  }
+
   .competitions-archive__gallery {
+    margin: 30px 0 120px;
     gap: 12px;
   }
 }
 
 @media (max-width: 520px) {
+  .competitions-archive__title {
+    font-size: clamp(30px, 9vw, 34px);
+  }
+
   .competitions-archive__dates {
     grid-template-columns: 1fr;
   }

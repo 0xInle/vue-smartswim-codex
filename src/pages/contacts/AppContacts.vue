@@ -69,7 +69,7 @@ import { contactCards } from '@/pages/contacts/contactsData'
 <style scoped>
 .contacts__hero {
   position: relative;
-  padding: 28px 0 100px;
+  padding: 28px 0 120px;
 }
 
 .contacts__hero::before {
@@ -277,6 +277,10 @@ import { contactCards } from '@/pages/contacts/contactsData'
 }
 
 @media (max-width: 960px) {
+  .contacts__hero {
+    padding-bottom: 120px;
+  }
+
   .contacts__hero-shell {
     grid-template-columns: 1fr;
   }
@@ -284,11 +288,44 @@ import { contactCards } from '@/pages/contacts/contactsData'
   .contacts__hero-copy {
     padding: 38px 24px;
   }
+
+  .contacts__card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .contacts__item:nth-child(4) {
+    order: 1;
+  }
+
+  .contacts__item:nth-child(5) {
+    order: 2;
+  }
+
+  .contacts__item:nth-child(1) {
+    order: 3;
+  }
+
+  .contacts__item:nth-child(2) {
+    order: 4;
+  }
+
+  .contacts__item:nth-child(3) {
+    order: 5;
+    grid-column: 1 / -1;
+  }
+
+  .contacts__aside {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
   .contacts__hero {
-    padding: 18px 0 24px;
+    padding-top: 18px;
+  }
+
+  .contacts__title {
+    font-size: clamp(34px, 10vw, 42px);
   }
 
   .contacts__hero::before {
@@ -323,6 +360,22 @@ import { contactCards } from '@/pages/contacts/contactsData'
   .contacts__overlay-link {
     font-size: 16px;
     word-break: break-word;
+  }
+}
+
+@media (max-width: 700px) {
+  .contacts__card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contacts__item:nth-child(3) {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .contacts__title {
+    font-size: clamp(30px, 9vw, 34px);
   }
 }
 </style>

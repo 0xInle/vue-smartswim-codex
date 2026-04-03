@@ -501,6 +501,11 @@ function toggleFaqItem(key) {
 @media (max-width: 640px) {
   .documents__library {
     padding-top: 20px;
+    margin-bottom: 30px;
+  }
+
+  .documents__title {
+    font-size: clamp(34px, 10vw, 42px);
   }
 
   .documents__grid {
@@ -532,11 +537,16 @@ function toggleFaqItem(key) {
 
   .documents__faq-question {
     font-size: 18px;
+    line-height: 1.3;
+  }
+
+  .documents__faq-entry-answer {
+    font-size: 15px;
   }
 
   .documents__image-break {
     min-height: 168px;
-    margin-bottom: 24px;
+    margin-bottom: 30px;
   }
 
   .documents__image {
@@ -556,6 +566,16 @@ function toggleFaqItem(key) {
 
   .documents__image-contact {
     font-size: 20px;
+  }
+
+  .documents__faq {
+    margin-bottom: 30px;
+  }
+}
+
+@media (max-width: 420px) {
+  .documents__title {
+    font-size: clamp(30px, 9vw, 34px);
   }
 }
 </style>

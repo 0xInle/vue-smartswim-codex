@@ -238,7 +238,7 @@ import { feeCamps } from '@/pages/fees/feesData'
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
-  margin-bottom: 84px;
+  margin-bottom: 50px;
 }
 
 .fees__card {
@@ -433,6 +433,18 @@ import { feeCamps } from '@/pages/fees/feesData'
 }
 
 @media (max-width: 720px) {
+  .fees__hero {
+    margin-bottom: 30px;
+  }
+
+  .fees__cards {
+    margin-bottom: 30px;
+  }
+
+  .fees__title {
+    font-size: clamp(34px, 10vw, 42px);
+  }
+
   .fees__cards {
     grid-template-columns: 1fr;
   }
@@ -446,6 +458,12 @@ import { feeCamps } from '@/pages/fees/feesData'
   .fees__feature-card {
     min-height: 360px;
     padding: 36px 24px;
+  }
+}
+
+@media (max-width: 420px) {
+  .fees__title {
+    font-size: clamp(30px, 9vw, 34px);
   }
 }
 </style>

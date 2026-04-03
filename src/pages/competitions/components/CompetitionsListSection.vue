@@ -249,5 +249,18 @@ defineExpose({
   .competitions-list__meta {
     grid-template-columns: 1fr;
   }
+
+  .competitions-list__action {
+    width: 100%;
+    max-width: none;
+    padding: 11px 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .competitions-list__action {
+    padding: 11px 14px;
+    font-size: 14px;
+  }
 }
 </style>

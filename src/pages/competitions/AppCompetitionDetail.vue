@@ -581,8 +581,20 @@ function formatCardDescription(description) {
 }
 
 @media (max-width: 640px) {
+  .competition-detail__hero {
+    margin-bottom: 30px;
+  }
+
+  .competition-detail__faq {
+    margin-bottom: 30px;
+  }
+
   .competition-detail__content {
     padding: 20px;
+  }
+
+  .competition-detail__title {
+    font-size: clamp(34px, 10vw, 42px);
   }
 
   .competition-detail__meta,
@@ -601,7 +613,18 @@ function formatCardDescription(description) {
   }
 
   .competition-detail__faq-question {
-    font-size: 13px;
+    font-size: 18px;
+    line-height: 1.3;
+  }
+
+  .competition-detail__faq-entry-answer {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 420px) {
+  .competition-detail__title {
+    font-size: clamp(30px, 9vw, 34px);
   }
 }
 </style>

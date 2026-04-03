@@ -138,7 +138,7 @@ onBeforeUnmount(() => {
   grid-template-columns: minmax(0, 1.18fr) minmax(280px, 0.82fr);
   gap: 22px;
   padding: 28px 0 34px;
-  margin-bottom: 44px;
+  margin-bottom: 50px;
   align-items: stretch;
 }
 
@@ -431,16 +431,12 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 18px;
   right: 18px;
-  bottom: 88px;
+  bottom: calc(47px + 14px);
   width: calc(100% - 36px);
   min-height: 0;
   padding: 20px 18px;
   border-radius: 10px;
-  background: linear-gradient(
-    180deg,
-    rgb(from var(--white) r g b / 94%) 0%,
-    color-mix(in srgb, var(--very-light-blue) 24%, var(--white)) 100%
-  );
+  background: var(--white);
   border: 1px solid color-mix(in srgb, var(--cyan) 28%, var(--white));
   backdrop-filter: blur(16px);
   opacity: 0;
@@ -512,6 +508,14 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 700px) {
+  .trainers__hero {
+    margin-bottom: 30px;
+  }
+
+  .trainers__title {
+    font-size: clamp(34px, 10vw, 42px);
+  }
+
   .trainers__grid {
     grid-template-columns: 1fr;
     gap: 18px;
@@ -523,7 +527,7 @@ onBeforeUnmount(() => {
   }
 
   .trainers__image-showcase {
-    margin-bottom: 100px;
+    margin-bottom: 30px;
   }
 
   .trainers__image-shell {
@@ -552,13 +556,20 @@ onBeforeUnmount(() => {
   }
 
   .trainers__card-details {
-    top: 60px;
+    top: auto;
     right: 16px;
-    bottom: 86px;
+    bottom: calc(16px + 47px + 28px);
     left: 16px;
     width: auto;
     min-height: 0;
     padding: 16px;
+    max-height: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .trainers__title {
+    font-size: clamp(30px, 9vw, 34px);
   }
 }
 </style>

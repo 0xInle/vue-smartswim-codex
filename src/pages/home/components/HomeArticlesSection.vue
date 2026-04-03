@@ -224,6 +224,7 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .articles {
     padding: 24px 0;
+    margin-bottom: 20px;
   }
 
   .articles::before {
@@ -233,6 +234,14 @@ onBeforeUnmount(() => {
   .article__content {
     flex-direction: column;
     gap: 24px;
+  }
+
+  .article__content img {
+    order: 1;
+  }
+
+  .article__text {
+    order: 2;
   }
 
   .article__text {

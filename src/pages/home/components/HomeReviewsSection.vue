@@ -55,6 +55,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+const MOBILE_REVIEW_BREAKPOINT = 768
 const reviews = [
   {
     name: 'Марина К.',
@@ -121,6 +122,7 @@ const reviews = [
 const activeIndex = ref(0)
 const carouselRef = ref(null)
 const isCarouselVisible = ref(true)
+const isCompactViewport = ref(false)
 const autoplayDelay = 2600
 let autoplayId = null
 let visibilityObserver = null
@@ -156,10 +158,33 @@ const filterMap = {
   '-2': 'saturate(0.84) brightness(0.94)',
 }
 
+const syncCompactViewport = () => {
+  isCompactViewport.value = window.innerWidth <= MOBILE_REVIEW_BREAKPOINT
+}
+
 const cardStyles = computed(() =>
   reviews.map((_, index) => {
     const relativeIndex = getRelativeIndex(index)
     const absIndex = Math.abs(relativeIndex)
+
+    if (isCompactViewport.value) {
+      if (absIndex > 0) {
+        return {
+          opacity: 0,
+          pointerEvents: 'none',
+          transform: 'translateX(-50%) scale(0.96)',
+          filter: 'none',
+          zIndex: 0,
+        }
+      }
+
+      return {
+        opacity: 1,
+        filter: 'none',
+        transform: 'translateX(-50%) translateZ(0px) scale(1)',
+        zIndex: 10,
+      }
+    }
 
     if (absIndex > 2) {
       return {
@@ -227,6 +252,8 @@ const handleVisibilityChange = () => {
 }
 
 onMounted(() => {
+  syncCompactViewport()
+
   if (window.IntersectionObserver && carouselRef.value) {
     visibilityObserver = new window.IntersectionObserver(
       ([entry]) => {
@@ -248,11 +275,13 @@ onMounted(() => {
   }
 
   document.addEventListener('visibilitychange', handleVisibilityChange)
+  window.addEventListener('resize', syncCompactViewport)
   startAutoplay()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange)
+  window.removeEventListener('resize', syncCompactViewport)
 
   if (visibilityObserver) {
     visibilityObserver.disconnect()
@@ -399,10 +428,11 @@ onBeforeUnmount(() => {
 
 .reviews__dots {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
   gap: 10px;
   max-width: 420px;
+  white-space: nowrap;
 }
 
 .reviews__dot {
@@ -441,7 +471,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 768px) {
   .reviews {
-    padding: 24px 0 132px;
+    padding: 24px 0 120px;
   }
 
   .reviews__stage {
@@ -471,8 +501,13 @@ onBeforeUnmount(() => {
   }
 
   .reviews__card {
-    width: calc(100% - 24px);
+    width: 100%;
     min-height: 200px;
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 78%, transparent);
+  }
+
+  .reviews__card--active {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 86%, transparent);
   }
 
   .reviews__controls {
@@ -482,7 +517,7 @@ onBeforeUnmount(() => {
 
   .reviews__dots {
     gap: 8px;
-    max-width: 220px;
+    max-width: none;
   }
 }
 </style>

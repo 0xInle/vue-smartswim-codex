@@ -305,15 +305,40 @@ defineEmits(['explore'])
 
 @media (max-width: 768px) {
   .competitions-hero {
+    margin-bottom: 30px;
     padding-top: 18px;
+  }
+
+  .competitions-hero__title {
+    font-size: clamp(34px, 10vw, 42px);
   }
 
   .competitions-hero__copy {
     padding: 20px;
   }
 
+  .competitions-hero__actions {
+    align-items: stretch;
+  }
+
+  .competitions-hero__cta,
+  .competitions-hero__phone {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
   .competitions-hero__stats {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .competitions-hero__title {
+    font-size: clamp(30px, 9vw, 34px);
+  }
+
+  .competitions-hero__archive-link {
+    padding: 11px 22px;
   }
 }
 </style>

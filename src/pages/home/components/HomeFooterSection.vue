@@ -82,4 +82,26 @@
   padding: 20px 0;
   justify-content: space-between;
 }
+
+@media (max-width: 549px) {
+  .footer__column--contacts {
+    display: none;
+  }
+
+  .footer__top {
+    gap: 16px;
+  }
+
+  .footer__bottom {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .footer__copyright,
+  .footer__legal {
+    width: 100%;
+  }
+}
 </style>
