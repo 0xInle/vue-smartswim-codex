@@ -1,3 +1,5 @@
+import { publicAsset } from '@/utils/publicAsset'
+
 const block = (...lines) => lines.join('\n')
 
 const dailySchedule = [
@@ -52,11 +54,11 @@ export const feeCamps = [
     price: '88 000 ₽',
     priceNote: 'без жд билетов',
     address: 'с. Кабардинка, ул. Мира, д. 20',
-    coverImage: '/images/06-img.jpg',
+    coverImage: publicAsset('/images/06-img.jpg'),
     coverAlt: 'Спортсмены Smart Swim на летнем сборе',
-    detailImage: '/images/07-img.jpg',
+    detailImage: publicAsset('/images/07-img.jpg'),
     detailAlt: 'Летние сборы Smart Swim в Кабардинке',
-    accentImage: '/images/11-img.jpg',
+    accentImage: publicAsset('/images/11-img.jpg'),
     accentAlt: 'Командная атмосфера на сборах Smart Swim',
     formLink: 'https://forms.yandex.ru/u/66e1ecc5eb61460dd6a7d859/',
     intro: [
@@ -91,11 +93,11 @@ export const feeCamps = [
     price: '89 500 ₽',
     priceNote: 'без жд билетов',
     address: 'с. Кабардинка, ул. Мира, д. 20',
-    coverImage: '/images/08-img.jpg',
+    coverImage: publicAsset('/images/08-img.jpg'),
     coverAlt: 'Летние сборы Smart Swim в Кабардинке в августе',
-    detailImage: '/images/09-img.jpg',
+    detailImage: publicAsset('/images/09-img.jpg'),
     detailAlt: 'Спортсмены на летнем сборе Smart Swim',
-    accentImage: '/images/12-img.jpg',
+    accentImage: publicAsset('/images/12-img.jpg'),
     accentAlt: 'Тренировочная смена Smart Swim',
     formLink: 'https://forms.yandex.ru/u/66e1ecc5eb61460dd6a7d859/',
     intro: [
@@ -130,11 +132,11 @@ export const feeCamps = [
     price: '79 900 ₽',
     priceNote: 'без жд билетов',
     address: 'г. Раменское, ул. Свободы, д.1',
-    coverImage: '/images/10-img.jpg',
+    coverImage: publicAsset('/images/10-img.jpg'),
     coverAlt: 'Спортсмены Smart Swim на сборе в Раменском',
-    detailImage: '/images/13-img.jpg',
+    detailImage: publicAsset('/images/13-img.jpg'),
     detailAlt: 'Сборы Smart Swim в Раменском',
-    accentImage: '/images/14-img.jpg',
+    accentImage: publicAsset('/images/14-img.jpg'),
     accentAlt: 'Групповая работа на сборе Smart Swim',
     formLink: 'https://forms.yandex.ru/u/66e1ecc5eb61460dd6a7d859/',
     intro: [

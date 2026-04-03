@@ -1,3 +1,5 @@
+import { publicAsset } from '@/utils/publicAsset'
+
 const block = (...lines) => lines.join('\n')
 
 export const competitionDirections = [
@@ -12,7 +14,7 @@ export const competitionDirections = [
       'Серия для тех, кто уже готов к регулярным стартам: понятный ритм сезона, аккуратная организация, разрядные дистанции и прозрачная логика участия от этапа к этапу.',
     location: block('г. Красногорск,', 'ул. Советская, 15'),
     season: 'Сезон 2026',
-    image: '/images/01-img.jpg',
+    image: publicAsset('/images/01-img.jpg'),
     imageAlt: 'Пловец на старте соревнований',
     cards: [
       {
@@ -252,7 +254,7 @@ export const competitionDirections = [
     description: 'Презентация кубка smartiki',
     location: block('г. Красногорск,', 'ул. Советская, 15'),
     season: 'Сезон 2025',
-    image: '/images/02-img.jpg',
+    image: publicAsset('/images/02-img.jpg'),
     imageAlt: 'Юные спортсмены в бассейне',
     cards: [
       {

@@ -93,7 +93,7 @@
         </div>
       </section>
 
-      <section class="fee-detail__program">
+      <section class="fee-detail__program" :style="programSectionStyle">
         <div class="fee-detail__program-copy">
           <span class="fee-detail__eyebrow">Фокус работы</span>
           <h2 class="fee-detail__section-title">Программа сбора</h2>
@@ -146,11 +146,15 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import HomeFooterSection from '@/pages/home/components/HomeFooterSection.vue'
 import { getFeeCampBySlug } from '@/pages/fees/feesData'
+import { publicAsset } from '@/utils/publicAsset'
 
 const route = useRoute()
 const camp = computed(() => getFeeCampBySlug(route.params.slug))
 const timelineItemRefs = ref([])
 const visibleTimelineItems = ref([])
+const programSectionStyle = {
+  '--fee-program-image': `url(${publicAsset('/images/16-img.jpg')})`,
+}
 
 let timelineObserver
 
@@ -405,7 +409,7 @@ onBeforeUnmount(() => {
   bottom: 0;
   left: -50%;
   right: -50%;
-  background: url('/images/16-img.jpg') center / cover no-repeat;
+  background: var(--fee-program-image) center / cover no-repeat;
   opacity: 1;
   border-radius: 10px;
   pointer-events: none;

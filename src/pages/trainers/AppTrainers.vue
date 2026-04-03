@@ -27,7 +27,7 @@
       <section class="trainers__image-showcase" aria-label="Атмосфера тренировок Smart Swim">
         <div class="trainers__image-shell">
           <img
-            src="/images/19-img.jpg"
+            :src="trainersImage"
             alt="Тренировка Smart Swim у бассейна"
             class="trainers__showcase-image"
           />
@@ -104,8 +104,10 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import HomeFooterSection from '@/pages/home/components/HomeFooterSection.vue'
 import { trainers, trainersHeroStats } from '@/pages/trainers/trainersData'
+import { publicAsset } from '@/utils/publicAsset'
 
 const activeTrainerId = ref(null)
+const trainersImage = publicAsset('/images/19-img.jpg')
 function toggleTrainerDetails(trainerId) {
   activeTrainerId.value = activeTrainerId.value === trainerId ? null : trainerId
 }

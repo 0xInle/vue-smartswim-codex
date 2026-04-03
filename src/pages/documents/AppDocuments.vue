@@ -30,7 +30,7 @@
       </section>
 
       <section class="documents__image-break" aria-hidden="true">
-        <img src="/images/17-img.jpg" alt="" class="documents__image" />
+        <img :src="documentsImage" alt="" class="documents__image" />
         <div class="documents__image-decor">
           <div class="documents__image-panel">
             <p class="documents__image-contact">8 916 729 07 73</p>
@@ -78,7 +78,7 @@
 
       <section class="documents__footer-image">
         <img
-          src="/images/20-img.jpg"
+          :src="documentsFooterImage"
           alt="Пловец Smart Swim в воде во время тренировки"
           class="documents__footer-image-media"
         />
@@ -94,8 +94,11 @@ import { ref } from 'vue'
 import HomeFooterSection from '@/pages/home/components/HomeFooterSection.vue'
 import { documents, faqSections } from '@/pages/documents/documentsData'
 import { formatFaqAnswer } from '@/utils/formatFaqAnswer'
+import { publicAsset } from '@/utils/publicAsset'
 
 const openFaqKey = ref(null)
+const documentsImage = publicAsset('/images/17-img.jpg')
+const documentsFooterImage = publicAsset('/images/20-img.jpg')
 
 function toggleFaqItem(key) {
   openFaqKey.value = openFaqKey.value === key ? null : key
@@ -347,6 +350,8 @@ function toggleFaqItem(key) {
 
 .documents__faq-summary {
   display: flex;
+  appearance: none;
+  -webkit-appearance: none;
   align-items: center;
   justify-content: space-between;
   width: 100%;
@@ -356,6 +361,7 @@ function toggleFaqItem(key) {
   background: transparent;
   cursor: pointer;
   text-align: left;
+  color: var(--black);
 }
 
 .documents__faq-question {

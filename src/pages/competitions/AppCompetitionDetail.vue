@@ -122,7 +122,7 @@
 
       <section class="competition-detail__footer-image">
         <img
-          src="/images/20-img.jpg"
+          :src="competitionFooterImage"
           alt="Пловец Smart Swim в воде во время тренировки"
           class="competition-detail__footer-image-media"
         />
@@ -139,11 +139,13 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getCompetitionBySlug } from './competitionData'
 import { formatFaqAnswer } from '@/utils/formatFaqAnswer'
+import { publicAsset } from '@/utils/publicAsset'
 
 const route = useRoute()
 
 const competition = computed(() => getCompetitionBySlug(route.params.slug))
 const openFaqKey = ref(null)
+const competitionFooterImage = publicAsset('/images/20-img.jpg')
 
 function toggleFaqItem(key) {
   openFaqKey.value = openFaqKey.value === key ? null : key
@@ -452,6 +454,8 @@ function formatCardDescription(description) {
 
 .competition-detail__faq-summary {
   display: flex;
+  appearance: none;
+  -webkit-appearance: none;
   align-items: center;
   justify-content: space-between;
   width: 100%;
@@ -461,6 +465,7 @@ function formatCardDescription(description) {
   background: transparent;
   cursor: pointer;
   text-align: left;
+  color: var(--black);
 }
 
 .competition-detail__faq-question {

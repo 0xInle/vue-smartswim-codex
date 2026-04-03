@@ -357,7 +357,11 @@ function smoothScrollToTop() {
 
 function handleHomeClick() {
   if (!isHomeRoute.value) {
-    router.push('/')
+    router.push('/').then(() => {
+      nextTick(() => {
+        smoothScrollToTop()
+      })
+    })
     return
   }
 

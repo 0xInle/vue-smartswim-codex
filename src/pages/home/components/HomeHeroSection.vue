@@ -1,7 +1,7 @@
 <template>
   <section class="home">
     <video autoplay muted loop playsinline preload="metadata" class="home__video-player">
-      <source src="/videos/01-video.mp4" type="video/mp4" />
+      <source :src="heroVideo" type="video/mp4" />
       Ваш браузер не поддерживает видео.
     </video>
 
@@ -177,9 +177,11 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import IconPhone from '@/assets/images/icon-phone.svg'
 import IconSwimmer from '@/assets/images/icon-swimmer.svg'
+import { publicAsset } from '@/utils/publicAsset'
 
 const isDateOpen = ref(false)
 const isTimeOpen = ref(false)
+const heroVideo = publicAsset('/videos/01-video.mp4')
 const dateDropdownRef = ref(null)
 const timeDropdownRef = ref(null)
 const today = new Date()

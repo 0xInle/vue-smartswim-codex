@@ -6,12 +6,12 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import svgLoader from 'vite-svg-loader'
 
 // https://vite.dev/config/
-export default defineConfig({
-  // base: '/test/',
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/test/' : '/',
   plugins: [vue(), vueDevTools(), svgLoader()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-})
+}))

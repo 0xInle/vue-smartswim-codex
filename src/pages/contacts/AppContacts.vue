@@ -38,7 +38,7 @@
           <aside class="contacts__aside">
             <div class="contacts__panel contacts__panel--visual">
               <img
-                src="/images/18-img.jpg"
+                :src="contactsImage"
                 alt="Пловцы Smart Swim на бортике бассейна"
                 class="contacts__image"
               />
@@ -64,6 +64,9 @@
 <script setup>
 import HomeFooterSection from '@/pages/home/components/HomeFooterSection.vue'
 import { contactCards } from '@/pages/contacts/contactsData'
+import { publicAsset } from '@/utils/publicAsset'
+
+const contactsImage = publicAsset('/images/18-img.jpg')
 </script>
 
 <style scoped>

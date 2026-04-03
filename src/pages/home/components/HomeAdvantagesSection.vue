@@ -2,7 +2,7 @@
   <section class="advantages">
     <div class="advantages__video">
       <video autoplay muted loop playsinline preload="metadata" class="advantages__video-player">
-        <source src="/videos/02-video.mp4" type="video/mp4" />
+        <source :src="advantagesVideo" type="video/mp4" />
         Ваш браузер не поддерживает видео.
       </video>
 
@@ -38,6 +38,12 @@
     </div>
   </section>
 </template>
+
+<script setup>
+import { publicAsset } from '@/utils/publicAsset'
+
+const advantagesVideo = publicAsset('/videos/02-video.mp4')
+</script>
 
 <style scoped>
 .advantages {
