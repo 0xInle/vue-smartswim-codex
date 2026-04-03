@@ -118,10 +118,6 @@ import { feeCamps } from '@/pages/fees/feesData'
 </script>
 
 <style scoped>
-.fees {
-  padding-top: 8px;
-}
-
 .fees__hero {
   position: relative;
   display: grid;

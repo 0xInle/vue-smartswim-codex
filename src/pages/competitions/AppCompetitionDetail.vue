@@ -161,10 +161,6 @@ function formatCardDescription(description) {
 </script>
 
 <style scoped>
-.competition-detail {
-  padding-top: 8px;
-}
-
 .competition-detail__hero {
   margin-bottom: 50px;
 }

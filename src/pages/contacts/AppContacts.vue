@@ -67,10 +67,6 @@ import { contactCards } from '@/pages/contacts/contactsData'
 </script>
 
 <style scoped>
-.contacts {
-  padding-top: 8px;
-}
-
 .contacts__hero {
   position: relative;
   padding: 28px 0 100px;

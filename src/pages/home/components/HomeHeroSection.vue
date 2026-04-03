@@ -386,7 +386,7 @@ onBeforeUnmount(() => {
 .home__content {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 10px;
   min-height: min(660px, calc(100vh - 156px));
   padding: 20px 0;

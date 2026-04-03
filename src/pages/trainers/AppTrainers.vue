@@ -128,10 +128,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.trainers {
-  padding-top: 8px;
-}
-
 .trainers__hero,
 .trainers__grid-section {
   position: relative;

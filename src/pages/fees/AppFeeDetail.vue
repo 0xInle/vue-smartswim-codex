@@ -582,7 +582,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  margin-bottom: 44px;
+  margin-bottom: 130px;
 }
 
 .fee-detail__included-card {
