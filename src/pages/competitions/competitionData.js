@@ -99,7 +99,6 @@ export const competitionDirections = [
     ],
     faqSections: [
       {
-        title: 'Общие вопросы',
         items: [
           {
             question: 'Как подать заявку на соревнования?',
@@ -176,7 +175,6 @@ export const competitionDirections = [
         ],
       },
       {
-        title: 'Документы. Протоколы. Разряд.',
         items: [
           {
             question:
@@ -214,7 +212,6 @@ export const competitionDirections = [
         ],
       },
       {
-        title: 'Оплата. Сроки. Возврат.',
         items: [
           {
             question: 'Можно ли сделать возврат стартового взноса?',
@@ -223,7 +220,7 @@ export const competitionDirections = [
               '',
               'Не позднее 72 часов до начала соревнований.',
               '',
-              'Необходимо направить информацию на электронную почту CupSmartSwim@yandex.ru и приложить:',
+              'Необходимо направить информацию на электронную почту cupsmartswim@yandex.ru и приложить:',
               '- заявление на возврат;',
               '- скан паспорта (2-я страница с разворотом).',
               '',

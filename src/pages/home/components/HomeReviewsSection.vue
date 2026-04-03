@@ -264,7 +264,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .reviews {
-  padding: 30px 0 100px;
+  padding: 30px 0 120px;
   overflow: hidden;
   content-visibility: auto;
   contain: layout paint style;

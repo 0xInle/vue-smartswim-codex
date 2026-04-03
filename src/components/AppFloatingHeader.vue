@@ -303,7 +303,6 @@ onBeforeUnmount(() => {
   padding: 5px;
   border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
   border-radius: 10px;
-  /* background: color-mix(in srgb, var(--white) 50%, transparent); */
   background: color-mix(in srgb, var(--white) 95%, transparent);
   gap: 20px;
   z-index: 100;

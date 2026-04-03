@@ -69,8 +69,6 @@
   --cyan: #55bcc9;
   --light-blue: #97caef;
   --very-light-blue: #cafafe;
-  --box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-  --error-shadow: 0 0 10px rgba(230, 64, 64, 0.3);
 }
 
 *,
@@ -120,14 +118,5 @@ img {
 }
 
 .flex {
-  display: -webkit-box;
   display: flex;
-}
-
-.hidden {
-  display: none;
-}
-
-.app {
-  height: 100vh;
 }

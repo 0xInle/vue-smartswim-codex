@@ -68,12 +68,20 @@
 
               <div class="documents__faq-answer-shell">
                 <div class="documents__faq-answer">
-                  <div class="documents__faq-entry-answer" v-html="item.answer"></div>
+                  <div class="documents__faq-entry-answer" v-html="formatFaqAnswer(item.answer)"></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </section>
+
+      <section class="documents__footer-image">
+        <img
+          src="/images/20-img.jpg"
+          alt="Пловец Smart Swim в воде во время тренировки"
+          class="documents__footer-image-media"
+        />
       </section>
     </div>
 
@@ -85,6 +93,7 @@
 import { ref } from 'vue'
 import HomeFooterSection from '@/pages/home/components/HomeFooterSection.vue'
 import { documents, faqSections } from '@/pages/documents/documentsData'
+import { formatFaqAnswer } from '@/utils/formatFaqAnswer'
 
 const openFaqKey = ref(null)
 
@@ -248,7 +257,8 @@ function toggleFaqItem(key) {
 }
 
 .documents__faq {
-  padding: 24px 0 100px;
+  padding: 24px 0 0;
+  margin-bottom: 50px;
 }
 
 .documents__image-break {
@@ -423,7 +433,7 @@ function toggleFaqItem(key) {
 }
 
 .documents__faq-entry-answer :deep(a) {
-  color: color-mix(in srgb, var(--cyan) 96%, var(--black));
+  color: var(--cyan);
   font-weight: 700;
 }
 
@@ -434,6 +444,19 @@ function toggleFaqItem(key) {
 
 .documents__faq-item--open .documents__faq-icon::after {
   transform: translate(-50%, -50%) rotate(0deg);
+}
+
+.documents__footer-image {
+  margin-bottom: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.documents__footer-image-media {
+  display: block;
+  width: 100%;
+  height: 600px;
+  object-fit: cover;
 }
 
 @media (max-width: 1180px) {

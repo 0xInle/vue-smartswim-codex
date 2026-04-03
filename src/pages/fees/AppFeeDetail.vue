@@ -292,7 +292,6 @@ onBeforeUnmount(() => {
 
 .fee-detail__eyebrow,
 .fee-detail__meta-label,
-.fee-detail__price-label,
 .fee-detail__reservation-label {
   display: inline-flex;
   align-self: flex-start;
@@ -307,9 +306,7 @@ onBeforeUnmount(() => {
 .fee-detail__section-title {
   margin: 0;
   margin-bottom: 20px;
-  /* font-family: Oswald; */
   line-height: 0.95;
-  /* text-transform: uppercase; */
 }
 
 .fee-detail__title {
@@ -511,7 +508,6 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   width: min(100%, 520px);
-  /* min-height: 112px; */
   padding: 14px 22px;
   box-shadow: none;
   text-align: center;
@@ -582,7 +578,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  margin-bottom: 130px;
+  margin-bottom: 120px;
 }
 
 .fee-detail__included-card {

@@ -109,13 +109,24 @@
 
               <div class="competition-detail__faq-answer-shell">
                 <div class="competition-detail__faq-answer">
-                  <p class="competition-detail__faq-entry-answer">{{ item.answer }}</p>
+                  <div
+                    class="competition-detail__faq-entry-answer"
+                    v-html="formatFaqAnswer(item.answer)"
+                  ></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <section class="competition-detail__footer-image">
+        <img
+          src="/images/20-img.jpg"
+          alt="Пловец Smart Swim в воде во время тренировки"
+          class="competition-detail__footer-image-media"
+        />
+      </section>
     </div>
 
     <HomeFooterSection />
@@ -127,6 +138,7 @@ import HomeFooterSection from '@/pages/home/components/HomeFooterSection.vue'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getCompetitionBySlug } from './competitionData'
+import { formatFaqAnswer } from '@/utils/formatFaqAnswer'
 
 const route = useRoute()
 
@@ -414,7 +426,8 @@ function formatCardDescription(description) {
 }
 
 .competition-detail__faq {
-  padding: 70px 0 100px;
+  padding: 70px 0 0;
+  margin-bottom: 50px;
 }
 
 .competition-detail__faq-shell {
@@ -498,19 +511,35 @@ function formatCardDescription(description) {
 }
 
 .competition-detail__faq-entry-answer {
-  font-family: Oswald;
   margin: 0;
-  padding: 0 0 6px;
+  padding: 0 0 10px;
   font-size: 16px;
   font-weight: 300;
   line-height: 1.5;
-  white-space: pre-wrap;
   color: color-mix(in srgb, var(--black) 84%, var(--white));
   opacity: 0;
   transform: translateY(-6px);
   transition:
     opacity 0.24s ease,
     transform 0.24s ease;
+}
+
+.competition-detail__faq-entry-answer :deep(p),
+.competition-detail__faq-entry-answer :deep(ul) {
+  margin: 0 0 12px;
+}
+
+.competition-detail__faq-entry-answer :deep(ul) {
+  padding-left: 18px;
+}
+
+.competition-detail__faq-entry-answer :deep(li) {
+  margin-bottom: 8px;
+}
+
+.competition-detail__faq-entry-answer :deep(a) {
+  color: var(--cyan);
+  font-weight: 700;
 }
 
 .competition-detail__faq-item--open .competition-detail__faq-entry-answer {
@@ -520,6 +549,19 @@ function formatCardDescription(description) {
 
 .competition-detail__faq-item--open .competition-detail__faq-icon::after {
   transform: translate(-50%, -50%) rotate(0deg);
+}
+
+.competition-detail__footer-image {
+  margin-bottom: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.competition-detail__footer-image-media {
+  display: block;
+  width: 100%;
+  height: 600px;
+  object-fit: cover;
 }
 
 @media (max-width: 1024px) {
