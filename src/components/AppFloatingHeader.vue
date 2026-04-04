@@ -111,17 +111,17 @@
               Главная
             </button>
 
-            <button
+            <RouterLink
               v-for="(item, index) in mobileLinks"
               :key="item.to"
-              type="button"
-              class="app-mobile-nav__link btn-reset"
+              class="app-mobile-nav__link link-reset"
               :class="{ 'app-mobile-nav__link--active': isRouteActive(item.to) }"
               :style="{ '--item-index': index + 1 }"
-              @click="handleMobileNavigate(item.to)"
+              :to="item.to"
+              @click="closeMobileMenu"
             >
               {{ item.label }}
-            </button>
+            </RouterLink>
           </nav>
 
           <a class="app-mobile-nav__phone link-reset" href="tel:+79167290773">8 916 729 07 73</a>
@@ -141,7 +141,6 @@ const router = useRouter()
 const HEADER_BOTTOM_OFFSET = 20
 const FOOTER_STOP_OFFSET = 30
 const MOBILE_BREAKPOINT = 1024
-const MOBILE_MENU_CLOSE_DURATION = 220
 const mobileLinks = [
   { label: 'Соревнования', to: '/competitions' },
   { label: 'Сборы', to: '/fees' },
@@ -170,7 +169,6 @@ let scrollFrameId = 0
 let resizeFrameId = 0
 let homeScrollFrameId = 0
 let keyboardFrameId = 0
-let mobileNavigateTimeoutId = 0
 let resizeObserver = null
 let homeSectionRef = null
 let footerSectionRef = null
@@ -459,39 +457,8 @@ function toggleMobileMenu() {
 }
 
 function handleMobileHomeClick() {
-  if (isHomeRoute.value) {
-    closeMobileMenu()
-    smoothScrollToTop()
-    return
-  }
-
-  scheduleMobileNavigation(() => {
-    handleHomeClick()
-  })
-}
-
-function scheduleMobileNavigation(callback) {
-  if (mobileNavigateTimeoutId) {
-    window.clearTimeout(mobileNavigateTimeoutId)
-  }
-
   closeMobileMenu()
-
-  mobileNavigateTimeoutId = window.setTimeout(() => {
-    mobileNavigateTimeoutId = 0
-    callback()
-  }, MOBILE_MENU_CLOSE_DURATION)
-}
-
-function handleMobileNavigate(targetPath) {
-  if (route.path === targetPath) {
-    closeMobileMenu()
-    return
-  }
-
-  scheduleMobileNavigation(() => {
-    router.push(targetPath)
-  })
+  handleHomeClick()
 }
 
 function handleKeydown(event) {
@@ -565,10 +532,6 @@ onBeforeUnmount(() => {
 
   if (keyboardFrameId) {
     window.cancelAnimationFrame(keyboardFrameId)
-  }
-
-  if (mobileNavigateTimeoutId) {
-    window.clearTimeout(mobileNavigateTimeoutId)
   }
 
   if (resizeObserver) {
@@ -1015,11 +978,14 @@ onBeforeUnmount(() => {
 
 .app-mobile-nav-panel-enter-active,
 .app-mobile-nav-panel-leave-active {
-  transition: transform 0.22s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.35s ease;
 }
 
 .app-mobile-nav-panel-enter-from,
 .app-mobile-nav-panel-leave-to {
+  opacity: 0;
   transform: translateX(28px);
 }
 
