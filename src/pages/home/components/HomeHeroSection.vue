@@ -1,5 +1,5 @@
 <template>
-  <section class="home" :class="{ 'home--intro-ready': isIntroReady }">
+  <section class="home">
     <video autoplay muted loop playsinline preload="metadata" class="home__video-player">
       <source :src="heroVideo" type="video/mp4" />
       Ваш браузер не поддерживает видео.
@@ -22,15 +22,11 @@
             </div>
 
             <div class="home__heading">
-              <h1 class="home__title home__intro-item" style="--intro-delay: 0.08s">
-                Быстрый старт
-              </h1>
-              <p class="home__title-line home__intro-item" style="--intro-delay: 0.18s">
-                в воде и на соревнованиях
-              </p>
+              <h1 class="home__title">Быстрый старт</h1>
+              <p class="home__title-line">в воде и на соревнованиях</p>
             </div>
 
-            <p class="home__description home__intro-item" style="--intro-delay: 0.3s">
+            <p class="home__description">
               Помогаем освоиться в воде, выстроить технику и уверенно выходить на первые старты в
               атмосфере системной подготовки и бережной поддержки.
             </p>
@@ -185,11 +181,9 @@ import { publicAsset } from '@/utils/publicAsset'
 
 const isDateOpen = ref(false)
 const isTimeOpen = ref(false)
-const isIntroReady = ref(false)
 const heroVideo = publicAsset('/videos/01-video.mp4')
 const dateDropdownRef = ref(null)
 const timeDropdownRef = ref(null)
-let introAnimationFrame = 0
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 const calendarMonth = ref(new Date(today.getFullYear(), today.getMonth(), 1))
@@ -324,26 +318,15 @@ function handleOutsideClick(event) {
 
 onMounted(() => {
   document.addEventListener('click', handleOutsideClick)
-  introAnimationFrame = window.requestAnimationFrame(() => {
-    introAnimationFrame = window.requestAnimationFrame(() => {
-      isIntroReady.value = true
-    })
-  })
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleOutsideClick)
-
-  if (introAnimationFrame) {
-    window.cancelAnimationFrame(introAnimationFrame)
-  }
 })
 </script>
 
 <style scoped>
 .home {
-  --intro-duration: 1s;
-  --intro-ease: cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   left: 50%;
   width: 100vw;
@@ -410,24 +393,6 @@ onBeforeUnmount(() => {
   min-height: min(660px, calc(var(--app-screen-height) - 156px));
   padding: 20px 0;
   color: var(--white);
-}
-
-.home__intro-item {
-  opacity: 0;
-  transform: translate3d(0, 34px, 0) scale(0.985);
-  filter: blur(12px);
-  will-change: transform, opacity, filter;
-  transition:
-    opacity var(--intro-duration) var(--intro-ease),
-    transform var(--intro-duration) var(--intro-ease),
-    filter calc(var(--intro-duration) * 0.85) ease;
-  transition-delay: var(--intro-delay, 0s);
-}
-
-.home--intro-ready .home__intro-item {
-  opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
-  filter: blur(0);
 }
 
 .home__brand {
@@ -512,13 +477,11 @@ onBeforeUnmount(() => {
 .home__title {
   font-size: clamp(48px, 7.2vw, 94px);
   color: var(--white);
-  transform-origin: left center;
 }
 
 .home__title-line {
   font-size: clamp(26px, 3.6vw, 48px);
   color: color-mix(in srgb, var(--aqua) 82%, var(--white));
-  transform-origin: left center;
 }
 
 .home__description {
@@ -962,16 +925,6 @@ onBeforeUnmount(() => {
   transform: translateY(-8px);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .home__intro-item,
-  .home--intro-ready .home__intro-item {
-    opacity: 1;
-    filter: none;
-    transform: none;
-    transition: none;
-  }
-}
-
 @media (max-width: 1316px) {
   .home__dropdown-trigger {
     background: color-mix(in srgb, var(--white) 96%, var(--very-light-blue) 4%);
@@ -983,10 +936,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 768px) {
-  .home {
-    --intro-duration: 0.72s;
-  }
-
   .home__input {
     font-size: 16px;
   }
