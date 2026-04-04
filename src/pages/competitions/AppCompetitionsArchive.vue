@@ -54,6 +54,7 @@
             :src="image.src"
             :alt="image.alt"
             loading="lazy"
+            decoding="async"
           />
         </article>
       </div>
@@ -69,19 +70,19 @@ import { archiveSeasons } from '@/pages/competitions/archiveData'
 import { publicAsset } from '@/utils/publicAsset'
 
 const archiveGalleryImages = [
-  { src: publicAsset('/images/07-img.jpg'), alt: 'Архив соревнований Smart Swim 2025' },
-  { src: publicAsset('/images/08-img.jpg'), alt: 'Архив соревнований Smart Swim 2024' },
-  { src: publicAsset('/images/09-img.jpg'), alt: 'Архив соревнований Smart Swim 2023' },
-  { src: publicAsset('/images/10-img.jpg'), alt: 'Архив соревнований Smart Swim 2022' },
-  { src: publicAsset('/images/11-img.jpg'), alt: 'Момент с прошедших стартов Smart Swim' },
-  { src: publicAsset('/images/12-img.jpg'), alt: 'Пловцы на архивных соревнованиях Smart Swim' },
-  { src: publicAsset('/images/13-img.jpg'), alt: 'Награждение на соревнованиях Smart Swim' },
-  { src: publicAsset('/images/14-img.jpg'), alt: 'Эмоции участников Smart Swim' },
-  { src: publicAsset('/images/15-img.jpg'), alt: 'Финишный момент соревнований Smart Swim' },
+  { src: publicAsset('/images/07-img.webp'), alt: 'Архив соревнований Smart Swim 2025' },
+  { src: publicAsset('/images/08-img.webp'), alt: 'Архив соревнований Smart Swim 2024' },
+  { src: publicAsset('/images/09-img.webp'), alt: 'Архив соревнований Smart Swim 2023' },
+  { src: publicAsset('/images/10-img.webp'), alt: 'Архив соревнований Smart Swim 2022' },
+  { src: publicAsset('/images/11-img.webp'), alt: 'Момент с прошедших стартов Smart Swim' },
+  { src: publicAsset('/images/12-img.webp'), alt: 'Пловцы на архивных соревнованиях Smart Swim' },
+  { src: publicAsset('/images/13-img.webp'), alt: 'Награждение на соревнованиях Smart Swim' },
+  { src: publicAsset('/images/14-img.webp'), alt: 'Эмоции участников Smart Swim' },
+  { src: publicAsset('/images/15-img.webp'), alt: 'Финишный момент соревнований Smart Swim' },
 ]
 
 const archiveGridStyle = {
-  '--archive-grid-image': `url(${publicAsset('/images/06-img.jpg')})`,
+  '--archive-grid-image': `url(${publicAsset('/images/06-img.webp')})`,
 }
 </script>
 

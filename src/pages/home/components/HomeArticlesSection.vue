@@ -1,7 +1,7 @@
 <template>
   <section class="articles">
     <div class="article__content article__content--01 flex">
-      <img :src="articleImageOne" alt="Изображение" />
+      <img :src="articleImageOne" alt="Изображение" loading="lazy" decoding="async" />
       <div
         :ref="(element) => setArticleTextRef(element, 0)"
         class="article__text"
@@ -34,11 +34,11 @@
           Постепенная практика закрепляет навыки и уменьшает ошибки.
         </div>
       </div>
-      <img :src="articleImageTwo" alt="Изображение" />
+      <img :src="articleImageTwo" alt="Изображение" loading="lazy" decoding="async" />
     </div>
 
     <div class="article__content article__content--03 flex">
-      <img :src="articleImageThree" alt="Изображение" />
+      <img :src="articleImageThree" alt="Изображение" loading="lazy" decoding="async" />
       <div
         :ref="(element) => setArticleTextRef(element, 2)"
         class="article__text"
@@ -63,9 +63,9 @@ import { publicAsset } from '@/utils/publicAsset'
 
 const articleTextRefs = ref([])
 const visibleItems = ref([false, false, false])
-const articleImageOne = publicAsset('/images/01-img.jpg')
-const articleImageTwo = publicAsset('/images/02-img.jpg')
-const articleImageThree = publicAsset('/images/03-img.jpg')
+const articleImageOne = publicAsset('/images/01-img.webp')
+const articleImageTwo = publicAsset('/images/02-img.webp')
+const articleImageThree = publicAsset('/images/03-img.webp')
 
 let observer
 

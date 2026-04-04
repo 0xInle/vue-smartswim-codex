@@ -30,6 +30,8 @@
             :src="trainersImage"
             alt="Тренировка Smart Swim у бассейна"
             class="trainers__showcase-image"
+            loading="lazy"
+            decoding="async"
           />
         </div>
       </section>
@@ -107,7 +109,7 @@ import { trainers, trainersHeroStats } from '@/pages/trainers/trainersData'
 import { publicAsset } from '@/utils/publicAsset'
 
 const activeTrainerId = ref(null)
-const trainersImage = publicAsset('/images/19-img.jpg')
+const trainersImage = publicAsset('/images/19-img.webp')
 function toggleTrainerDetails(trainerId) {
   activeTrainerId.value = activeTrainerId.value === trainerId ? null : trainerId
 }

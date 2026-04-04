@@ -9,7 +9,13 @@
           :class="{ 'competitions-list__item--reverse': index % 2 === 1 }"
         >
           <div class="competitions-list__media">
-            <img :src="item.image" :alt="item.imageAlt" class="competitions-list__image" />
+            <img
+              :src="item.image"
+              :alt="item.imageAlt"
+              class="competitions-list__image"
+              loading="lazy"
+              decoding="async"
+            />
           </div>
           <div class="competitions-list__content">
             <span class="competitions-list__badge">{{ item.badge }}</span>

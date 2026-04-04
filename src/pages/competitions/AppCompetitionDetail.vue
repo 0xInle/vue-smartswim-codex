@@ -125,6 +125,8 @@
           :src="competitionFooterImage"
           alt="Пловец Smart Swim в воде во время тренировки"
           class="competition-detail__footer-image-media"
+          loading="lazy"
+          decoding="async"
         />
       </section>
     </div>
@@ -145,7 +147,7 @@ const route = useRoute()
 
 const competition = computed(() => getCompetitionBySlug(route.params.slug))
 const openFaqKey = ref(null)
-const competitionFooterImage = publicAsset('/images/20-img.jpg')
+const competitionFooterImage = publicAsset('/images/20-img.webp')
 
 function toggleFaqItem(key) {
   openFaqKey.value = openFaqKey.value === key ? null : key

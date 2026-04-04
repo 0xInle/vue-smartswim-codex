@@ -66,7 +66,7 @@ import HomeFooterSection from '@/pages/home/components/HomeFooterSection.vue'
 import { contactCards } from '@/pages/contacts/contactsData'
 import { publicAsset } from '@/utils/publicAsset'
 
-const contactsImage = publicAsset('/images/18-img.jpg')
+const contactsImage = publicAsset('/images/18-img.webp')
 </script>
 
 <style scoped>

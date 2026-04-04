@@ -1,13 +1,14 @@
-import AppContacts from '@/pages/contacts/AppContacts.vue'
-import AppDocuments from '@/pages/documents/AppDocuments.vue'
-import AppTrainers from '@/pages/trainers/AppTrainers.vue'
-import AppCompetitionsArchive from '@/pages/competitions/AppCompetitionsArchive.vue'
-import AppCompetitionDetail from '@/pages/competitions/AppCompetitionDetail.vue'
-import AppCompetitions from '@/pages/competitions/AppCompetitions.vue'
-import AppFeeDetail from '@/pages/fees/AppFeeDetail.vue'
-import AppFees from '@/pages/fees/AppFees.vue'
-import HomePage from '@/pages/home/AppHome.vue'
 import { createRouter, createWebHistory } from 'vue-router'
+
+const HomePage = () => import('@/pages/home/AppHome.vue')
+const AppCompetitions = () => import('@/pages/competitions/AppCompetitions.vue')
+const AppCompetitionsArchive = () => import('@/pages/competitions/AppCompetitionsArchive.vue')
+const AppCompetitionDetail = () => import('@/pages/competitions/AppCompetitionDetail.vue')
+const AppFees = () => import('@/pages/fees/AppFees.vue')
+const AppFeeDetail = () => import('@/pages/fees/AppFeeDetail.vue')
+const AppDocuments = () => import('@/pages/documents/AppDocuments.vue')
+const AppContacts = () => import('@/pages/contacts/AppContacts.vue')
+const AppTrainers = () => import('@/pages/trainers/AppTrainers.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

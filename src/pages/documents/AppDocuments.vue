@@ -30,7 +30,7 @@
       </section>
 
       <section class="documents__image-break" aria-hidden="true">
-        <img :src="documentsImage" alt="" class="documents__image" />
+        <img :src="documentsImage" alt="" class="documents__image" loading="lazy" decoding="async" />
         <div class="documents__image-decor">
           <div class="documents__image-panel">
             <p class="documents__image-contact">8 916 729 07 73</p>
@@ -68,7 +68,10 @@
 
               <div class="documents__faq-answer-shell">
                 <div class="documents__faq-answer">
-                  <div class="documents__faq-entry-answer" v-html="formatFaqAnswer(item.answer)"></div>
+                  <div
+                    class="documents__faq-entry-answer"
+                    v-html="formatFaqAnswer(item.answer)"
+                  ></div>
                 </div>
               </div>
             </div>
@@ -81,6 +84,8 @@
           :src="documentsFooterImage"
           alt="Пловец Smart Swim в воде во время тренировки"
           class="documents__footer-image-media"
+          loading="lazy"
+          decoding="async"
         />
       </section>
     </div>
@@ -97,8 +102,8 @@ import { formatFaqAnswer } from '@/utils/formatFaqAnswer'
 import { publicAsset } from '@/utils/publicAsset'
 
 const openFaqKey = ref(null)
-const documentsImage = publicAsset('/images/17-img.jpg')
-const documentsFooterImage = publicAsset('/images/20-img.jpg')
+const documentsImage = publicAsset('/images/17-img.webp')
+const documentsFooterImage = publicAsset('/images/20-img.webp')
 
 function toggleFaqItem(key) {
   openFaqKey.value = openFaqKey.value === key ? null : key

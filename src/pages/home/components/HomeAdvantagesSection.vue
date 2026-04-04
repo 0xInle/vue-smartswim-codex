@@ -1,8 +1,22 @@
 <template>
-  <section class="advantages">
+  <section ref="sectionRef" class="advantages">
     <div class="advantages__video">
-      <video autoplay muted loop playsinline preload="metadata" class="advantages__video-player">
-        <source :src="advantagesVideo" type="video/mp4" />
+      <video
+        ref="videoRef"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="none"
+        class="advantages__video-player"
+      >
+        <source
+          v-if="shouldLoadVideo"
+          :src="advantagesVideoMobile"
+          media="(max-width: 768px)"
+          type="video/mp4"
+        />
+        <source v-if="shouldLoadVideo" :src="advantagesVideo" type="video/mp4" />
         Ваш браузер не поддерживает видео.
       </video>
 
@@ -40,9 +54,67 @@
 </template>
 
 <script setup>
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { publicAsset } from '@/utils/publicAsset'
 
 const advantagesVideo = publicAsset('/videos/02-video.mp4')
+const advantagesVideoMobile = publicAsset('/videos/02-video-mobile.mp4')
+const sectionRef = ref(null)
+const videoRef = ref(null)
+const shouldLoadVideo = ref(false)
+
+let sectionObserver
+
+function loadVideo() {
+  if (shouldLoadVideo.value) {
+    return
+  }
+
+  shouldLoadVideo.value = true
+  sectionObserver?.disconnect()
+}
+
+onMounted(() => {
+  if (!window.IntersectionObserver || !sectionRef.value) {
+    loadVideo()
+    return
+  }
+
+  sectionObserver = new window.IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          loadVideo()
+        }
+      })
+    },
+    {
+      rootMargin: '300px 0px',
+      threshold: 0.01,
+    },
+  )
+
+  sectionObserver.observe(sectionRef.value)
+})
+
+watch(shouldLoadVideo, async (isLoaded) => {
+  if (!isLoaded) {
+    return
+  }
+
+  await nextTick()
+
+  if (!videoRef.value) {
+    return
+  }
+
+  videoRef.value.load()
+  videoRef.value.play().catch(() => {})
+})
+
+onBeforeUnmount(() => {
+  sectionObserver?.disconnect()
+})
 </script>
 
 <style scoped>
@@ -100,7 +172,7 @@ const advantagesVideo = publicAsset('/videos/02-video.mp4')
 
 .advantages__card {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   padding: 20px;
   border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
   border-radius: 10px;

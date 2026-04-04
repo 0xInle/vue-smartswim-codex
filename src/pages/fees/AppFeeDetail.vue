@@ -153,7 +153,7 @@ const camp = computed(() => getFeeCampBySlug(route.params.slug))
 const timelineItemRefs = ref([])
 const visibleTimelineItems = ref([])
 const programSectionStyle = {
-  '--fee-program-image': `url(${publicAsset('/images/16-img.jpg')})`,
+  '--fee-program-image': `url(${publicAsset('/images/16-img.webp')})`,
 }
 
 let timelineObserver
