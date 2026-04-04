@@ -194,22 +194,6 @@ function hasEditableFocus() {
   return Boolean(activeElement?.matches?.(EDITABLE_SELECTOR))
 }
 
-function keepFocusedFieldVisible() {
-  const activeElement = document.activeElement
-
-  if (!activeElement?.matches?.(EDITABLE_SELECTOR)) {
-    return
-  }
-
-  window.requestAnimationFrame(() => {
-    activeElement.scrollIntoView({
-      block: 'center',
-      inline: 'nearest',
-      behavior: 'auto',
-    })
-  })
-}
-
 function syncAndroidKeyboardState() {
   if (!window.visualViewport || !isAndroidDevice()) {
     return
@@ -230,7 +214,6 @@ function syncAndroidKeyboardState() {
 
   if (nextKeyboardOpen) {
     closeMobileMenu()
-    keepFocusedFieldVisible()
     return
   }
 
@@ -245,8 +228,6 @@ function handleFocusIn(event) {
   if (isAndroidDevice()) {
     syncAndroidKeyboardState()
   }
-
-  keepFocusedFieldVisible()
 }
 
 function handleFocusOut() {
