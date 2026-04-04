@@ -1,8 +1,7 @@
 <template>
   <section class="home">
     <video autoplay muted loop playsinline preload="metadata" class="home__video-player">
-      <source :src="heroVideoMobile" media="(max-width: 768px)" type="video/mp4" />
-      <source :src="heroVideo" type="video/mp4" />
+      <source :src="activeHeroVideo" type="video/mp4" />
       Ваш браузер не поддерживает видео.
     </video>
 
@@ -184,6 +183,7 @@ const isDateOpen = ref(false)
 const isTimeOpen = ref(false)
 const heroVideo = publicAsset('/videos/01-video.mp4')
 const heroVideoMobile = publicAsset('/videos/01-video-mobile.mp4')
+const isCompactViewport = ref(false)
 const dateDropdownRef = ref(null)
 const timeDropdownRef = ref(null)
 const today = new Date()
@@ -235,6 +235,10 @@ const calendarTitle = computed(() =>
     month: 'long',
     year: 'numeric',
   }).format(calendarMonth.value),
+)
+
+const activeHeroVideo = computed(() =>
+  isCompactViewport.value ? heroVideoMobile : heroVideo,
 )
 
 const calendarDays = computed(() => {
@@ -308,6 +312,10 @@ function changeCalendarMonth(direction) {
   )
 }
 
+function syncCompactViewport() {
+  isCompactViewport.value = window.innerWidth <= 768
+}
+
 function handleOutsideClick(event) {
   if (dateDropdownRef.value && !dateDropdownRef.value.contains(event.target)) {
     isDateOpen.value = false
@@ -319,10 +327,13 @@ function handleOutsideClick(event) {
 }
 
 onMounted(() => {
+  syncCompactViewport()
+  window.addEventListener('resize', syncCompactViewport)
   document.addEventListener('click', handleOutsideClick)
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', syncCompactViewport)
   document.removeEventListener('click', handleOutsideClick)
 })
 </script>

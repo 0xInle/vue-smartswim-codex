@@ -978,14 +978,11 @@ onBeforeUnmount(() => {
 
 .app-mobile-nav-panel-enter-active,
 .app-mobile-nav-panel-leave-active {
-  transition:
-    opacity 0.3s ease,
-    transform 0.35s ease;
+  transition: transform 0.22s ease;
 }
 
 .app-mobile-nav-panel-enter-from,
 .app-mobile-nav-panel-leave-to {
-  opacity: 0;
   transform: translateX(28px);
 }
 
