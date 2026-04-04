@@ -205,7 +205,7 @@ function keepFocusedFieldVisible() {
     activeElement.scrollIntoView({
       block: 'center',
       inline: 'nearest',
-      behavior: 'smooth',
+      behavior: 'auto',
     })
   })
 }
@@ -235,6 +235,28 @@ function syncAndroidKeyboardState() {
   }
 
   handleResize()
+}
+
+function handleFocusIn(event) {
+  if (!event.target?.matches?.(EDITABLE_SELECTOR)) {
+    return
+  }
+
+  if (isAndroidDevice()) {
+    syncAndroidKeyboardState()
+  }
+
+  keepFocusedFieldVisible()
+}
+
+function handleFocusOut() {
+  if (!isAndroidDevice()) {
+    return
+  }
+
+  window.requestAnimationFrame(() => {
+    syncAndroidKeyboardState()
+  })
 }
 
 function syncRouteTargets() {
@@ -470,6 +492,8 @@ onMounted(() => {
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('resize', handleResize)
   window.addEventListener('keydown', handleKeydown)
+  document.addEventListener('focusin', handleFocusIn)
+  document.addEventListener('focusout', handleFocusOut)
 
   if (window.visualViewport && isAndroidDevice()) {
     initialViewportHeight = window.visualViewport.height
@@ -506,6 +530,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', handleScroll)
   window.removeEventListener('resize', handleResize)
   window.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('focusin', handleFocusIn)
+  document.removeEventListener('focusout', handleFocusOut)
 
   if (window.visualViewport && isAndroidDevice()) {
     window.visualViewport.removeEventListener('resize', handleVisualViewportChange)
@@ -686,6 +712,8 @@ onBeforeUnmount(() => {
 }
 
 .app-mobile-nav__bar--keyboard-open {
+  position: absolute;
+  bottom: auto;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;

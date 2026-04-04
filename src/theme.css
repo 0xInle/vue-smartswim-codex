@@ -69,6 +69,13 @@
   --cyan: #55bcc9;
   --light-blue: #97caef;
   --very-light-blue: #cafafe;
+  --app-screen-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-screen-height: 100dvh;
+  }
 }
 
 *,

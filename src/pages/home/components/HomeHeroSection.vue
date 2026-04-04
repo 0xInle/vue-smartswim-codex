@@ -330,7 +330,7 @@ onBeforeUnmount(() => {
   position: relative;
   left: 50%;
   width: 100vw;
-  min-height: 100vh;
+  min-height: var(--app-screen-height);
   margin-left: -50vw;
   overflow: hidden;
   isolation: isolate;
@@ -350,7 +350,7 @@ onBeforeUnmount(() => {
   top: 50%;
   left: 50%;
   width: max(100vw, 100%);
-  height: max(100vh, 100%);
+  height: max(var(--app-screen-height), 100%);
   min-width: 112%;
   min-height: 112%;
   object-fit: cover;
@@ -368,7 +368,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: stretch;
   width: 100%;
-  min-height: 100vh;
+  min-height: var(--app-screen-height);
   padding: 0px 0 50px;
 }
 
@@ -390,7 +390,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: center;
   gap: 10px;
-  min-height: min(660px, calc(100vh - 156px));
+  min-height: min(660px, calc(var(--app-screen-height) - 156px));
   padding: 20px 0;
   color: var(--white);
 }

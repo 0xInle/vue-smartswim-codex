@@ -61,7 +61,7 @@ defineEmits(['explore'])
   position: relative;
   z-index: 1;
   padding: 24px 0 54px;
-  min-height: 100vh;
+  min-height: var(--app-screen-height);
   display: flex;
   align-items: stretch;
 }
