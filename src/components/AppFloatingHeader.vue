@@ -47,7 +47,10 @@
       <div
         ref="mobileBarRef"
         class="app-mobile-nav__bar"
-        :class="{ 'app-mobile-nav__bar--stopped': isHeaderStopped }"
+        :class="{
+          'app-mobile-nav__bar--stopped': isHeaderStopped,
+          'app-mobile-nav__bar--keyboard-open': isAndroidKeyboardOpen,
+        }"
         :style="headerStyle"
       >
         <button type="button" class="app-mobile-nav__login btn-reset">Личный кабинет</button>
@@ -152,6 +155,7 @@ const isHeaderStopped = ref(false)
 const isHeaderFloating = ref(false)
 const isMobileViewport = ref(false)
 const isMobileMenuOpen = ref(false)
+const isAndroidKeyboardOpen = ref(false)
 const headerStyle = ref({
   top: 'auto',
   bottom: `${HEADER_BOTTOM_OFFSET}px`,
@@ -164,15 +168,74 @@ const headerMetrics = {
 let scrollFrameId = 0
 let resizeFrameId = 0
 let homeScrollFrameId = 0
+let keyboardFrameId = 0
 let resizeObserver = null
 let homeSectionRef = null
 let footerSectionRef = null
+let initialViewportHeight = 0
+
+const KEYBOARD_OPEN_THRESHOLD = 120
+const EDITABLE_SELECTOR =
+  'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
 
 const isHomeRoute = computed(() => route.path === '/')
 const isBrandVisible = computed(() => (isHomeRoute.value ? isHeaderFloating.value : true))
 const activeFloatingRef = computed(() =>
   isMobileViewport.value ? mobileBarRef.value : headerRef.value,
 )
+
+function isAndroidDevice() {
+  return /Android/i.test(window.navigator.userAgent)
+}
+
+function hasEditableFocus() {
+  const activeElement = document.activeElement
+
+  return Boolean(activeElement?.matches?.(EDITABLE_SELECTOR))
+}
+
+function keepFocusedFieldVisible() {
+  const activeElement = document.activeElement
+
+  if (!activeElement?.matches?.(EDITABLE_SELECTOR)) {
+    return
+  }
+
+  window.requestAnimationFrame(() => {
+    activeElement.scrollIntoView({
+      block: 'center',
+      inline: 'nearest',
+      behavior: 'smooth',
+    })
+  })
+}
+
+function syncAndroidKeyboardState() {
+  if (!window.visualViewport || !isAndroidDevice()) {
+    return
+  }
+
+  if (!initialViewportHeight) {
+    initialViewportHeight = window.visualViewport.height
+  }
+
+  const viewportHeightDelta = initialViewportHeight - window.visualViewport.height
+  const nextKeyboardOpen = viewportHeightDelta > KEYBOARD_OPEN_THRESHOLD && hasEditableFocus()
+
+  if (nextKeyboardOpen === isAndroidKeyboardOpen.value) {
+    return
+  }
+
+  isAndroidKeyboardOpen.value = nextKeyboardOpen
+
+  if (nextKeyboardOpen) {
+    closeMobileMenu()
+    keepFocusedFieldVisible()
+    return
+  }
+
+  handleResize()
+}
 
 function syncRouteTargets() {
   homeSectionRef = document.querySelector('.home')
@@ -275,8 +338,24 @@ function handleResize() {
     resizeFrameId = 0
     syncViewportMode()
 
+    if (window.visualViewport && !isAndroidKeyboardOpen.value) {
+      initialViewportHeight = Math.max(initialViewportHeight, window.visualViewport.height)
+    }
+
     recalculateHeaderMetrics()
     updateHeaderPosition()
+  })
+}
+
+function handleVisualViewportChange() {
+  if (keyboardFrameId) {
+    return
+  }
+
+  keyboardFrameId = window.requestAnimationFrame(() => {
+    keyboardFrameId = 0
+    syncAndroidKeyboardState()
+    handleResize()
   })
 }
 
@@ -392,6 +471,12 @@ onMounted(() => {
   window.addEventListener('resize', handleResize)
   window.addEventListener('keydown', handleKeydown)
 
+  if (window.visualViewport && isAndroidDevice()) {
+    initialViewportHeight = window.visualViewport.height
+    window.visualViewport.addEventListener('resize', handleVisualViewportChange)
+    window.visualViewport.addEventListener('scroll', handleVisualViewportChange)
+  }
+
   nextTick(() => {
     syncRouteTargets()
     observeLayout()
@@ -422,6 +507,11 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
   window.removeEventListener('keydown', handleKeydown)
 
+  if (window.visualViewport && isAndroidDevice()) {
+    window.visualViewport.removeEventListener('resize', handleVisualViewportChange)
+    window.visualViewport.removeEventListener('scroll', handleVisualViewportChange)
+  }
+
   if (scrollFrameId) {
     window.cancelAnimationFrame(scrollFrameId)
   }
@@ -432,6 +522,10 @@ onBeforeUnmount(() => {
 
   if (homeScrollFrameId) {
     window.cancelAnimationFrame(homeScrollFrameId)
+  }
+
+  if (keyboardFrameId) {
+    window.cancelAnimationFrame(keyboardFrameId)
   }
 
   if (resizeObserver) {
@@ -589,6 +683,12 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   background: color-mix(in srgb, var(--white) 95%, transparent);
   box-shadow: 0 18px 40px rgba(34, 87, 122, 0.14);
+}
+
+.app-mobile-nav__bar--keyboard-open {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .app-mobile-nav__bar--stopped {
