@@ -1,6 +1,17 @@
 <template>
   <section class="home">
-    <video autoplay muted loop playsinline preload="metadata" class="home__video-player">
+    <video
+      autoplay
+      muted
+      loop
+      playsinline
+      webkit-playsinline
+      preload="auto"
+      disablepictureinpicture
+      disableremoteplayback
+      x-webkit-airplay="deny"
+      class="home__video-player"
+    >
       <source :src="heroVideo" type="video/mp4" />
       Ваш браузер не поддерживает видео.
     </video>
@@ -944,6 +955,10 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 768px) {
+  .home__input {
+    font-size: 16px;
+  }
+
   .home__overlay {
     padding: 20px 0 30px;
   }
