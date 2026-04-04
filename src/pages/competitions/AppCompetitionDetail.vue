@@ -337,27 +337,24 @@ function formatCardDescription(description) {
 }
 
 .competition-detail__card-action {
+  --button-bg: var(--button-cyan-bg);
+  --button-hover-bg: var(--button-cyan-hover-bg);
+  --button-focus-color: var(--cyan);
+  --button-text: var(--black);
+  --button-border: color-mix(in srgb, var(--cyan) 72%, var(--white));
+  --button-hover-border: color-mix(in srgb, var(--cyan) 58%, transparent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 40px;
   padding: 10px 18px;
-  border: 1px solid color-mix(in srgb, var(--cyan) 72%, var(--white));
+  border: 1px solid var(--button-current-border, var(--button-border));
   border-radius: 10px;
-  background: transparent;
+  background-color: var(--button-current-bg, var(--button-bg));
   font-size: 14px;
   font-weight: 600;
-  color: var(--cyan);
+  color: var(--button-text);
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.competition-detail__card-action:hover {
-  transform: translateY(-1px);
-  background: color-mix(in srgb, var(--cyan) 10%, var(--white));
 }
 
 .competition-detail__card-body {

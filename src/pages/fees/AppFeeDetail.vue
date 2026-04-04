@@ -435,6 +435,10 @@ onBeforeUnmount(() => {
 
 .fee-detail__reservation-action,
 .fee-detail__price-action {
+  --button-bg: var(--button-cyan-bg);
+  --button-hover-bg: var(--button-cyan-hover-bg);
+  --button-focus-color: var(--cyan);
+  --button-text: var(--black);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -442,18 +446,10 @@ onBeforeUnmount(() => {
   min-height: 48px;
   padding: 12px 26px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--cyan) 84%, var(--white));
-  font-weight: 800;
-  color: var(--white);
-  transition:
-    transform 0.2s ease,
-    background-color 0.2s ease;
-}
-
-.fee-detail__reservation-action:hover,
-.fee-detail__price-action:hover {
-  transform: translateY(-1px);
-  background: color-mix(in srgb, var(--cyan) 94%, var(--white));
+  background-color: var(--button-current-bg, var(--button-bg));
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--button-text);
 }
 
 .fee-detail__section-head {

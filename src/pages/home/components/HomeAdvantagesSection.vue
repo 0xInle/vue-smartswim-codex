@@ -1,18 +1,7 @@
 <template>
   <section class="advantages">
     <div class="advantages__video">
-      <video
-        autoplay
-        muted
-        loop
-        playsinline
-        webkit-playsinline
-        preload="auto"
-        disablepictureinpicture
-        disableremoteplayback
-        x-webkit-airplay="deny"
-        class="advantages__video-player"
-      >
+      <video autoplay muted loop playsinline preload="metadata" class="advantages__video-player">
         <source :src="advantagesVideo" type="video/mp4" />
         Ваш браузер не поддерживает видео.
       </video>

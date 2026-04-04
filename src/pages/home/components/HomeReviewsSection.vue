@@ -38,7 +38,7 @@
               :key="`dot-${index}`"
               type="button"
               class="reviews__dot btn-reset"
-              :class="{ 'reviews__dot--active': index === activeIndex }"
+              :class="getDotClasses(index)"
               @click="goToReview(index)"
             ></button>
           </div>
@@ -220,6 +220,18 @@ const goToPrevious = () => {
   restartAutoplay()
 }
 
+const getDotClasses = (index) => {
+  const relativeIndex = getRelativeIndex(index)
+  const absIndex = Math.abs(relativeIndex)
+
+  return {
+    'reviews__dot--active': index === activeIndex.value,
+    'reviews__dot--near': absIndex <= 1,
+    'reviews__dot--far': absIndex === 2,
+    'reviews__dot--hidden': absIndex > 2,
+  }
+}
+
 const pauseAutoplay = () => {
   if (autoplayId) {
     window.clearInterval(autoplayId)
@@ -393,31 +405,20 @@ onBeforeUnmount(() => {
 }
 
 .reviews__arrow {
+  --button-bg: var(--button-light-blue-bg);
+  --button-hover-bg: var(--button-light-blue-hover-bg);
+  --button-focus-color: var(--light-blue);
+  --button-text: var(--black);
+  --button-border: color-mix(in srgb, var(--light-blue) 42%, var(--white));
+  --button-hover-border: color-mix(in srgb, var(--light-blue) 30%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 48px;
   height: 48px;
-  border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
+  border: 1px solid var(--button-current-border, var(--button-border));
   border-radius: 10px;
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--white) 20%, transparent) 0%,
-    color-mix(in srgb, var(--very-light-blue) 22%, transparent) 100%
-  );
-  transition:
-    background 0.25s ease,
-    border-color 0.25s ease,
-    color 0.25s ease;
-}
-
-.reviews__arrow:hover {
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--white) 28%, transparent) 0%,
-    color-mix(in srgb, var(--very-light-blue) 30%, transparent) 100%
-  );
-  border-color: color-mix(in srgb, var(--cyan) 38%, var(--white));
+  background-color: var(--button-current-bg, var(--button-bg));
 }
 
 .reviews__arrow-icon {
@@ -449,8 +450,17 @@ onBeforeUnmount(() => {
 
 .reviews__dot--active {
   width: 34px;
-  background-color: color-mix(in srgb, var(--cyan) 88%, var(--white));
-  border-color: color-mix(in srgb, var(--cyan) 70%, var(--white));
+  background:
+    linear-gradient(
+      135deg,
+      rgb(from var(--white) r g b / 72%) 0%,
+      rgb(from var(--very-light-blue) r g b / 58%) 100%
+    );
+  border-color: color-mix(in srgb, var(--white) 64%, var(--cyan));
+  box-shadow:
+    0 8px 18px color-mix(in srgb, var(--cyan) 18%, transparent),
+    inset 0 1px 0 rgb(from var(--white) r g b / 72%);
+  backdrop-filter: blur(8px);
 }
 
 @media (max-width: 1024px) {
@@ -518,6 +528,64 @@ onBeforeUnmount(() => {
   .reviews__dots {
     gap: 8px;
     max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .reviews__controls {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .reviews__arrow {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+  }
+
+  .reviews__arrow-icon {
+    font-size: 24px;
+  }
+
+  .reviews__dots {
+    flex: 1 1 auto;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0;
+  }
+
+  .reviews__dot {
+    width: 8px;
+    height: 8px;
+    border-width: 1px;
+    opacity: 0.45;
+  }
+
+  .reviews__dot--near {
+    width: 9px;
+    height: 9px;
+    opacity: 0.72;
+  }
+
+  .reviews__dot--far {
+    width: 6px;
+    height: 6px;
+    opacity: 0.3;
+  }
+
+  .reviews__dot--active {
+    width: 28px;
+    height: 10px;
+    opacity: 1;
+    box-shadow:
+      0 6px 14px color-mix(in srgb, var(--cyan) 16%, transparent),
+      inset 0 1px 0 rgb(from var(--white) r g b / 68%);
+  }
+
+  .reviews__dot--hidden {
+    display: none;
   }
 }
 </style>

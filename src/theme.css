@@ -70,6 +70,13 @@
   --light-blue: #97caef;
   --very-light-blue: #cafafe;
   --app-screen-height: 100vh;
+  --button-cyan-bg: color-mix(in srgb, var(--cyan) 90%, transparent);
+  --button-cyan-hover-bg: color-mix(in srgb, var(--cyan) 65%, transparent);
+  --button-orange-bg: color-mix(in srgb, var(--orange) 90%, transparent);
+  --button-orange-hover-bg: color-mix(in srgb, var(--orange) 65%, transparent);
+  --button-light-blue-bg: color-mix(in srgb, var(--light-blue) 90%, transparent);
+  --button-light-blue-hover-bg: color-mix(in srgb, var(--light-blue) 65%, transparent);
+  --button-focus-ring-inner: rgb(from var(--white) r g b / 72%);
 }
 
 @supports (height: 100dvh) {
@@ -110,6 +117,83 @@ img {
   border: none;
   background-color: transparent;
   cursor: pointer;
+}
+
+:is(
+  .app-header__link--color,
+  .app-header__login,
+  .app-mobile-nav__home,
+  .app-mobile-nav__login,
+  .app-mobile-nav__toggle,
+  .home__submit-button,
+  .competitions-hero__cta,
+  .competitions-hero__phone,
+  .competitions-hero__archive-link,
+  .competitions-list__action,
+  .fee-detail__reservation-action,
+  .fee-detail__price-action,
+  .fees__card-action,
+  .documents__card-action,
+  .competition-detail__card-action,
+  .trainers__card-action,
+  .reviews__arrow
+) {
+  --button-current-bg: var(--button-bg, transparent);
+  --button-current-border: var(--button-border, transparent);
+  outline: none;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+:is(
+  .app-header__link--color,
+  .app-header__login,
+  .app-mobile-nav__home,
+  .app-mobile-nav__login,
+  .app-mobile-nav__toggle,
+  .home__submit-button,
+  .competitions-hero__cta,
+  .competitions-hero__phone,
+  .competitions-hero__archive-link,
+  .competitions-list__action,
+  .fee-detail__reservation-action,
+  .fee-detail__price-action,
+  .fees__card-action,
+  .documents__card-action,
+  .competition-detail__card-action,
+  .trainers__card-action,
+  .reviews__arrow
+):hover {
+  --button-current-bg: var(--button-hover-bg, var(--button-bg, transparent));
+  --button-current-border: var(--button-hover-border, var(--button-border, transparent));
+}
+
+:is(
+  .app-header__link--color,
+  .app-header__login,
+  .app-mobile-nav__home,
+  .app-mobile-nav__login,
+  .app-mobile-nav__toggle,
+  .home__submit-button,
+  .competitions-hero__cta,
+  .competitions-hero__phone,
+  .competitions-hero__archive-link,
+  .competitions-list__action,
+  .fee-detail__reservation-action,
+  .fee-detail__price-action,
+  .fees__card-action,
+  .documents__card-action,
+  .competition-detail__card-action,
+  .trainers__card-action,
+  .reviews__arrow
+):focus-visible {
+  box-shadow:
+    0 0 0 3px var(--button-focus-ring-inner),
+    0 0 0 6px color-mix(in srgb, var(--button-focus-color, var(--cyan)) 34%, transparent);
 }
 
 .list-reset {

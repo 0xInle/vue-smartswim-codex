@@ -175,8 +175,7 @@ let footerSectionRef = null
 let initialViewportHeight = 0
 
 const KEYBOARD_OPEN_THRESHOLD = 120
-const EDITABLE_SELECTOR =
-  'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
+const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
 
 const isHomeRoute = computed(() => route.path === '/')
 const isBrandVisible = computed(() => (isHomeRoute.value ? isHeaderFloating.value : true))
@@ -568,11 +567,13 @@ onBeforeUnmount(() => {
 }
 
 .app-header__brand {
+  --button-bg: var(--button-light-blue-bg);
+  --button-hover-bg: var(--button-light-blue-hover-bg);
+  --button-current-bg: var(--button-bg);
   flex-shrink: 0;
   max-width: 0;
   padding: 15px 0;
-  background-color: color-mix(in srgb, var(--light-blue) 90%, transparent);
-
+  background-color: var(--button-current-bg);
   border-radius: 10px;
   overflow: hidden;
   transform-origin: right center;
@@ -582,6 +583,7 @@ onBeforeUnmount(() => {
   transition:
     max-width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
     padding 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    background-color 0.2s ease,
     opacity 0.35s ease,
     transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   transform: scaleX(0.01);
@@ -593,6 +595,11 @@ onBeforeUnmount(() => {
   opacity: 1;
   pointer-events: auto;
   transform: scaleX(1);
+}
+
+.app-header__brand:hover,
+.app-header__brand:focus-within {
+  --button-current-bg: var(--button-hover-bg);
 }
 
 .app-header__home {
@@ -611,62 +618,65 @@ onBeforeUnmount(() => {
 }
 
 .app-header__link {
-  position: relative;
   font-size: 15px;
   font-weight: 500;
   color: var(--black);
-}
-
-.app-header__link::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: -4px;
-  left: 0;
-  height: 1px;
-  background-color: var(--black);
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 0.2s ease;
-}
-
-.app-header__link:hover::after {
-  transform: scaleX(1);
+  transition: color 0.2s ease;
 }
 
 .app-header__link--color {
+  --button-bg: var(--button-cyan-bg);
+  --button-hover-bg: var(--button-cyan-hover-bg);
+  --button-focus-color: var(--cyan);
+  --button-text: var(--black);
   display: block;
   height: 47px;
   appearance: none;
   -webkit-appearance: none;
   padding: 13.25px 30px;
-  background-color: color-mix(in srgb, var(--cyan) 90%, transparent);
+  background-color: var(--button-current-bg, var(--button-bg));
   border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
-  color: var(--black);
+  color: var(--button-text);
   transition:
     background-color 0.2s ease,
-    color 0.2s ease;
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .app-header__login {
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
+  --button-text: var(--black);
   appearance: none;
   -webkit-appearance: none;
   padding: 15px 30px;
-  background-color: color-mix(in srgb, var(--orange) 90%, transparent);
+  background-color: var(--button-current-bg, var(--button-bg));
   border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
-  color: var(--black);
+  color: var(--button-text);
   transition:
     background-color 0.2s ease,
-    color 0.2s ease;
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.app-header__login:hover {
-  background-color: color-mix(in srgb, var(--orange) 88%, transparent);
-  color: var(--white);
+.app-header__link:not(.app-header__link--color):hover {
+  color: var(--cyan);
+}
+
+.app-header__link:not(.app-header__link--color):focus-visible {
+  color: var(--cyan);
+  outline: none;
+}
+
+.app-header__home:focus-visible {
+  outline: none;
 }
 
 .app-mobile-nav {
@@ -735,24 +745,35 @@ onBeforeUnmount(() => {
 }
 
 .app-mobile-nav__home {
+  --button-bg: var(--button-light-blue-bg);
+  --button-hover-bg: var(--button-light-blue-hover-bg);
+  --button-focus-color: var(--light-blue);
+  --button-text: var(--black);
   padding: 15px 20px;
-  background-color: color-mix(in srgb, var(--light-blue) 90%, transparent);
+  background-color: var(--button-current-bg, var(--button-bg));
 }
 
 .app-mobile-nav__login {
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
+  --button-text: var(--black);
   padding: 15px 20px;
-  background-color: color-mix(in srgb, var(--orange) 90%, transparent);
+  background-color: var(--button-current-bg, var(--button-bg));
 }
 
 .app-mobile-nav__toggle {
+  --button-bg: var(--button-cyan-bg);
+  --button-hover-bg: var(--button-cyan-hover-bg);
+  --button-focus-color: var(--cyan);
+  --button-text: var(--black);
   position: relative;
   flex-direction: column;
   gap: 5px;
   width: 47px;
   min-width: 47px;
   padding: 0;
-  background-color: color-mix(in srgb, var(--cyan) 90%, transparent);
-  transition: transform 0.25s ease;
+  background-color: var(--button-current-bg, var(--button-bg));
 }
 
 .app-mobile-nav__toggle-line {
@@ -908,10 +929,20 @@ onBeforeUnmount(() => {
   transform: translateX(0);
   animation: app-mobile-nav-link-in 0.45s ease both;
   animation-delay: calc(var(--item-index, 0) * 70ms + 90ms);
+  transition: color 0.2s ease;
 }
 
 .app-mobile-nav__link--active {
   color: var(--white);
+}
+
+.app-mobile-nav__link:hover {
+  color: var(--white);
+}
+
+.app-mobile-nav__link:focus-visible {
+  color: var(--white);
+  outline: none;
 }
 
 .app-mobile-nav__icon {

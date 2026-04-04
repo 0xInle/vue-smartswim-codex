@@ -1,17 +1,6 @@
 <template>
-  <section class="home">
-    <video
-      autoplay
-      muted
-      loop
-      playsinline
-      webkit-playsinline
-      preload="auto"
-      disablepictureinpicture
-      disableremoteplayback
-      x-webkit-airplay="deny"
-      class="home__video-player"
-    >
+  <section class="home" :class="{ 'home--intro-ready': isIntroReady }">
+    <video autoplay muted loop playsinline preload="metadata" class="home__video-player">
       <source :src="heroVideo" type="video/mp4" />
       Ваш браузер не поддерживает видео.
     </video>
@@ -33,11 +22,15 @@
             </div>
 
             <div class="home__heading">
-              <h1 class="home__title">Быстрый старт</h1>
-              <p class="home__title-line">в воде и на соревнованиях</p>
+              <h1 class="home__title home__intro-item" style="--intro-delay: 0.08s">
+                Быстрый старт
+              </h1>
+              <p class="home__title-line home__intro-item" style="--intro-delay: 0.18s">
+                в воде и на соревнованиях
+              </p>
             </div>
 
-            <p class="home__description">
+            <p class="home__description home__intro-item" style="--intro-delay: 0.3s">
               Помогаем освоиться в воде, выстроить технику и уверенно выходить на первые старты в
               атмосфере системной подготовки и бережной поддержки.
             </p>
@@ -192,9 +185,11 @@ import { publicAsset } from '@/utils/publicAsset'
 
 const isDateOpen = ref(false)
 const isTimeOpen = ref(false)
+const isIntroReady = ref(false)
 const heroVideo = publicAsset('/videos/01-video.mp4')
 const dateDropdownRef = ref(null)
 const timeDropdownRef = ref(null)
+let introAnimationFrame = 0
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 const calendarMonth = ref(new Date(today.getFullYear(), today.getMonth(), 1))
@@ -329,15 +324,26 @@ function handleOutsideClick(event) {
 
 onMounted(() => {
   document.addEventListener('click', handleOutsideClick)
+  introAnimationFrame = window.requestAnimationFrame(() => {
+    introAnimationFrame = window.requestAnimationFrame(() => {
+      isIntroReady.value = true
+    })
+  })
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleOutsideClick)
+
+  if (introAnimationFrame) {
+    window.cancelAnimationFrame(introAnimationFrame)
+  }
 })
 </script>
 
 <style scoped>
 .home {
+  --intro-duration: 1s;
+  --intro-ease: cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   left: 50%;
   width: 100vw;
@@ -404,6 +410,24 @@ onBeforeUnmount(() => {
   min-height: min(660px, calc(var(--app-screen-height) - 156px));
   padding: 20px 0;
   color: var(--white);
+}
+
+.home__intro-item {
+  opacity: 0;
+  transform: translate3d(0, 34px, 0) scale(0.985);
+  filter: blur(12px);
+  will-change: transform, opacity, filter;
+  transition:
+    opacity var(--intro-duration) var(--intro-ease),
+    transform var(--intro-duration) var(--intro-ease),
+    filter calc(var(--intro-duration) * 0.85) ease;
+  transition-delay: var(--intro-delay, 0s);
+}
+
+.home--intro-ready .home__intro-item {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
 }
 
 .home__brand {
@@ -488,11 +512,13 @@ onBeforeUnmount(() => {
 .home__title {
   font-size: clamp(48px, 7.2vw, 94px);
   color: var(--white);
+  transform-origin: left center;
 }
 
 .home__title-line {
   font-size: clamp(26px, 3.6vw, 48px);
   color: color-mix(in srgb, var(--aqua) 82%, var(--white));
+  transform-origin: left center;
 }
 
 .home__description {
@@ -641,14 +667,12 @@ onBeforeUnmount(() => {
   text-align: left;
   transition:
     border-color 0.2s ease,
-    transform 0.2s ease,
     background-color 0.2s ease;
 }
 
 .home__dropdown-trigger:hover,
 .home__dropdown-trigger--open {
   border-color: color-mix(in srgb, var(--cyan) 64%, var(--white));
-  transform: translateY(-1px);
 }
 
 .home__dropdown-label {
@@ -882,27 +906,21 @@ onBeforeUnmount(() => {
 }
 
 .home__submit-button {
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
+  --button-text: var(--black);
   margin-top: 8px;
   min-height: 52px;
   padding: 12px 18px;
   border-radius: 10px;
-  background: var(--orange);
+  background-color: var(--button-current-bg, var(--button-bg));
   border: none;
   font-size: 15px;
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--white);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    filter 0.2s ease;
-}
-
-.home__submit-button:hover {
-  transform: translateY(-1px);
-  filter: saturate(1.08);
-  box-shadow: 0 18px 30px color-mix(in srgb, var(--cyan) 24%, transparent);
+  color: var(--button-text);
 }
 
 .home__contact {
@@ -944,6 +962,16 @@ onBeforeUnmount(() => {
   transform: translateY(-8px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .home__intro-item,
+  .home--intro-ready .home__intro-item {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+  }
+}
+
 @media (max-width: 1316px) {
   .home__dropdown-trigger {
     background: color-mix(in srgb, var(--white) 96%, var(--very-light-blue) 4%);
@@ -955,6 +983,10 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 768px) {
+  .home {
+    --intro-duration: 0.72s;
+  }
+
   .home__input {
     font-size: 16px;
   }

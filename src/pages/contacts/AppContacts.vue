@@ -211,14 +211,12 @@ const contactsImage = publicAsset('/images/18-img.jpg')
 
 .contacts__item-value--link,
 .contacts__overlay-link {
-  transition:
-    color 0.25s ease,
-    transform 0.25s ease;
+  transition: color 0.25s ease;
 }
 
 .contacts__item-value--link:hover,
 .contacts__overlay-link:hover {
-  transform: translateX(2px);
+  color: var(--cyan);
 }
 
 .contacts__aside {

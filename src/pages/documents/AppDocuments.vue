@@ -185,13 +185,11 @@ function toggleFaqItem(key) {
     inset 0 1px 0 rgb(from var(--white) r g b / 52%),
     0 10px 24px rgb(from var(--black) r g b / 4%);
   transition:
-    transform 0.25s ease,
     background-color 0.25s ease,
     border-color 0.25s ease;
 }
 
 .documents__card:hover {
-  transform: translateY(-2px);
   background: rgb(from var(--white) r g b / 96%);
   border-color: color-mix(in srgb, var(--cyan) 42%, var(--white));
 }
@@ -237,6 +235,10 @@ function toggleFaqItem(key) {
 }
 
 .documents__card-action {
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
+  --button-text: var(--black);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -245,18 +247,10 @@ function toggleFaqItem(key) {
   min-height: 36px;
   padding: 9px 16px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--orange) 88%, var(--white));
-  color: var(--white);
+  background-color: var(--button-current-bg, var(--button-bg));
+  color: var(--button-text);
   font-size: 13px;
   font-weight: 600;
-  transition:
-    transform 0.2s ease,
-    background-color 0.2s ease;
-}
-
-.documents__card-action:hover {
-  transform: translateY(-1px);
-  background: color-mix(in srgb, var(--orange) 96%, var(--white));
 }
 
 .documents__faq {

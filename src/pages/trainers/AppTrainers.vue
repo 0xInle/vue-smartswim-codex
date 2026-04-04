@@ -463,30 +463,23 @@ onBeforeUnmount(() => {
 }
 
 .trainers__card-action {
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
+  --button-text: var(--black);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 47px;
   padding: 13.25px 30px;
   border-radius: 10px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--orange) 88%, var(--white)) 0%,
-    color-mix(in srgb, var(--orange) 68%, var(--white)) 100%
-  );
-  color: var(--white);
+  background-color: var(--button-current-bg, var(--button-bg));
+  color: var(--button-text);
   font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.02em;
   text-align: center;
   margin-top: auto;
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
-}
-
-.trainers__card-action:hover {
-  transform: translateY(-1px);
 }
 
 @media (max-width: 1100px) {

@@ -39,12 +39,7 @@
       </div>
 
       <div class="fees__cards">
-        <RouterLink
-          v-for="camp in feeCamps"
-          :key="camp.slug"
-          :to="`/fees/${camp.slug}`"
-          class="fees__card link-reset"
-        >
+        <article v-for="camp in feeCamps" :key="camp.slug" class="fees__card">
           <div class="fees__card-body">
             <div class="fees__card-top">
               <span class="fees__card-place">{{ camp.locationShort }}</span>
@@ -70,9 +65,11 @@
               </div>
             </div>
 
-            <span class="fees__card-action">Открыть описание сбора</span>
+            <RouterLink :to="`/fees/${camp.slug}`" class="fees__card-action link-reset">
+              Открыть описание сбора
+            </RouterLink>
           </div>
-        </RouterLink>
+        </article>
       </div>
 
       <section class="fees__features">
@@ -249,12 +246,10 @@ import { feeCamps } from '@/pages/fees/feesData'
   overflow: hidden;
   background: rgb(from var(--white) r g b / 56%);
   transition:
-    transform 0.25s ease,
     box-shadow 0.25s ease;
 }
 
 .fees__card:hover {
-  transform: translateY(-6px);
   box-shadow:
     0 28px 55px rgb(from var(--black) r g b / 14%),
     inset 0 1px 0 rgb(from var(--white) r g b / 35%);
@@ -334,6 +329,10 @@ import { feeCamps } from '@/pages/fees/feesData'
 }
 
 .fees__card-action {
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
+  --button-text: var(--black);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -343,18 +342,10 @@ import { feeCamps } from '@/pages/fees/feesData'
   margin-top: 22px;
   padding: 11px 24px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--orange) 88%, var(--white));
+  background-color: var(--button-current-bg, var(--button-bg));
   font-size: 15px;
   font-weight: 500;
-  color: var(--white);
-  transition:
-    transform 0.2s ease,
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.fees__card:hover .fees__card-action {
-  background: color-mix(in srgb, var(--orange) 96%, var(--white));
+  color: var(--button-text);
 }
 
 .fees__features {

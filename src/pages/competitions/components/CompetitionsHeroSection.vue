@@ -157,26 +157,25 @@ defineEmits(['explore'])
 }
 
 .competitions-hero__cta {
+  --button-bg: var(--button-cyan-bg);
+  --button-hover-bg: var(--button-cyan-hover-bg);
+  --button-focus-color: var(--cyan);
+  --button-text: var(--black);
   min-height: 47px;
   padding: 11px 30px;
   border: none;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--cyan) 82%, var(--white));
+  background-color: var(--button-current-bg, var(--button-bg));
   font-size: 15px;
   font-weight: 500;
-  color: var(--white);
-  transition:
-    transform 0.2s ease,
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.competitions-hero__cta:hover {
-  background-color: color-mix(in srgb, var(--cyan) 94%, var(--white));
-  transform: translateY(-1px);
+  color: var(--button-text);
 }
 
 .competitions-hero__phone {
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
+  --button-text: var(--black);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -184,20 +183,10 @@ defineEmits(['explore'])
   padding: 11px 30px;
   border: none;
   border-radius: 10px;
-  background-color: color-mix(in srgb, var(--orange) 78%, transparent);
+  background-color: var(--button-current-bg, var(--button-bg));
   font-size: 15px;
   font-weight: 500;
-  color: var(--black);
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.competitions-hero__phone:hover {
-  background-color: color-mix(in srgb, var(--orange) 88%, transparent);
-  color: var(--white);
-  transform: translateY(-1px);
+  color: var(--button-text);
 }
 
 .competitions-hero__panel {
@@ -272,6 +261,10 @@ defineEmits(['explore'])
 }
 
 .competitions-hero__archive-link {
+  --button-bg: var(--button-cyan-bg);
+  --button-hover-bg: var(--button-cyan-hover-bg);
+  --button-focus-color: var(--cyan);
+  --button-text: var(--black);
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
@@ -281,20 +274,11 @@ defineEmits(['explore'])
   padding: 11px 30px;
   border: none;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--cyan) 82%, var(--white));
+  background-color: var(--button-current-bg, var(--button-bg));
   font-size: 14px;
   font-size: 15px;
   font-weight: 500;
-  color: var(--white);
-  transition:
-    transform 0.2s ease,
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.competitions-hero__archive-link:hover {
-  transform: translateY(-1px);
-  background-color: color-mix(in srgb, var(--cyan) 94%, var(--white));
+  color: var(--button-text);
 }
 
 @media (max-width: 900px) {
