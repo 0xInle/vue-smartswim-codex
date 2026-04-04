@@ -7,7 +7,7 @@ import svgLoader from 'vite-svg-loader'
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/test/' : '/',
+  base: command === 'build' ? '/vue-smartswim-codex/' : '/',
   plugins: [vue(), vueDevTools(), svgLoader()],
   resolve: {
     alias: {

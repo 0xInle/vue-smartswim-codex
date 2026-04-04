@@ -50,19 +50,6 @@
         :class="{ 'app-mobile-nav__bar--stopped': isHeaderStopped }"
         :style="headerStyle"
       >
-        <div
-          class="app-mobile-nav__home-wrap"
-          :class="{ 'app-mobile-nav__home-wrap--visible': isBrandVisible }"
-        >
-          <button
-            type="button"
-            class="app-mobile-nav__home btn-reset"
-            :tabindex="isBrandVisible ? 0 : -1"
-            @click="handleMobileHomeClick"
-          >
-            Главная
-          </button>
-        </div>
         <button type="button" class="app-mobile-nav__login btn-reset">Личный кабинет</button>
         <button
           type="button"
