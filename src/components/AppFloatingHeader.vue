@@ -381,6 +381,11 @@ function syncAndroidKeyboardState() {
     return
   }
 
+  if (isRegistrationModalOpen.value) {
+    isAndroidKeyboardOpen.value = false
+    return
+  }
+
   if (!initialViewportHeight) {
     initialViewportHeight = window.visualViewport.height
   }
@@ -407,13 +412,17 @@ function handleFocusIn(event) {
     return
   }
 
+  if (isRegistrationModalOpen.value) {
+    return
+  }
+
   if (isAndroidDevice()) {
     syncAndroidKeyboardState()
   }
 }
 
 function handleFocusOut() {
-  if (!isAndroidDevice()) {
+  if (!isAndroidDevice() || isRegistrationModalOpen.value) {
     return
   }
 
@@ -1762,12 +1771,22 @@ onBeforeUnmount(() => {
   }
 
   .app-mobile-nav,
-  .app-mobile-nav * {
+  .app-mobile-nav *,
+  .app-registration,
+  .app-registration * ,
+  .app-toast {
     pointer-events: auto;
   }
 }
 
 @media (max-width: 767px) {
+  .app-registration {
+    align-items: flex-start;
+    padding: 12px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .app-mobile-nav__bar {
     bottom: 16px;
   }
@@ -1792,8 +1811,10 @@ onBeforeUnmount(() => {
   }
 
   .app-registration__dialog {
+    margin: auto 0;
     padding: 24px 18px 18px;
     width: min(100%, 560px);
+    max-height: none;
   }
 
   .app-toast {
