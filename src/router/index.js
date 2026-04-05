@@ -24,42 +24,72 @@ const router = createRouter({
     {
       path: '/',
       component: HomePage,
+      meta: {
+        showFloatingHeader: true,
+      },
     },
     {
       path: '/competitions',
       component: AppCompetitions,
+      meta: {
+        showFloatingHeader: true,
+      },
     },
     {
       path: '/competitions/archive',
       component: AppCompetitionsArchive,
+      meta: {
+        showFloatingHeader: true,
+      },
     },
     {
       path: '/competitions/:slug',
       component: AppCompetitionDetail,
+      meta: {
+        showFloatingHeader: true,
+      },
     },
     {
       path: '/fees',
       component: AppFees,
+      meta: {
+        showFloatingHeader: true,
+      },
     },
     {
       path: '/fees/:slug',
       component: AppFeeDetail,
+      meta: {
+        showFloatingHeader: true,
+      },
     },
     {
       path: '/documents',
       component: AppDocuments,
+      meta: {
+        showFloatingHeader: true,
+      },
     },
     {
       path: '/contacts',
       component: AppContacts,
+      meta: {
+        showFloatingHeader: true,
+      },
     },
     {
       path: '/trainers',
       component: AppTrainers,
+      meta: {
+        showFloatingHeader: true,
+      },
     },
     {
       path: '/account',
       component: AppAccount,
+      meta: {
+        showFloatingHeader: false,
+      },
     },
   ],
 })

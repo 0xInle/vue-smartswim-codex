@@ -37,4 +37,6 @@ app.use(createPinia())
 app.use(ElementPlus, { size: 'default', zIndex: 3000 })
 app.use(router)
 
+await router.isReady()
+
 app.mount('#app')

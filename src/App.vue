@@ -1,6 +1,6 @@
 <template>
   <main class="main-content flex">
-    <AppFloatingHeader v-if="!isAccountRoute" />
+    <AppFloatingHeader v-if="shouldShowFloatingHeader" />
     <RouterView />
   </main>
 </template>
@@ -11,7 +11,7 @@ import AppFloatingHeader from '@/components/AppFloatingHeader.vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const isAccountRoute = computed(() => route.path.startsWith('/account'))
+const shouldShowFloatingHeader = computed(() => route.meta.showFloatingHeader !== false)
 </script>
 
 <style scoped>
