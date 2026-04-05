@@ -1,195 +1,376 @@
 <template>
   <section class="account">
-    <div class="account__layout">
-      <aside class="account__sidebar">
+    <el-container class="account__shell">
+      <el-aside class="account__sidebar" width="280px">
         <div class="account__brand">
-          <p class="account__brand-eyebrow">Smart Swim CRM</p>
-          <h1 class="account__brand-title">Admin Panel</h1>
-          <p class="account__brand-text">Система управления клиентами и контентом сайта.</p>
+          <span class="account__brand-badge">Smart Swim CRM</span>
+          <h1 class="account__brand-title">Operations Panel</h1>
+          <p class="account__brand-text">
+            Стандартный CRM-интерфейс для регистрации клиентов, заявок и контентных процессов.
+          </p>
         </div>
 
-        <nav class="account__nav" aria-label="Навигация CRM">
-          <button
-            v-for="item in navigationItems"
-            :key="item.id"
-            type="button"
-            class="account__nav-button btn-reset"
-            :class="{ 'account__nav-button--active': activeSection === item.id }"
-            @click="activeSection = item.id"
+        <el-scrollbar class="account__menu-scroll">
+          <el-menu
+            :default-active="activeSection"
+            class="account__menu"
+            @select="handleSectionSelect"
           >
-            <span class="account__nav-button-label">{{ item.label }}</span>
-            <span class="account__nav-button-meta">{{ item.meta }}</span>
-          </button>
-        </nav>
+            <el-menu-item v-for="item in navigationItems" :key="item.id" :index="item.id">
+              <el-icon><component :is="item.icon" /></el-icon>
+              <div class="account__menu-copy">
+                <span class="account__menu-label">{{ item.label }}</span>
+                <span class="account__menu-meta">{{ item.meta }}</span>
+              </div>
+            </el-menu-item>
+          </el-menu>
+        </el-scrollbar>
 
-        <RouterLink class="account__back link-reset" to="/">Вернуться на сайт</RouterLink>
-      </aside>
+        <RouterLink class="account__back-link link-reset" to="/">
+          <el-button class="account__back-button" type="primary">Вернуться на сайт</el-button>
+        </RouterLink>
+      </el-aside>
 
-      <main class="account__content">
-        <header class="account__topbar">
-          <div class="account__topbar-copy">
+      <el-container class="account__content-shell">
+        <el-header class="account__header">
+          <div class="account__header-copy">
             <p class="account__eyebrow">CRM Dashboard</p>
             <h2 class="account__title">{{ currentSectionTitle }}</h2>
             <p class="account__subtitle">{{ currentSectionDescription }}</p>
           </div>
 
-          <div class="account__topbar-actions">
-            <div class="account__topbar-status">
-              <span class="account__status-label">Система</span>
-              <strong class="account__status-value">Онлайн</strong>
-            </div>
-            <div class="account__topbar-status">
-              <span class="account__status-label">Пользователи</span>
-              <strong class="account__status-value">{{ registeredUsers.length }}</strong>
-            </div>
+          <div class="account__header-statuses">
+            <el-card class="account__header-card" shadow="never">
+              <span class="account__header-label">Система</span>
+              <strong class="account__header-value">Online</strong>
+            </el-card>
+            <el-card class="account__header-card" shadow="never">
+              <span class="account__header-label">Пользователи</span>
+              <strong class="account__header-value">{{ registeredUsers.length }}</strong>
+            </el-card>
           </div>
-        </header>
+        </el-header>
 
-        <template v-if="activeSection === 'dashboard'">
-          <section class="account__stats">
-            <article class="account__stat-card">
-              <span class="account__stat-label">Всего пользователей</span>
-              <strong class="account__stat-value">{{ registeredUsers.length }}</strong>
-            </article>
-            <article class="account__stat-card">
-              <span class="account__stat-label">Последняя регистрация</span>
-              <strong class="account__stat-value">{{ latestUserName }}</strong>
-            </article>
-            <article class="account__stat-card">
-              <span class="account__stat-label">Последний email</span>
-              <strong class="account__stat-value">{{ latestUserEmail }}</strong>
-            </article>
-            <article class="account__stat-card">
-              <span class="account__stat-label">Дата регистрации</span>
-              <strong class="account__stat-value">{{ latestUserRegistrationDate }}</strong>
-            </article>
-          </section>
+        <el-main class="account__main">
+          <template v-if="activeSection === 'dashboard'">
+            <el-row :gutter="16" class="account__metrics">
+              <el-col
+                v-for="metric in dashboardMetrics"
+                :key="metric.label"
+                :xs="24"
+                :sm="12"
+                :xl="6"
+              >
+                <el-card class="account__metric-card" shadow="hover">
+                  <div class="account__metric-top">
+                    <div class="account__metric-copy">
+                      <span class="account__metric-label">{{ metric.label }}</span>
+                      <strong class="account__metric-value">{{ metric.value }}</strong>
+                    </div>
+                    <el-tag :type="metric.tagType" effect="light" round>{{ metric.tag }}</el-tag>
+                  </div>
+                  <p class="account__metric-note">{{ metric.note }}</p>
+                </el-card>
+              </el-col>
+            </el-row>
 
-          <section class="account__grid">
-            <article class="account__panel">
-              <div class="account__panel-header">
-                <div>
-                  <p class="account__panel-eyebrow">Обзор клиентов</p>
-                  <h3 class="account__panel-title">Последний зарегистрированный пользователь</h3>
+            <el-row :gutter="16">
+              <el-col :xs="24" :lg="15">
+                <el-card class="account__panel" shadow="never">
+                  <template #header>
+                    <div class="account__panel-head">
+                      <div>
+                        <p class="account__panel-eyebrow">Клиентский профиль</p>
+                        <h3 class="account__panel-title">Последний зарегистрированный пользователь</h3>
+                      </div>
+                      <el-tag :type="latestUser ? 'success' : 'info'" effect="light" round>
+                        {{ latestUser ? 'Данные получены' : 'Ожидаем регистрацию' }}
+                      </el-tag>
+                    </div>
+                  </template>
+
+                  <template v-if="latestUser">
+                    <el-descriptions :column="1" border class="account__descriptions">
+                      <el-descriptions-item label="Имя">
+                        {{ latestUser.name || 'Не указано' }}
+                      </el-descriptions-item>
+                      <el-descriptions-item label="Почта">
+                        {{ latestUser.email }}
+                      </el-descriptions-item>
+                      <el-descriptions-item label="Дата регистрации">
+                        {{ latestUserRegistrationDate }}
+                      </el-descriptions-item>
+                      <el-descriptions-item label="Статус">
+                        <el-tag type="success" effect="light" round>Активен</el-tag>
+                      </el-descriptions-item>
+                    </el-descriptions>
+                  </template>
+
+                  <el-empty
+                    v-else
+                    description="После первой регистрации здесь появятся данные клиента."
+                  />
+                </el-card>
+              </el-col>
+
+              <el-col :xs="24" :lg="9">
+                <el-card class="account__panel" shadow="never">
+                  <template #header>
+                    <div class="account__panel-head">
+                      <div>
+                        <p class="account__panel-eyebrow">Операции</p>
+                        <h3 class="account__panel-title">Ключевые действия CRM</h3>
+                      </div>
+                    </div>
+                  </template>
+
+                  <el-timeline>
+                    <el-timeline-item
+                      v-for="item in keyActions"
+                      :key="item.title"
+                      :timestamp="item.timestamp"
+                      placement="top"
+                      type="primary"
+                    >
+                      <div class="account__timeline-card">
+                        <strong class="account__timeline-title">{{ item.title }}</strong>
+                        <p class="account__timeline-text">{{ item.text }}</p>
+                      </div>
+                    </el-timeline-item>
+                  </el-timeline>
+                </el-card>
+              </el-col>
+            </el-row>
+          </template>
+
+          <template v-else-if="activeSection === 'users'">
+            <el-card class="account__panel" shadow="never">
+              <template #header>
+                <div class="account__panel-head">
+                  <div>
+                    <p class="account__panel-eyebrow">База клиентов</p>
+                    <h3 class="account__panel-title">Зарегистрированные пользователи</h3>
+                  </div>
+                  <el-tag type="primary" effect="light" round>
+                    {{ registeredUsers.length }} записей
+                  </el-tag>
                 </div>
-                <span class="account__panel-badge">
-                  {{ latestUser ? 'Данные получены' : 'Ожидаем регистрацию' }}
-                </span>
-              </div>
+              </template>
 
-              <dl v-if="latestUser" class="account__details">
-                <div class="account__detail-row">
-                  <dt class="account__detail-label">Имя</dt>
-                  <dd class="account__detail-value">{{ latestUser.name || 'Не указано' }}</dd>
+              <el-table
+                :data="registeredUsers"
+                row-key="email"
+                border
+                stripe
+                empty-text="Зарегистрированных пользователей пока нет."
+              >
+                <el-table-column label="Имя" min-width="180">
+                  <template #default="{ row }">
+                    {{ row.name || 'Не указано' }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="email" label="Почта" min-width="240" />
+                <el-table-column label="Дата регистрации" min-width="220">
+                  <template #default="{ row }">
+                    {{ formatRegistrationDate(row.registeredAt) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="Статус" width="140" align="center">
+                  <template #default>
+                    <el-tag type="success" effect="light" round>Активен</el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-card>
+          </template>
+
+          <template v-else>
+            <el-card class="account__panel" shadow="never">
+              <template #header>
+                <div class="account__panel-head">
+                  <div>
+                    <p class="account__panel-eyebrow">Roadmap</p>
+                    <h3 class="account__panel-title">{{ currentSectionTitle }}</h3>
+                  </div>
+                  <el-tag type="warning" effect="light" round>Раздел в разработке</el-tag>
                 </div>
-                <div class="account__detail-row">
-                  <dt class="account__detail-label">Почта</dt>
-                  <dd class="account__detail-value">{{ latestUser.email }}</dd>
-                </div>
-                <div class="account__detail-row">
-                  <dt class="account__detail-label">Дата регистрации</dt>
-                  <dd class="account__detail-value">{{ latestUserRegistrationDate }}</dd>
-                </div>
-              </dl>
+              </template>
 
-              <p v-else class="account__empty">
-                После первой регистрации здесь появятся данные клиента.
-              </p>
-            </article>
+              <el-alert
+                :title="currentSectionDescription"
+                type="info"
+                show-icon
+                :closable="false"
+                class="account__alert"
+              />
 
-            <article class="account__panel">
-              <div class="account__panel-header">
-                <div>
-                  <p class="account__panel-eyebrow">Управление</p>
-                  <h3 class="account__panel-title">Ключевые действия CRM</h3>
-                </div>
-              </div>
-
-              <ul class="account__checklist list-reset">
-                <li class="account__check-item">Контроль новых регистраций клиентов.</li>
-                <li class="account__check-item">Подготовка панели для заявок и лидов.</li>
-                <li class="account__check-item">
-                  Будущее управление страницами и контентом сайта.
-                </li>
-                <li class="account__check-item">
-                  Мониторинг контактных данных и статуса клиентов.
-                </li>
-              </ul>
-            </article>
-          </section>
-        </template>
-
-        <template v-else-if="activeSection === 'users'">
-          <section class="account__panel account__panel--table">
-            <div class="account__panel-header">
-              <div>
-                <p class="account__panel-eyebrow">База клиентов</p>
-                <h3 class="account__panel-title">Зарегистрированные пользователи</h3>
-              </div>
-              <span class="account__panel-badge">{{ registeredUsers.length }} записей</span>
-            </div>
-
-            <div v-if="registeredUsers.length" class="account__table-wrap">
-              <table class="account__table">
-                <thead>
-                  <tr>
-                    <th>Имя</th>
-                    <th>Почта</th>
-                    <th>Дата регистрации</th>
-                    <th>Статус</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="user in registeredUsers" :key="user.email">
-                    <td>{{ user.name || 'Не указано' }}</td>
-                    <td>{{ user.email }}</td>
-                    <td>{{ formatRegistrationDate(user.registeredAt) }}</td>
-                    <td>
-                      <span class="account__table-status">Активен</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <p v-else class="account__empty">Зарегистрированных пользователей пока нет.</p>
-          </section>
-        </template>
-
-        <template v-else>
-          <section class="account__placeholder">
-            <div class="account__placeholder-card">
-              <p class="account__panel-eyebrow">Раздел в разработке</p>
-              <h3 class="account__panel-title">{{ currentSectionTitle }}</h3>
-              <p class="account__note">
-                Это базовый прототип CRM. Раздел уже присутствует в навигации как часть классической
-                admin-системы и может быть наполнен реальными данными следующим шагом.
-              </p>
-            </div>
-          </section>
-        </template>
-      </main>
-    </div>
+              <el-row :gutter="16">
+                <el-col
+                  v-for="item in currentSectionRoadmap"
+                  :key="item.title"
+                  :xs="24"
+                  :md="12"
+                  :xl="8"
+                >
+                  <div class="account__roadmap-card">
+                    <span class="account__roadmap-step">{{ item.step }}</span>
+                    <strong class="account__roadmap-title">{{ item.title }}</strong>
+                    <p class="account__roadmap-text">{{ item.text }}</p>
+                  </div>
+                </el-col>
+              </el-row>
+            </el-card>
+          </template>
+        </el-main>
+      </el-container>
+    </el-container>
   </section>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
+import {
+  Files,
+  Histogram,
+  Monitor,
+  Setting,
+  User,
+} from '@element-plus/icons-vue'
 import { RouterLink } from 'vue-router'
 import { getRegisteredUsersSnapshot, loadRegisteredUser } from '@/utils/accountStorage'
 
 const navigationItems = [
-  { id: 'dashboard', label: 'Дашборд', meta: 'Обзор системы' },
-  { id: 'users', label: 'Пользователи', meta: 'Клиенты и база' },
-  { id: 'leads', label: 'Заявки', meta: 'Лиды и обращения' },
-  { id: 'content', label: 'Контент', meta: 'Страницы сайта' },
-  { id: 'analytics', label: 'Аналитика', meta: 'Отчеты и метрики' },
-  { id: 'settings', label: 'Настройки', meta: 'Права и конфигурация' },
+  { id: 'dashboard', label: 'Дашборд', meta: 'Обзор системы', icon: Monitor },
+  { id: 'users', label: 'Пользователи', meta: 'Клиенты и база', icon: User },
+  { id: 'leads', label: 'Заявки', meta: 'Лиды и обращения', icon: Files },
+  { id: 'content', label: 'Контент', meta: 'Страницы сайта', icon: Files },
+  { id: 'analytics', label: 'Аналитика', meta: 'Отчеты и метрики', icon: Histogram },
+  { id: 'settings', label: 'Настройки', meta: 'Права и конфигурация', icon: Setting },
 ]
+
+const keyActions = [
+  {
+    timestamp: 'Сейчас',
+    title: 'Контроль новых регистраций',
+    text: 'Отслеживание новых аккаунтов и сохранение контактных данных клиентов.',
+  },
+  {
+    timestamp: 'Следующий этап',
+    title: 'Подключение лидов',
+    text: 'Подготовка таблиц для заявок, обратных звонков и входящих обращений.',
+  },
+  {
+    timestamp: 'Roadmap',
+    title: 'Контент и аналитика',
+    text: 'Управление страницами сайта, публикациями и ключевыми показателями.',
+  },
+]
+
+const sectionContent = {
+  dashboard: {
+    title: 'Главный дашборд',
+    description: 'Сводка по регистрации клиентов и текущему состоянию CRM-системы.',
+  },
+  users: {
+    title: 'Пользователи',
+    description: 'Список пользователей, зарегистрированных через форму на сайте.',
+  },
+  leads: {
+    title: 'Заявки',
+    description: 'Раздел для работы с новыми обращениями и клиентскими заявками.',
+  },
+  content: {
+    title: 'Контент сайта',
+    description: 'Управление страницами, блоками сайта и редакционным контентом.',
+  },
+  analytics: {
+    title: 'Аналитика',
+    description: 'Отчеты по воронке, регистрациям и активности пользователей.',
+  },
+  settings: {
+    title: 'Настройки системы',
+    description: 'Базовая конфигурация CRM, роли и служебные параметры системы.',
+  },
+}
+
+const sectionRoadmaps = {
+  leads: [
+    {
+      step: '01',
+      title: 'Единый inbox',
+      text: 'Собрать заявки из всех форм сайта в одну таблицу со статусами и ответственными.',
+    },
+    {
+      step: '02',
+      title: 'Сценарии обработки',
+      text: 'Добавить этапы “Новая”, “В работе”, “Связались”, “Закрыта” для менеджеров.',
+    },
+    {
+      step: '03',
+      title: 'Приоритет клиентов',
+      text: 'Показывать срочные обращения и горячие лиды отдельно в CRM-виджетах.',
+    },
+  ],
+  content: [
+    {
+      step: '01',
+      title: 'Редактор блоков',
+      text: 'Подготовить управление hero-блоками, карточками и CTA внутренних страниц.',
+    },
+    {
+      step: '02',
+      title: 'Медиа-материалы',
+      text: 'Организовать загрузку изображений для тренеров, сборов и соревнований.',
+    },
+    {
+      step: '03',
+      title: 'Публикация изменений',
+      text: 'Добавить сценарии черновиков и контроля финального контента перед релизом.',
+    },
+  ],
+  analytics: [
+    {
+      step: '01',
+      title: 'Воронка регистраций',
+      text: 'Показывать динамику входящих регистраций и подтвержденных пользователей.',
+    },
+    {
+      step: '02',
+      title: 'Маршруты трафика',
+      text: 'Собирать данные по основным страницам и точкам входа клиентов на сайт.',
+    },
+    {
+      step: '03',
+      title: 'Операционные отчеты',
+      text: 'Подготовить карточки по заявкам, конверсии и источникам обращений.',
+    },
+  ],
+  settings: [
+    {
+      step: '01',
+      title: 'Роли доступа',
+      text: 'Разделить права администратора, менеджера и редактора контента.',
+    },
+    {
+      step: '02',
+      title: 'Интеграции',
+      text: 'Подключить сервисы уведомлений, CRM-почту и внутренние webhook-события.',
+    },
+    {
+      step: '03',
+      title: 'Служебные параметры',
+      text: 'Добавить централизованное управление контактами, ссылками и системными флагами.',
+    },
+  ],
+}
 
 const activeSection = ref('dashboard')
 const registeredUser = loadRegisteredUser()
 const registeredUsers = getRegisteredUsersSnapshot()
+
+function handleSectionSelect(sectionId) {
+  activeSection.value = sectionId
+}
 
 function formatRegistrationDate(date) {
   if (!date) {
@@ -208,67 +389,81 @@ const latestUserEmail = computed(() => latestUser.value?.email || 'Нет дан
 const latestUserRegistrationDate = computed(() =>
   latestUser.value ? formatRegistrationDate(latestUser.value.registeredAt) : 'Нет данных',
 )
+const currentSectionTitle = computed(() => sectionContent[activeSection.value].title)
+const currentSectionDescription = computed(() => sectionContent[activeSection.value].description)
+const currentSectionRoadmap = computed(() => sectionRoadmaps[activeSection.value] || [])
 
-const currentSectionTitle = computed(() => {
-  const sectionTitles = {
-    dashboard: 'Главный дашборд',
-    users: 'Пользователи',
-    leads: 'Заявки',
-    content: 'Контент сайта',
-    analytics: 'Аналитика',
-    settings: 'Настройки системы',
-  }
-
-  return sectionTitles[activeSection.value]
-})
-
-const currentSectionDescription = computed(() => {
-  const sectionDescriptions = {
-    dashboard: 'Сводка по регистрации клиентов и текущему состоянию CRM-системы.',
-    users: 'Список пользователей, зарегистрированных через форму на сайте.',
-    leads: 'Раздел для работы с новыми обращениями и клиентскими заявками.',
-    content: 'Управление страницами, блоками сайта и редакционным контентом.',
-    analytics: 'Отчеты по воронке, регистрациям и активности пользователей.',
-    settings: 'Базовая конфигурация CRM, роли и служебные параметры системы.',
-  }
-
-  return sectionDescriptions[activeSection.value]
-})
+const dashboardMetrics = computed(() => [
+  {
+    label: 'Всего пользователей',
+    value: registeredUsers.length,
+    tag: 'Клиенты',
+    tagType: 'primary',
+    note: 'Количество пользователей, зарегистрированных через форму на сайте.',
+  },
+  {
+    label: 'Последняя регистрация',
+    value: latestUserName.value,
+    tag: latestUser.value ? 'Активно' : 'Пусто',
+    tagType: latestUser.value ? 'success' : 'info',
+    note: 'Последний пользователь, данные которого доступны в локальном хранилище CRM.',
+  },
+  {
+    label: 'Последний email',
+    value: latestUserEmail.value,
+    tag: 'Контакт',
+    tagType: 'warning',
+    note: 'Актуальная почта последнего зарегистрированного клиента.',
+  },
+  {
+    label: 'Дата регистрации',
+    value: latestUserRegistrationDate.value,
+    tag: 'Время',
+    tagType: 'danger',
+    note: 'Дата и время последнего успешного создания учетной записи.',
+  },
+])
 </script>
 
 <style scoped>
 .account {
   min-height: var(--app-screen-height);
-  background: #f1f5f9;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgb(59 130 246 / 0.12), transparent 28%),
+    linear-gradient(180deg, #eef4ff 0%, #f7f9fc 38%, #eef2f7 100%);
 }
 
-.account__layout {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  min-height: var(--app-screen-height);
+.account__shell {
+  min-height: calc(var(--app-screen-height) - 48px);
+  border: 1px solid #dbe4f0;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 0.88);
+  box-shadow: 0 24px 60px rgb(15 23 42 / 0.12);
+  overflow: hidden;
+  backdrop-filter: blur(20px);
 }
 
 .account__sidebar {
   display: grid;
-  align-content: start;
-  gap: 20px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 24px;
   padding: 24px 18px;
-  background: #0f172a;
-  color: var(--white);
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  border-right: 1px solid rgb(148 163 184 / 0.14);
 }
 
 .account__brand {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
-.account__brand-eyebrow,
+.account__brand-badge,
 .account__eyebrow,
 .account__panel-eyebrow,
-.account__stat-label,
-.account__detail-label,
-.account__status-label,
-.account__nav-button-meta {
+.account__metric-label,
+.account__header-label,
+.account__roadmap-step {
   margin: 0;
   font-size: 12px;
   font-weight: 800;
@@ -277,124 +472,103 @@ const currentSectionDescription = computed(() => {
   text-transform: uppercase;
 }
 
-.account__brand-eyebrow {
-  color: #60a5fa;
+.account__brand-badge {
+  color: #93c5fd;
 }
 
 .account__brand-title,
 .account__title,
 .account__panel-title {
   margin: 0;
-  font-family: inherit;
-  letter-spacing: normal;
+  font-family: Nunito, sans-serif;
+  color: #0f172a;
 }
 
 .account__brand-title {
-  font-size: 24px;
+  font-size: 28px;
   line-height: 1.1;
+  color: #fff;
 }
 
 .account__brand-text,
 .account__subtitle,
-.account__detail-value,
-.account__empty,
-.account__note,
-.account__check-item,
-.account__nav-button-label {
+.account__metric-note,
+.account__timeline-text,
+.account__roadmap-text {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  line-height: 1.45;
+  line-height: 1.6;
 }
 
 .account__brand-text {
   color: #cbd5e1;
 }
 
-.account__nav {
+.account__menu-scroll {
+  min-height: 0;
+}
+
+.account__menu-copy {
   display: grid;
-  gap: 8px;
+  gap: 4px;
+  min-width: 0;
 }
 
-.account__nav-button {
-  display: grid;
-  gap: 6px;
-  padding: 12px 14px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: transparent;
-  text-align: left;
-  color: var(--white);
-}
-
-.account__nav-button:hover {
-  background: #1f2937;
-}
-
-.account__nav-button--active {
-  border-color: #334155;
-  background: #1e293b;
-}
-
-.account__nav-button-label {
+.account__menu-label {
   font-size: 14px;
-  line-height: 1.25;
+  font-weight: 800;
+  color: #e5edf8;
 }
 
-.account__nav-button-meta {
+.account__menu-meta {
+  font-size: 12px;
+  font-weight: 700;
   color: #94a3b8;
 }
 
-.account__back {
-  --button-bg: var(--button-orange-bg);
-  --button-hover-bg: var(--button-orange-hover-bg);
-  --button-focus-color: var(--orange);
-  display: inline-flex;
+.account__back-link {
+  display: block;
+}
+
+.account__back-button {
+  width: 100%;
+  min-height: 44px;
+  font-weight: 800;
+}
+
+.account__content-shell {
+  min-width: 0;
+  background: transparent;
+}
+
+.account__header {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 52px;
-  padding: 12px 18px;
-  border-radius: 10px;
-  background-color: var(--button-current-bg, var(--button-bg));
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--black);
+  justify-content: space-between;
+  gap: 18px;
+  height: auto;
+  min-height: 112px;
+  padding: 24px;
+  border-bottom: 1px solid #e5eaf3;
+  background: rgb(255 255 255 / 0.72);
 }
 
-.account__content {
-  display: grid;
-  align-content: start;
-  gap: 16px;
-  padding: 20px;
-}
-
-.account__topbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  padding: 20px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #fff;
-}
-
-.account__topbar-copy {
+.account__header-copy {
   display: grid;
   gap: 8px;
 }
 
 .account__eyebrow,
 .account__panel-eyebrow,
-.account__stat-label,
-.account__detail-label,
-.account__status-label {
+.account__metric-label,
+.account__header-label,
+.account__roadmap-step {
   color: #64748b;
 }
 
 .account__title {
-  font-size: clamp(22px, 2.6vw, 30px);
+  font-size: clamp(24px, 2.6vw, 34px);
   line-height: 1.1;
 }
 
@@ -402,249 +576,227 @@ const currentSectionDescription = computed(() => {
   color: #475569;
 }
 
-.account__topbar-actions {
+.account__header-statuses {
   display: grid;
-  grid-template-columns: repeat(2, minmax(140px, 1fr));
-  gap: 10px;
-}
-
-.account__topbar-status {
-  display: grid;
-  align-content: center;
-  gap: 6px;
-  min-width: 160px;
-  padding: 14px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-}
-
-.account__status-value {
-  font-size: 18px;
-  line-height: 1.15;
-}
-
-.account__stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
   gap: 12px;
 }
 
-.account__stat-card {
-  display: grid;
-  gap: 8px;
-  padding: 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 8px 20px rgb(15 23 42 / 0.04);
+.account__header-card {
+  border-radius: 16px;
 }
 
-.account__stat-value {
-  font-size: 17px;
-  line-height: 1.2;
+.account__header-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 20px;
+  line-height: 1.15;
   color: #0f172a;
 }
 
-.account__grid {
+.account__main {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 16px;
+  padding: 24px;
 }
 
+.account__metrics {
+  margin-bottom: 16px;
+}
+
+.account__metric-card,
 .account__panel {
-  display: grid;
-  gap: 16px;
-  padding: 20px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 8px 20px rgb(15 23 42 / 0.04);
+  border: 1px solid #e5eaf3;
+  border-radius: 18px;
 }
 
-.account__panel--table {
-  align-content: start;
-}
-
-.account__panel-header {
+.account__metric-top {
   display: flex;
-  align-items: start;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account__metric-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.account__metric-value {
+  font-size: 22px;
+  line-height: 1.25;
+  color: #0f172a;
+}
+
+.account__metric-note {
+  margin-top: 14px;
+  color: #64748b;
+}
+
+.account__panel-head {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
 .account__panel-title {
-  font-size: 20px;
-  line-height: 1.1;
+  margin-top: 6px;
+  font-size: 22px;
+  line-height: 1.15;
 }
 
-.account__panel-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: #dbeafe;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #1d4ed8;
+.account__descriptions {
+  overflow: hidden;
+  border-radius: 14px;
 }
 
-.account__details {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.account__detail-row {
+.account__timeline-card {
   display: grid;
   gap: 6px;
-  padding: 14px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
+  padding: 4px 0 10px;
 }
 
-.account__detail-value {
+.account__timeline-title,
+.account__roadmap-title {
+  font-size: 15px;
+  line-height: 1.4;
   color: #0f172a;
 }
 
-.account__checklist {
+.account__timeline-text,
+.account__roadmap-text {
+  color: #64748b;
+}
+
+.account__alert {
+  margin-bottom: 16px;
+}
+
+.account__roadmap-card {
   display: grid;
   gap: 10px;
+  height: 100%;
+  padding: 18px;
+  border: 1px solid #e5eaf3;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
 }
 
-.account__check-item {
-  position: relative;
-  padding: 12px 14px 12px 38px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-  color: #334155;
+:deep(.account__menu.el-menu) {
+  border-right: 0;
+  background: transparent;
 }
 
-.account__check-item::before {
-  content: '';
-  position: absolute;
-  top: 16px;
-  left: 14px;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #2563eb;
-  box-shadow: 0 0 0 5px rgb(37 99 235 / 0.12);
-}
-
-.account__note {
-  padding: 14px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-  color: #475569;
-}
-
-.account__table-wrap {
-  overflow-x: auto;
-}
-
-.account__table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 680px;
-}
-
-.account__table th,
-.account__table td {
-  padding: 12px 14px;
-  border-bottom: 1px solid #e2e8f0;
-  font-size: 13px;
-  text-align: left;
-  color: #0f172a;
-}
-
-.account__table th {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #64748b;
-  background: #f8fafc;
-}
-
-.account__table-status {
-  display: inline-flex;
+:deep(.account__menu .el-menu-item) {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 30px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #dcfce7;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #166534;
+  gap: 12px;
+  height: auto;
+  min-height: 62px;
+  margin-bottom: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  line-height: 1.3;
+  color: #e2e8f0;
 }
 
-.account__placeholder {
-  display: grid;
+:deep(.account__menu .el-menu-item .el-icon) {
+  margin-right: 0;
+  font-size: 18px;
+  color: #93c5fd;
 }
 
-.account__placeholder-card {
-  display: grid;
-  gap: 16px;
+:deep(.account__menu .el-menu-item:hover) {
+  background: rgb(30 41 59 / 0.9);
+}
+
+:deep(.account__menu .el-menu-item.is-active) {
+  background: linear-gradient(180deg, #1d4ed8 0%, #2563eb 100%);
+}
+
+:deep(.account__menu .el-menu-item.is-active .account__menu-label),
+:deep(.account__menu .el-menu-item.is-active .account__menu-meta),
+:deep(.account__menu .el-menu-item.is-active .el-icon) {
+  color: #fff;
+}
+
+:deep(.account__header-card .el-card__body) {
+  padding: 14px 16px;
+}
+
+:deep(.account__metric-card .el-card__body),
+:deep(.account__panel .el-card__body) {
   padding: 20px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 8px 20px rgb(15 23 42 / 0.04);
 }
 
-@media (max-width: 1200px) {
-  .account__stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+:deep(.account__panel .el-card__header) {
+  padding: 20px 20px 0;
+  border-bottom: 0;
+}
+
+:deep(.account__descriptions .el-descriptions__label) {
+  width: 180px;
+  font-weight: 800;
+}
+
+:deep(.el-table th.el-table__cell) {
+  background: #f8fbff;
+}
+
+@media (max-width: 1199px) {
+  .account {
+    padding: 18px;
+  }
+
+  .account__shell {
+    min-height: calc(var(--app-screen-height) - 36px);
+  }
+
+  .account__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account__header-statuses {
+    width: 100%;
   }
 }
 
-@media (max-width: 1100px) {
-  .account__layout,
-  .account__grid,
-  .account__topbar,
-  .account__stats {
-    grid-template-columns: 1fr;
+@media (max-width: 1023px) {
+  .account__shell {
+    display: block;
   }
 
-  .account__topbar-actions {
-    grid-template-columns: 1fr 1fr;
+  .account__sidebar {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid rgb(148 163 184 / 0.14);
   }
 }
 
 @media (max-width: 767px) {
-  .account__layout {
-    grid-template-columns: 1fr;
+  .account {
+    padding: 12px;
   }
 
-  .account__content,
-  .account__sidebar {
+  .account__shell {
+    min-height: calc(var(--app-screen-height) - 24px);
+    border-radius: 18px;
+  }
+
+  .account__header,
+  .account__main {
     padding: 18px;
   }
 
-  .account__topbar,
-  .account__stat-card,
-  .account__panel,
-  .account__placeholder-card {
-    padding: 20px 18px;
-  }
-
-  .account__panel-header {
-    flex-direction: column;
-  }
-
-  .account__topbar-actions {
+  .account__header-statuses {
     grid-template-columns: 1fr;
+  }
+
+  .account__panel-head,
+  .account__metric-top {
+    flex-direction: column;
   }
 }
 </style>
