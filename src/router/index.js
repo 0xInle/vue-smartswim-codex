@@ -9,6 +9,7 @@ const AppFeeDetail = () => import('@/pages/fees/AppFeeDetail.vue')
 const AppDocuments = () => import('@/pages/documents/AppDocuments.vue')
 const AppContacts = () => import('@/pages/contacts/AppContacts.vue')
 const AppTrainers = () => import('@/pages/trainers/AppTrainers.vue')
+const AppAccount = () => import('@/pages/account/AppAccount.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -55,6 +56,10 @@ const router = createRouter({
     {
       path: '/trainers',
       component: AppTrainers,
+    },
+    {
+      path: '/account',
+      component: AppAccount,
     },
   ],
 })

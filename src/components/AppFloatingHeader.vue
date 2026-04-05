@@ -40,7 +40,9 @@
         </li>
       </ul>
 
-      <button class="app-header__login btn-reset">Личный кабинет</button>
+      <button type="button" class="app-header__login btn-reset" @click="openRegistrationModal">
+        Личный кабинет
+      </button>
     </header>
 
     <div v-else class="app-mobile-nav">
@@ -53,7 +55,13 @@
         }"
         :style="headerStyle"
       >
-        <button type="button" class="app-mobile-nav__login btn-reset">Личный кабинет</button>
+        <button
+          type="button"
+          class="app-mobile-nav__login btn-reset"
+          @click="openRegistrationModal"
+        >
+          Личный кабинет
+        </button>
         <button
           type="button"
           class="app-mobile-nav__toggle btn-reset"
@@ -130,13 +138,157 @@
         </aside>
       </Transition>
     </div>
+
+    <Transition name="app-registration-modal">
+      <div
+        v-if="isRegistrationModalOpen"
+        class="app-registration"
+        aria-hidden="false"
+        @click.self="closeRegistrationModal"
+      >
+        <div
+          ref="registrationDialogRef"
+          class="app-registration__dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="app-registration-title"
+        >
+          <div class="app-registration__header">
+            <h2 id="app-registration-title" class="app-registration__title">Регистрация</h2>
+            <button
+              type="button"
+              class="app-registration__close btn-reset"
+              aria-label="Закрыть форму регистрации"
+              @click="closeRegistrationModal"
+            >
+              <span></span>
+              <span></span>
+            </button>
+          </div>
+
+          <form
+            class="app-registration__form"
+            novalidate
+            @submit.prevent="handleRegistrationSubmit"
+          >
+            <label class="app-registration__field">
+              <span class="app-registration__label">Имя</span>
+              <input
+                v-model.trim="registrationForm.name"
+                class="app-registration__input"
+                type="text"
+                name="name"
+                autocomplete="name"
+                placeholder="Как к вам обращаться"
+                :aria-invalid="Boolean(registrationErrors.name)"
+              />
+              <span v-if="registrationErrors.name" class="app-registration__error">
+                {{ registrationErrors.name }}
+              </span>
+            </label>
+
+            <label class="app-registration__field">
+              <span class="app-registration__label">Почта</span>
+              <input
+                v-model.trim="registrationForm.email"
+                class="app-registration__input"
+                type="email"
+                name="email"
+                autocomplete="email"
+                placeholder="example@mail.ru"
+                :aria-invalid="Boolean(registrationErrors.email)"
+              />
+              <span v-if="registrationErrors.email" class="app-registration__error">
+                {{ registrationErrors.email }}
+              </span>
+            </label>
+
+            <div class="app-registration__field-grid">
+              <label class="app-registration__field">
+                <span class="app-registration__label">Пароль</span>
+                <input
+                  v-model="registrationForm.password"
+                  class="app-registration__input"
+                  type="password"
+                  name="password"
+                  autocomplete="new-password"
+                  placeholder="Минимум 8 символов"
+                  :aria-invalid="Boolean(registrationErrors.password)"
+                />
+                <span v-if="registrationErrors.password" class="app-registration__error">
+                  {{ registrationErrors.password }}
+                </span>
+              </label>
+
+              <label class="app-registration__field">
+                <span class="app-registration__label">Подтвердите пароль</span>
+                <input
+                  v-model="registrationForm.confirmPassword"
+                  class="app-registration__input"
+                  type="password"
+                  name="confirm-password"
+                  autocomplete="new-password"
+                  placeholder="Повторите пароль"
+                  :aria-invalid="Boolean(registrationErrors.confirmPassword)"
+                />
+                <span v-if="registrationErrors.confirmPassword" class="app-registration__error">
+                  {{ registrationErrors.confirmPassword }}
+                </span>
+              </label>
+            </div>
+
+            <label class="app-registration__consent">
+              <input
+                v-model="registrationForm.consent"
+                class="app-registration__checkbox"
+                type="checkbox"
+                name="consent"
+              />
+              <span class="app-registration__consent-copy"
+                >Согласен на обработку персональных данных</span
+              >
+            </label>
+            <span v-if="registrationErrors.consent" class="app-registration__error">
+              {{ registrationErrors.consent }}
+            </span>
+
+            <p
+              v-if="registrationStatus === 'success' || registrationStatus === 'error'"
+              class="app-registration__status"
+              :class="{
+                'app-registration__status--success': registrationStatus === 'success',
+                'app-registration__status--error': registrationStatus === 'error',
+              }"
+            >
+              {{ registrationMessage }}
+            </p>
+
+            <button
+              type="submit"
+              class="app-registration__submit btn-reset"
+              :disabled="registrationStatus === 'loading'"
+            >
+              {{ registrationStatus === 'loading' ? 'Регистрируем...' : 'Зарегистрироваться' }}
+            </button>
+          </form>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="app-toast">
+      <div v-if="isRegistrationToastVisible" class="app-toast" role="status" aria-live="polite">
+        {{ registrationToastMessage }}
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import IconSwimmer from '@/assets/images/icon-swimmer.svg'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { loadRegisteredUser, saveRegisteredUser } from '@/utils/accountStorage'
+import { signUpWithPassword } from '@/utils/supabaseAuth'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,9 +310,30 @@ const isHeaderFloating = ref(false)
 const isMobileViewport = ref(false)
 const isMobileMenuOpen = ref(false)
 const isAndroidKeyboardOpen = ref(false)
+const isRegistrationModalOpen = ref(false)
+const registrationDialogRef = ref(null)
+const registrationStatus = ref('idle')
+const registrationMessage = ref('')
+const registeredUser = ref(null)
+const isRegistrationToastVisible = ref(false)
+const registrationToastMessage = ref('')
 const headerStyle = ref({
   top: 'auto',
   bottom: `${HEADER_BOTTOM_OFFSET}px`,
+})
+const registrationForm = reactive({
+  name: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  consent: false,
+})
+const registrationErrors = reactive({
+  name: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  consent: '',
 })
 
 const headerMetrics = {
@@ -171,6 +344,8 @@ let scrollFrameId = 0
 let resizeFrameId = 0
 let homeScrollFrameId = 0
 let keyboardFrameId = 0
+let registrationCloseTimeoutId = 0
+let registrationToastTimeoutId = 0
 let resizeObserver = null
 let shouldCloseMobileMenuAfterNavigation = false
 let homeSectionRef = null
@@ -182,9 +357,14 @@ const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable=""], [conte
 
 const isHomeRoute = computed(() => route.path === '/')
 const isBrandVisible = computed(() => (isHomeRoute.value ? isHeaderFloating.value : true))
+const hasRegisteredUser = computed(() => Boolean(registeredUser.value))
 const activeFloatingRef = computed(() =>
   isMobileViewport.value ? mobileBarRef.value : headerRef.value,
 )
+
+function syncRegisteredUser() {
+  registeredUser.value = loadRegisteredUser()
+}
 
 function isAndroidDevice() {
   return /Android/i.test(window.navigator.userAgent)
@@ -456,6 +636,261 @@ function closeMobileMenu() {
   isMobileMenuOpen.value = false
 }
 
+function showRegistrationToast(message) {
+  if (registrationToastTimeoutId) {
+    window.clearTimeout(registrationToastTimeoutId)
+  }
+
+  registrationToastMessage.value = message
+  isRegistrationToastVisible.value = true
+  registrationToastTimeoutId = window.setTimeout(() => {
+    isRegistrationToastVisible.value = false
+    registrationToastTimeoutId = 0
+  }, 3200)
+}
+
+function resetRegistrationFeedback() {
+  registrationStatus.value = 'idle'
+  registrationMessage.value = ''
+  registrationErrors.name = ''
+  registrationErrors.email = ''
+  registrationErrors.password = ''
+  registrationErrors.confirmPassword = ''
+  registrationErrors.consent = ''
+}
+
+function resetRegistrationForm() {
+  registrationForm.name = ''
+  registrationForm.email = ''
+  registrationForm.password = ''
+  registrationForm.confirmPassword = ''
+  registrationForm.consent = false
+  resetRegistrationFeedback()
+}
+
+function openRegistrationModal() {
+  if (hasRegisteredUser.value) {
+    closeMobileMenu()
+    router.push('/account')
+    return
+  }
+
+  closeMobileMenu()
+  resetRegistrationFeedback()
+  if (registrationCloseTimeoutId) {
+    window.clearTimeout(registrationCloseTimeoutId)
+    registrationCloseTimeoutId = 0
+  }
+  isRegistrationModalOpen.value = true
+
+  nextTick(() => {
+    registrationDialogRef.value?.querySelector('input')?.focus()
+  })
+}
+
+function closeRegistrationModal() {
+  if (registrationCloseTimeoutId) {
+    window.clearTimeout(registrationCloseTimeoutId)
+    registrationCloseTimeoutId = 0
+  }
+
+  isRegistrationModalOpen.value = false
+  resetRegistrationForm()
+}
+
+function validateRegistrationForm() {
+  resetRegistrationFeedback()
+
+  if (!registrationForm.name) {
+    registrationErrors.name = 'Введите имя.'
+  }
+
+  if (!registrationForm.email) {
+    registrationErrors.email = 'Введите электронную почту.'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registrationForm.email)) {
+    registrationErrors.email = 'Укажите корректную почту.'
+  }
+
+  if (!registrationForm.password) {
+    registrationErrors.password = 'Введите пароль.'
+  } else if (registrationForm.password.length < 8) {
+    registrationErrors.password = 'Пароль должен содержать минимум 8 символов.'
+  }
+
+  if (!registrationForm.confirmPassword) {
+    registrationErrors.confirmPassword = 'Подтвердите пароль.'
+  } else if (registrationForm.password !== registrationForm.confirmPassword) {
+    registrationErrors.confirmPassword = 'Пароли не совпадают.'
+  }
+
+  if (!registrationForm.consent) {
+    registrationErrors.consent = 'Нужно подтвердить согласие на обработку персональных данных.'
+  }
+
+  return !Object.values(registrationErrors).some(Boolean)
+}
+
+function validateRegistrationField(field) {
+  if (field === 'name') {
+    registrationErrors.name = registrationForm.name ? '' : 'Введите имя.'
+    return
+  }
+
+  if (field === 'email') {
+    if (!registrationForm.email) {
+      registrationErrors.email = 'Введите электронную почту.'
+      return
+    }
+
+    registrationErrors.email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registrationForm.email)
+      ? ''
+      : 'Укажите корректную почту.'
+    return
+  }
+
+  if (field === 'password') {
+    if (!registrationForm.password) {
+      registrationErrors.password = 'Введите пароль.'
+    } else if (registrationForm.password.length < 8) {
+      registrationErrors.password = 'Пароль должен содержать минимум 8 символов.'
+    } else {
+      registrationErrors.password = ''
+    }
+
+    if (registrationForm.confirmPassword) {
+      registrationErrors.confirmPassword =
+        registrationForm.password === registrationForm.confirmPassword ? '' : 'Пароли не совпадают.'
+    }
+
+    return
+  }
+
+  if (field === 'confirmPassword') {
+    if (!registrationForm.confirmPassword) {
+      registrationErrors.confirmPassword = 'Подтвердите пароль.'
+      return
+    }
+
+    registrationErrors.confirmPassword =
+      registrationForm.password === registrationForm.confirmPassword ? '' : 'Пароли не совпадают.'
+    return
+  }
+
+  if (field === 'consent') {
+    registrationErrors.consent = registrationForm.consent
+      ? ''
+      : 'Нужно подтвердить согласие на обработку персональных данных.'
+  }
+}
+
+function getRegistrationSuccessMessage(payload) {
+  return payload?.session
+    ? 'Аккаунт создан. Теперь можно войти в личный кабинет.'
+    : 'Регистрация прошла успешно. Проверьте почту, чтобы подтвердить аккаунт.'
+}
+
+function getRegistrationErrorMessage(error) {
+  const message = error instanceof Error ? error.message : 'Не удалось зарегистрироваться.'
+
+  if (/already registered/i.test(message)) {
+    return 'Пользователь с такой почтой уже зарегистрирован.'
+  }
+
+  if (/password/i.test(message) && /6/i.test(message)) {
+    return 'Пароль должен содержать минимум 6 символов.'
+  }
+
+  return message
+}
+
+async function handleRegistrationSubmit() {
+  if (!validateRegistrationForm()) {
+    return
+  }
+
+  registrationStatus.value = 'loading'
+  registrationMessage.value = ''
+
+  try {
+    const payload = await signUpWithPassword({
+      email: registrationForm.email,
+      password: registrationForm.password,
+      name: registrationForm.name,
+    })
+
+    const nextRegisteredUser = {
+      id: payload?.user?.id ?? null,
+      name: payload?.user?.user_metadata?.name || registrationForm.name,
+      email: payload?.user?.email || registrationForm.email,
+      registeredAt: payload?.user?.created_at || new Date().toISOString(),
+    }
+
+    saveRegisteredUser(nextRegisteredUser)
+    registeredUser.value = nextRegisteredUser
+
+    registrationStatus.value = 'success'
+    registrationMessage.value = getRegistrationSuccessMessage(payload)
+    showRegistrationToast('Регистрация прошла успешно')
+
+    if (registrationCloseTimeoutId) {
+      window.clearTimeout(registrationCloseTimeoutId)
+    }
+
+    registrationCloseTimeoutId = window.setTimeout(() => {
+      closeRegistrationModal()
+      router.push('/account')
+    }, 700)
+  } catch (error) {
+    registrationStatus.value = 'error'
+    registrationMessage.value = getRegistrationErrorMessage(error)
+  }
+}
+
+watch(
+  () => registrationForm.name,
+  () => {
+    if (registrationErrors.name) {
+      validateRegistrationField('name')
+    }
+  },
+)
+
+watch(
+  () => registrationForm.email,
+  () => {
+    if (registrationErrors.email) {
+      validateRegistrationField('email')
+    }
+  },
+)
+
+watch(
+  () => registrationForm.password,
+  () => {
+    if (registrationErrors.password || registrationErrors.confirmPassword) {
+      validateRegistrationField('password')
+    }
+  },
+)
+
+watch(
+  () => registrationForm.confirmPassword,
+  () => {
+    if (registrationErrors.confirmPassword) {
+      validateRegistrationField('confirmPassword')
+    }
+  },
+)
+
+watch(
+  () => registrationForm.consent,
+  () => {
+    if (registrationErrors.consent) {
+      validateRegistrationField('consent')
+    }
+  },
+)
+
 function toggleMobileMenu() {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
@@ -486,12 +921,22 @@ async function handleMobileHomeClick() {
 }
 
 function handleKeydown(event) {
-  if (event.key === 'Escape' && isMobileMenuOpen.value) {
+  if (event.key !== 'Escape') {
+    return
+  }
+
+  if (isRegistrationModalOpen.value) {
+    closeRegistrationModal()
+    return
+  }
+
+  if (isMobileMenuOpen.value) {
     closeMobileMenu()
   }
 }
 
 onMounted(() => {
+  syncRegisteredUser()
   syncViewportMode()
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('resize', handleResize)
@@ -518,6 +963,7 @@ watch(
     const shouldCloseAfterNavigation = shouldCloseMobileMenuAfterNavigation
     shouldCloseMobileMenuAfterNavigation = false
     resetHeaderState()
+    closeRegistrationModal()
 
     nextTick(() => {
       if (shouldCloseAfterNavigation) {
@@ -531,8 +977,8 @@ watch(
   },
 )
 
-watch(isMobileMenuOpen, (isOpen) => {
-  document.body.style.overflow = isOpen ? 'hidden' : ''
+watch([isMobileMenuOpen, isRegistrationModalOpen], ([isMenuOpen, isModalOpen]) => {
+  document.body.style.overflow = isMenuOpen || isModalOpen ? 'hidden' : ''
 })
 
 onBeforeUnmount(() => {
@@ -561,6 +1007,14 @@ onBeforeUnmount(() => {
 
   if (keyboardFrameId) {
     window.cancelAnimationFrame(keyboardFrameId)
+  }
+
+  if (registrationCloseTimeoutId) {
+    window.clearTimeout(registrationCloseTimeoutId)
+  }
+
+  if (registrationToastTimeoutId) {
+    window.clearTimeout(registrationToastTimeoutId)
   }
 
   if (resizeObserver) {
@@ -1024,6 +1478,266 @@ onBeforeUnmount(() => {
   transform: translateX(100%);
 }
 
+.app-registration {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(13, 30, 48, 0.24) 0%, rgba(13, 30, 48, 0.44) 100%),
+    color-mix(in srgb, var(--light-blue) 18%, transparent);
+  backdrop-filter: blur(12px);
+  z-index: 220;
+}
+
+.app-registration__dialog {
+  position: relative;
+  width: min(100%, 30vw, 520px);
+  max-height: min(100%, calc(var(--app-screen-height) - 48px));
+  padding: 22px;
+  border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 0%, transparent);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--black) 18%, transparent);
+  backdrop-filter: blur(18px);
+  overflow: auto;
+}
+
+.app-registration__close {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 72%, transparent);
+}
+
+.app-registration__close span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--black);
+}
+
+.app-registration__close span:first-child {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.app-registration__close span:last-child {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.app-registration__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.app-registration__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.05;
+  color: var(--cyan);
+  text-wrap: balance;
+}
+
+.app-registration__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.app-registration__field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.app-registration__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-registration__label {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--white);
+}
+
+.app-registration__input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 24%, var(--white));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 84%, transparent);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--black);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.app-registration__input::placeholder {
+  color: color-mix(in srgb, var(--black) 42%, var(--white));
+}
+
+.app-registration__input:focus-visible,
+.app-registration__checkbox:focus-visible {
+  outline: none;
+}
+
+.app-registration__input:focus-visible {
+  border-color: color-mix(in srgb, var(--cyan) 54%, var(--white));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 18%, transparent);
+}
+
+.app-registration__input[aria-invalid='true'] {
+  border-color: color-mix(in srgb, var(--orange) 72%, transparent);
+}
+
+.app-registration__consent {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.app-registration__checkbox {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--orange);
+}
+
+.app-registration__consent-copy {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--white);
+}
+
+.app-registration__error {
+  display: block;
+  font-size: 13px;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--orange) 84%, var(--black));
+}
+
+.app-registration__status {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.app-registration__status--success {
+  background: color-mix(in srgb, var(--aqua) 36%, var(--white));
+  color: color-mix(in srgb, var(--black) 68%, var(--white));
+}
+
+.app-registration__status--error {
+  background: color-mix(in srgb, var(--orange) 16%, transparent);
+  color: color-mix(in srgb, var(--orange) 84%, var(--black));
+}
+
+.app-registration__submit {
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
+  width: 100%;
+  min-height: 52px;
+  margin-top: 10px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background-color: var(--button-current-bg, var(--button-bg));
+  text-align: center;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--black);
+}
+
+.app-registration__submit:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.app-toast {
+  position: fixed;
+  top: 22px;
+  right: 22px;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cyan) 82%, transparent);
+  box-shadow: 0 18px 40px rgb(from var(--black) r g b / 18%);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--black);
+  backdrop-filter: blur(18px);
+  z-index: 260;
+}
+
+.app-registration-modal-enter-active,
+.app-registration-modal-leave-active {
+  transition: opacity 0.24s ease;
+}
+
+.app-registration-modal-enter-active .app-registration__dialog,
+.app-registration-modal-leave-active .app-registration__dialog {
+  transition:
+    transform 0.28s ease,
+    opacity 0.28s ease;
+}
+
+.app-registration-modal-enter-from,
+.app-registration-modal-leave-to {
+  opacity: 0;
+}
+
+.app-registration-modal-enter-from .app-registration__dialog,
+.app-registration-modal-leave-to .app-registration__dialog {
+  opacity: 0;
+  transform: translateY(22px) scale(0.98);
+}
+
+.app-toast-enter-active,
+.app-toast-leave-active {
+  transition:
+    opacity 0.24s ease,
+    transform 0.24s ease;
+}
+
+.app-toast-enter-from,
+.app-toast-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
 @keyframes app-mobile-nav-link-in {
   from {
     opacity: 0;
@@ -1072,6 +1786,29 @@ onBeforeUnmount(() => {
   .app-mobile-nav__link {
     font-size: clamp(26px, 9.5vw, 38px);
   }
+
+  .app-registration {
+    padding: 12px;
+  }
+
+  .app-registration__dialog {
+    padding: 24px 18px 18px;
+    width: min(100%, 560px);
+  }
+
+  .app-toast {
+    top: 16px;
+    right: 16px;
+  }
+
+  .app-registration__field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-registration__submit {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 502px) {
@@ -1089,6 +1826,15 @@ onBeforeUnmount(() => {
 
   .app-mobile-nav__brand {
     gap: 10px;
+  }
+
+  .app-registration__consent {
+    align-items: flex-start;
+  }
+
+  .app-registration__consent-copy {
+    font-size: 12px;
+    white-space: normal;
   }
 }
 </style>
