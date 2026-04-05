@@ -1817,6 +1817,10 @@ onBeforeUnmount(() => {
     max-height: none;
   }
 
+  .app-registration__input {
+    font-size: 16px;
+  }
+
   .app-toast {
     top: 16px;
     right: 16px;
