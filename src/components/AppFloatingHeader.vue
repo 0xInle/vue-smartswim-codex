@@ -351,6 +351,7 @@ let shouldCloseMobileMenuAfterNavigation = false
 let homeSectionRef = null
 let footerSectionRef = null
 let initialViewportHeight = 0
+let initialViewportMetaContent = ''
 
 const KEYBOARD_OPEN_THRESHOLD = 120
 const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
@@ -368,6 +369,52 @@ function syncRegisteredUser() {
 
 function isAndroidDevice() {
   return /Android/i.test(window.navigator.userAgent)
+}
+
+function isIOSDevice() {
+  return (
+    /iPhone|iPad|iPod/i.test(window.navigator.userAgent) ||
+    (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1)
+  )
+}
+
+function getViewportMetaTag() {
+  return document.querySelector('meta[name="viewport"]')
+}
+
+function lockViewportZoom() {
+  if (!isIOSDevice()) {
+    return
+  }
+
+  const viewportMetaTag = getViewportMetaTag()
+
+  if (!viewportMetaTag) {
+    return
+  }
+
+  if (!initialViewportMetaContent) {
+    initialViewportMetaContent = viewportMetaTag.getAttribute('content') || ''
+  }
+
+  viewportMetaTag.setAttribute(
+    'content',
+    'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no',
+  )
+}
+
+function unlockViewportZoom() {
+  if (!isIOSDevice()) {
+    return
+  }
+
+  const viewportMetaTag = getViewportMetaTag()
+
+  if (!viewportMetaTag || !initialViewportMetaContent) {
+    return
+  }
+
+  viewportMetaTag.setAttribute('content', initialViewportMetaContent)
 }
 
 function hasEditableFocus() {
@@ -691,6 +738,11 @@ function openRegistrationModal() {
     registrationCloseTimeoutId = 0
   }
   isRegistrationModalOpen.value = true
+  lockViewportZoom()
+
+  if (isIOSDevice()) {
+    return
+  }
 
   nextTick(() => {
     registrationDialogRef.value?.querySelector('input')?.focus()
@@ -704,6 +756,7 @@ function closeRegistrationModal() {
   }
 
   isRegistrationModalOpen.value = false
+  unlockViewportZoom()
   resetRegistrationForm()
 }
 
@@ -1031,6 +1084,7 @@ onBeforeUnmount(() => {
   }
 
   document.body.style.overflow = ''
+  unlockViewportZoom()
 })
 </script>
 
