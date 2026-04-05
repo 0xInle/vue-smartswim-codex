@@ -1678,8 +1678,8 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  width: fit-content;
-  max-width: 100%;
+  width: 100%;
+  flex-wrap: nowrap;
 }
 
 .app-registration__checkbox {
@@ -1691,6 +1691,7 @@ onBeforeUnmount(() => {
 }
 
 .app-registration__consent-copy {
+  flex: 1 1 auto;
   font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
@@ -1907,13 +1908,8 @@ onBeforeUnmount(() => {
     gap: 10px;
   }
 
-  .app-registration__consent {
-    align-items: flex-start;
-  }
-
   .app-registration__consent-copy {
-    font-size: 12px;
-    white-space: normal;
+    font-size: 11px;
   }
 }
 </style>

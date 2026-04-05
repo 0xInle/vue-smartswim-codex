@@ -5,9 +5,6 @@
         <div class="account__brand">
           <span class="account__brand-badge">Smart Swim CRM</span>
           <h1 class="account__brand-title">Operations Panel</h1>
-          <p class="account__brand-text">
-            Стандартный CRM-интерфейс для регистрации клиентов, заявок и контентных процессов.
-          </p>
         </div>
 
         <el-scrollbar class="account__menu-scroll">
@@ -25,41 +22,48 @@
             </el-menu-item>
           </el-menu>
         </el-scrollbar>
-
-        <RouterLink class="account__back-link link-reset" to="/">
-          <el-button class="account__back-button" type="primary">Вернуться на сайт</el-button>
-        </RouterLink>
       </el-aside>
 
       <el-container class="account__content-shell">
         <el-header class="account__header">
           <div class="account__header-copy">
-            <p class="account__eyebrow">CRM Dashboard</p>
             <h2 class="account__title">{{ currentSectionTitle }}</h2>
             <p class="account__subtitle">{{ currentSectionDescription }}</p>
+            <div class="account__header-statuses">
+              <el-card class="account__header-card" shadow="never">
+                <span class="account__header-label">Система</span>
+                <strong class="account__header-value">Online</strong>
+              </el-card>
+              <el-card class="account__header-card" shadow="never">
+                <span class="account__header-label">Пользователи</span>
+                <strong class="account__header-value">
+                  {{ isUsersLoading ? '...' : registeredUsers.length }}
+                </strong>
+              </el-card>
+            </div>
           </div>
 
-          <div class="account__header-statuses">
-            <el-card class="account__header-card" shadow="never">
-              <span class="account__header-label">Система</span>
-              <strong class="account__header-value">Online</strong>
-            </el-card>
-            <el-card class="account__header-card" shadow="never">
-              <span class="account__header-label">Пользователи</span>
-              <strong class="account__header-value">{{ registeredUsers.length }}</strong>
-            </el-card>
-          </div>
+          <RouterLink class="account__back-link link-reset" to="/">
+            <el-button class="account__back-button" type="primary">Выйти</el-button>
+          </RouterLink>
         </el-header>
 
         <el-main class="account__main">
+          <el-alert
+            v-if="usersLoadError"
+            :title="usersLoadError"
+            type="warning"
+            show-icon
+            :closable="false"
+            class="account__sync-alert"
+          />
+
           <template v-if="activeSection === 'dashboard'">
-            <el-row :gutter="16" class="account__metrics">
-              <el-col
+            <div class="account__metrics">
+              <div
                 v-for="metric in dashboardMetrics"
                 :key="metric.label"
-                :xs="24"
-                :sm="12"
-                :xl="6"
+                class="account__metric-col"
               >
                 <el-card class="account__metric-card" shadow="hover">
                   <div class="account__metric-top">
@@ -71,17 +75,19 @@
                   </div>
                   <p class="account__metric-note">{{ metric.note }}</p>
                 </el-card>
-              </el-col>
-            </el-row>
+              </div>
+            </div>
 
-            <el-row :gutter="16">
-              <el-col :xs="24" :lg="15">
+            <div class="account__dashboard-grid">
+              <div class="account__dashboard-main">
                 <el-card class="account__panel" shadow="never">
                   <template #header>
                     <div class="account__panel-head">
                       <div>
                         <p class="account__panel-eyebrow">Клиентский профиль</p>
-                        <h3 class="account__panel-title">Последний зарегистрированный пользователь</h3>
+                        <h3 class="account__panel-title">
+                          Последний зарегистрированный пользователь
+                        </h3>
                       </div>
                       <el-tag :type="latestUser ? 'success' : 'info'" effect="light" round>
                         {{ latestUser ? 'Данные получены' : 'Ожидаем регистрацию' }}
@@ -111,9 +117,9 @@
                     description="После первой регистрации здесь появятся данные клиента."
                   />
                 </el-card>
-              </el-col>
+              </div>
 
-              <el-col :xs="24" :lg="9">
+              <div class="account__dashboard-side">
                 <el-card class="account__panel" shadow="never">
                   <template #header>
                     <div class="account__panel-head">
@@ -139,8 +145,8 @@
                     </el-timeline-item>
                   </el-timeline>
                 </el-card>
-              </el-col>
-            </el-row>
+              </div>
+            </div>
           </template>
 
           <template v-else-if="activeSection === 'users'">
@@ -204,21 +210,15 @@
                 class="account__alert"
               />
 
-              <el-row :gutter="16">
-                <el-col
-                  v-for="item in currentSectionRoadmap"
-                  :key="item.title"
-                  :xs="24"
-                  :md="12"
-                  :xl="8"
-                >
+              <div class="account__roadmap-grid">
+                <div v-for="item in currentSectionRoadmap" :key="item.title">
                   <div class="account__roadmap-card">
                     <span class="account__roadmap-step">{{ item.step }}</span>
                     <strong class="account__roadmap-title">{{ item.title }}</strong>
                     <p class="account__roadmap-text">{{ item.text }}</p>
                   </div>
-                </el-col>
-              </el-row>
+                </div>
+              </div>
             </el-card>
           </template>
         </el-main>
@@ -228,16 +228,11 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import {
-  Files,
-  Histogram,
-  Monitor,
-  Setting,
-  User,
-} from '@element-plus/icons-vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { Files, Histogram, Monitor, Setting, User } from '@element-plus/icons-vue'
 import { RouterLink } from 'vue-router'
-import { getRegisteredUsersSnapshot, loadRegisteredUser } from '@/utils/accountStorage'
+import { loadRegisteredUser } from '@/utils/accountStorage'
+import { fetchCrmUsers } from '@/utils/supabaseDatabase'
 
 const navigationItems = [
   { id: 'dashboard', label: 'Дашборд', meta: 'Обзор системы', icon: Monitor },
@@ -268,8 +263,7 @@ const keyActions = [
 
 const sectionContent = {
   dashboard: {
-    title: 'Главный дашборд',
-    description: 'Сводка по регистрации клиентов и текущему состоянию CRM-системы.',
+    title: 'Панель управления',
   },
   users: {
     title: 'Пользователи',
@@ -365,8 +359,25 @@ const sectionRoadmaps = {
 }
 
 const activeSection = ref('dashboard')
-const registeredUser = loadRegisteredUser()
-const registeredUsers = getRegisteredUsersSnapshot()
+const registeredUser = ref(null)
+const registeredUsers = ref([])
+const isUsersLoading = ref(false)
+const usersLoadError = ref('')
+
+async function syncRegisteredUsers() {
+  registeredUser.value = loadRegisteredUser()
+  isUsersLoading.value = true
+
+  try {
+    registeredUsers.value = await fetchCrmUsers()
+    usersLoadError.value = ''
+  } catch (error) {
+    usersLoadError.value =
+      error instanceof Error ? error.message : 'Не удалось загрузить пользователей из Supabase.'
+  } finally {
+    isUsersLoading.value = false
+  }
+}
 
 function handleSectionSelect(sectionId) {
   activeSection.value = sectionId
@@ -383,7 +394,7 @@ function formatRegistrationDate(date) {
   }).format(new Date(date))
 }
 
-const latestUser = computed(() => registeredUsers[0] || registeredUser || null)
+const latestUser = computed(() => registeredUsers.value[0] || registeredUser.value || null)
 const latestUserName = computed(() => latestUser.value?.name || 'Нет данных')
 const latestUserEmail = computed(() => latestUser.value?.email || 'Нет данных')
 const latestUserRegistrationDate = computed(() =>
@@ -396,7 +407,7 @@ const currentSectionRoadmap = computed(() => sectionRoadmaps[activeSection.value
 const dashboardMetrics = computed(() => [
   {
     label: 'Всего пользователей',
-    value: registeredUsers.length,
+    value: registeredUsers.value.length,
     tag: 'Клиенты',
     tagType: 'primary',
     note: 'Количество пользователей, зарегистрированных через форму на сайте.',
@@ -423,21 +434,49 @@ const dashboardMetrics = computed(() => [
     note: 'Дата и время последнего успешного создания учетной записи.',
   },
 ])
+
+function handleStorageChange(event) {
+  if (!event.key || event.key.startsWith('smartswim-registered-')) {
+    void syncRegisteredUsers()
+  }
+}
+
+function handleWindowFocus() {
+  void syncRegisteredUsers()
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState !== 'visible') {
+    return
+  }
+
+  void syncRegisteredUsers()
+}
+
+onMounted(() => {
+  void syncRegisteredUsers()
+  window.addEventListener('storage', handleStorageChange)
+  window.addEventListener('focus', handleWindowFocus)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('storage', handleStorageChange)
+  window.removeEventListener('focus', handleWindowFocus)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
 </script>
 
 <style scoped>
 .account {
   min-height: var(--app-screen-height);
-  padding: 24px;
-  background:
-    radial-gradient(circle at top left, rgb(59 130 246 / 0.12), transparent 28%),
-    linear-gradient(180deg, #eef4ff 0%, #f7f9fc 38%, #eef2f7 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .account__shell {
   min-height: calc(var(--app-screen-height) - 48px);
   border: 1px solid #dbe4f0;
-  border-radius: 24px;
+  border-radius: 10px;
   background: rgb(255 255 255 / 0.88);
   box-shadow: 0 24px 60px rgb(15 23 42 / 0.12);
   overflow: hidden;
@@ -480,12 +519,12 @@ const dashboardMetrics = computed(() => [
 .account__title,
 .account__panel-title {
   margin: 0;
-  font-family: Nunito, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #0f172a;
 }
 
 .account__brand-title {
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1.1;
   color: #fff;
 }
@@ -496,9 +535,9 @@ const dashboardMetrics = computed(() => [
 .account__timeline-text,
 .account__roadmap-text {
   margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.6;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.55;
 }
 
 .account__brand-text {
@@ -516,23 +555,23 @@ const dashboardMetrics = computed(() => [
 }
 
 .account__menu-label {
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
   color: #e5edf8;
 }
 
 .account__menu-meta {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   color: #94a3b8;
 }
 
 .account__back-link {
-  display: block;
+  display: inline-flex;
 }
 
 .account__back-button {
-  width: 100%;
+  min-width: 120px;
   min-height: 44px;
   font-weight: 800;
 }
@@ -544,7 +583,7 @@ const dashboardMetrics = computed(() => [
 
 .account__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
   height: auto;
@@ -557,6 +596,7 @@ const dashboardMetrics = computed(() => [
 .account__header-copy {
   display: grid;
   gap: 8px;
+  flex: 1 1 auto;
 }
 
 .account__eyebrow,
@@ -568,7 +608,7 @@ const dashboardMetrics = computed(() => [
 }
 
 .account__title {
-  font-size: clamp(24px, 2.6vw, 34px);
+  font-size: clamp(22px, 2.2vw, 30px);
   line-height: 1.1;
 }
 
@@ -580,16 +620,19 @@ const dashboardMetrics = computed(() => [
   display: grid;
   grid-template-columns: repeat(2, minmax(150px, 1fr));
   gap: 12px;
+  align-items: start;
+  margin-top: 10px;
+  max-width: 360px;
 }
 
 .account__header-card {
-  border-radius: 16px;
+  border-radius: 10px;
 }
 
 .account__header-value {
   display: block;
   margin-top: 6px;
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1.15;
   color: #0f172a;
 }
@@ -600,14 +643,37 @@ const dashboardMetrics = computed(() => [
   padding: 24px;
 }
 
+.account__sync-alert {
+  margin-bottom: 4px;
+}
+
 .account__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 18px;
   margin-bottom: 16px;
+}
+
+.account__metric-col {
+  min-width: 0;
+}
+
+.account__dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 16px;
+}
+
+.account__dashboard-main,
+.account__dashboard-side {
+  min-width: 0;
 }
 
 .account__metric-card,
 .account__panel {
   border: 1px solid #e5eaf3;
-  border-radius: 18px;
+  border-radius: 10px;
 }
 
 .account__metric-top {
@@ -623,7 +689,7 @@ const dashboardMetrics = computed(() => [
 }
 
 .account__metric-value {
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1.25;
   color: #0f172a;
 }
@@ -642,13 +708,13 @@ const dashboardMetrics = computed(() => [
 
 .account__panel-title {
   margin-top: 6px;
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1.15;
 }
 
 .account__descriptions {
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 10px;
 }
 
 .account__timeline-card {
@@ -659,7 +725,7 @@ const dashboardMetrics = computed(() => [
 
 .account__timeline-title,
 .account__roadmap-title {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.4;
   color: #0f172a;
 }
@@ -679,8 +745,14 @@ const dashboardMetrics = computed(() => [
   height: 100%;
   padding: 18px;
   border: 1px solid #e5eaf3;
-  border-radius: 16px;
+  border-radius: 10px;
   background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+}
+
+.account__roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
 }
 
 :deep(.account__menu.el-menu) {
@@ -693,10 +765,10 @@ const dashboardMetrics = computed(() => [
   align-items: center;
   gap: 12px;
   height: auto;
-  min-height: 62px;
+  min-height: 56px;
   margin-bottom: 8px;
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 10px;
   line-height: 1.3;
   color: #e2e8f0;
 }
@@ -723,25 +795,56 @@ const dashboardMetrics = computed(() => [
 
 :deep(.account__header-card .el-card__body) {
   padding: 14px 16px;
+  border-radius: 10px;
 }
 
 :deep(.account__metric-card .el-card__body),
 :deep(.account__panel .el-card__body) {
-  padding: 20px;
+  padding: 18px 20px;
+  border-radius: 10px;
 }
 
 :deep(.account__panel .el-card__header) {
-  padding: 20px 20px 0;
+  padding: 18px 18px 0;
   border-bottom: 0;
+  border-radius: 10px 10px 0 0;
 }
 
 :deep(.account__descriptions .el-descriptions__label) {
   width: 180px;
-  font-weight: 800;
+  font-weight: 700;
+}
+
+:deep(.el-table) {
+  font-size: 13px;
+}
+
+:deep(.el-table th.el-table__cell) {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+:deep(.el-tag) {
+  font-size: 11px;
+}
+
+:deep(.el-descriptions__label),
+:deep(.el-descriptions__content),
+:deep(.el-alert__description),
+:deep(.el-timeline-item__timestamp) {
+  font-size: 13px;
 }
 
 :deep(.el-table th.el-table__cell) {
   background: #f8fbff;
+}
+
+:deep(.el-card),
+:deep(.el-alert),
+:deep(.el-descriptions__body),
+:deep(.el-table),
+:deep(.el-button) {
+  border-radius: 10px;
 }
 
 @media (max-width: 1199px) {
@@ -760,6 +863,15 @@ const dashboardMetrics = computed(() => [
 
   .account__header-statuses {
     width: 100%;
+    max-width: none;
+  }
+
+  .account__dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account__roadmap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -782,7 +894,7 @@ const dashboardMetrics = computed(() => [
 
   .account__shell {
     min-height: calc(var(--app-screen-height) - 24px);
-    border-radius: 18px;
+    border-radius: 10px;
   }
 
   .account__header,
@@ -791,6 +903,14 @@ const dashboardMetrics = computed(() => [
   }
 
   .account__header-statuses {
+    grid-template-columns: 1fr;
+  }
+
+  .account__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .account__roadmap-grid {
     grid-template-columns: 1fr;
   }
 
