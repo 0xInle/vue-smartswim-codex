@@ -1,11 +1,22 @@
 <template>
   <section class="home">
-    <video autoplay muted loop playsinline preload="metadata" class="home__video-player">
+    <video
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="metadata"
+      class="home__video-player"
+      :class="{ 'home__video-player--ready': isHeroVideoReady }"
+      @canplay="handleHeroVideoReady"
+      @loadeddata="handleHeroVideoReady"
+      @loadstart="handleHeroVideoLoadStart"
+    >
       <source :src="activeHeroVideo" type="video/mp4" />
       Ваш браузер не поддерживает видео.
     </video>
 
-    <div class="home__backdrop"></div>
+    <div class="home__backdrop" :class="{ 'home__backdrop--visible': isHeroVideoReady }"></div>
 
     <div class="home__overlay">
       <div class="home__shell container">
@@ -174,7 +185,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import IconPhone from '@/assets/images/icon-phone.svg'
 import IconSwimmer from '@/assets/images/icon-swimmer.svg'
 import { publicAsset } from '@/utils/publicAsset'
@@ -184,6 +195,7 @@ const isTimeOpen = ref(false)
 const heroVideo = publicAsset('/videos/01-video.mp4')
 const heroVideoMobile = publicAsset('/videos/01-video-mobile.mp4')
 const isCompactViewport = ref(false)
+const isHeroVideoReady = ref(false)
 const dateDropdownRef = ref(null)
 const timeDropdownRef = ref(null)
 const today = new Date()
@@ -326,6 +338,18 @@ function handleOutsideClick(event) {
   }
 }
 
+function handleHeroVideoLoadStart() {
+  isHeroVideoReady.value = false
+}
+
+function handleHeroVideoReady() {
+  isHeroVideoReady.value = true
+}
+
+watch(activeHeroVideo, () => {
+  isHeroVideoReady.value = false
+})
+
 onMounted(() => {
   syncCompactViewport()
   window.addEventListener('resize', syncCompactViewport)
@@ -367,12 +391,24 @@ onBeforeUnmount(() => {
   min-width: 112%;
   min-height: 112%;
   object-fit: cover;
+  opacity: 0;
   transform: translate(-50%, -50%);
+  transition: opacity 0.35s ease;
+}
+
+.home__video-player--ready {
+  opacity: 1;
 }
 
 .home__backdrop {
   background: color-mix(in srgb, var(--black) 48%, transparent);
+  opacity: 0;
   z-index: 0;
+  transition: opacity 0.35s ease;
+}
+
+.home__backdrop--visible {
+  opacity: 1;
 }
 
 .home__overlay {

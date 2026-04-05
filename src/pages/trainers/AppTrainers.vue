@@ -110,12 +110,21 @@ import { publicAsset } from '@/utils/publicAsset'
 
 const activeTrainerId = ref(null)
 const trainersImage = publicAsset('/images/19-img.webp')
+
 function toggleTrainerDetails(trainerId) {
   activeTrainerId.value = activeTrainerId.value === trainerId ? null : trainerId
 }
 
-function handleGlobalPointerDown() {
+function handleGlobalPointerDown(event) {
   if (!activeTrainerId.value) {
+    return
+  }
+
+  if (event.target instanceof Element && event.target.closest('.trainers__card-details')) {
+    return
+  }
+
+  if (event.target instanceof Element && event.target.closest('.trainers__card-bookmark')) {
     return
   }
 
@@ -185,12 +194,17 @@ onBeforeUnmount(() => {
 .trainers__title,
 .trainers__card-title {
   margin: 0;
-  font-family: Oswald, sans-serif;
   line-height: 0.96;
 }
 
+/* .trainers__card-title {
+  font-family: Oswald, sans-serif;
+} */
+
 .trainers__title {
-  font-size: clamp(40px, 6vw, 52px);
+  margin: 0;
+  font-family: inherit;
+  font-size: clamp(40px, 6vw, 48px);
 }
 
 .trainers__text,
@@ -222,7 +236,7 @@ onBeforeUnmount(() => {
 }
 
 .trainers__fact-value {
-  font-family: Oswald, sans-serif;
+  /* font-family: Oswald, sans-serif; */
   font-size: 28px;
   line-height: 1;
 }

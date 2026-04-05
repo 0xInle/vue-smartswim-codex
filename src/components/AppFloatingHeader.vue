@@ -111,16 +111,18 @@
               Главная
             </button>
 
-            <RouterLink
-              v-for="(item, index) in mobileLinks"
-              :key="item.to"
-              class="app-mobile-nav__link link-reset"
-              :class="{ 'app-mobile-nav__link--active': isRouteActive(item.to) }"
-              :style="{ '--item-index': index + 1 }"
-              :to="item.to"
-              @click="closeMobileMenu"
-            >
-              {{ item.label }}
+            <RouterLink v-for="(item, index) in mobileLinks" :key="item.to" :to="item.to" custom>
+              <template #default="{ href }">
+                <a
+                  :href="href"
+                  class="app-mobile-nav__link link-reset"
+                  :class="{ 'app-mobile-nav__link--active': isRouteActive(item.to) }"
+                  :style="{ '--item-index': index + 1 }"
+                  @click.prevent="handleMobileLinkClick(item.to)"
+                >
+                  {{ item.label }}
+                </a>
+              </template>
             </RouterLink>
           </nav>
 
@@ -170,6 +172,7 @@ let resizeFrameId = 0
 let homeScrollFrameId = 0
 let keyboardFrameId = 0
 let resizeObserver = null
+let shouldCloseMobileMenuAfterNavigation = false
 let homeSectionRef = null
 let footerSectionRef = null
 let initialViewportHeight = 0
@@ -449,6 +452,7 @@ function isRouteActive(path) {
 }
 
 function closeMobileMenu() {
+  shouldCloseMobileMenuAfterNavigation = false
   isMobileMenuOpen.value = false
 }
 
@@ -456,9 +460,29 @@ function toggleMobileMenu() {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
 
-function handleMobileHomeClick() {
-  closeMobileMenu()
-  handleHomeClick()
+async function handleMobileLinkClick(path) {
+  if (route.path === path) {
+    closeMobileMenu()
+    return
+  }
+
+  shouldCloseMobileMenuAfterNavigation = true
+  await router.push(path)
+}
+
+async function handleMobileHomeClick() {
+  if (isHomeRoute.value) {
+    closeMobileMenu()
+    smoothScrollToTop()
+    return
+  }
+
+  shouldCloseMobileMenuAfterNavigation = true
+  await router.push('/')
+
+  nextTick(() => {
+    smoothScrollToTop()
+  })
 }
 
 function handleKeydown(event) {
@@ -491,10 +515,15 @@ onMounted(() => {
 watch(
   () => route.fullPath,
   () => {
-    closeMobileMenu()
+    const shouldCloseAfterNavigation = shouldCloseMobileMenuAfterNavigation
+    shouldCloseMobileMenuAfterNavigation = false
     resetHeaderState()
 
     nextTick(() => {
+      if (shouldCloseAfterNavigation) {
+        closeMobileMenu()
+      }
+
       syncRouteTargets()
       observeLayout()
       handleResize()
@@ -976,17 +1005,23 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-.app-mobile-nav-panel-enter-active,
-.app-mobile-nav-panel-leave-active {
+.app-mobile-nav-panel-enter-active {
   transition:
     opacity 0.3s ease,
     transform 0.35s ease;
 }
 
-.app-mobile-nav-panel-enter-from,
-.app-mobile-nav-panel-leave-to {
+.app-mobile-nav-panel-leave-active {
+  transition: transform 0.35s ease;
+}
+
+.app-mobile-nav-panel-enter-from {
   opacity: 0;
   transform: translateX(28px);
+}
+
+.app-mobile-nav-panel-leave-to {
+  transform: translateX(100%);
 }
 
 @keyframes app-mobile-nav-link-in {

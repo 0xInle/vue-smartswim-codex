@@ -2,12 +2,14 @@
   <section class="documents">
     <div class="container">
       <section class="documents__library">
-        <div class="documents__intro">
-          <h1 class="documents__title">Документы</h1>
-          <p class="documents__text">
-            Здесь собраны основные документы школы и соревнований: положения, согласия, оферты,
-            правила и шаблоны для скачивания.
-          </p>
+        <div class="documents__hero">
+          <div class="documents__intro">
+            <h1 class="documents__title">Документы</h1>
+            <p class="documents__text">
+              Здесь собраны основные документы школы и соревнований: положения, согласия, оферты,
+              правила и шаблоны для скачивания.
+            </p>
+          </div>
         </div>
 
         <div class="documents__grid">
@@ -141,8 +143,20 @@ function toggleFaqItem(key) {
 
 .documents__intro {
   display: grid;
-  gap: 10px;
-  max-width: 620px;
+  gap: 18px;
+  max-width: 760px;
+  padding: 44px 28px;
+  border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 50%);
+  box-shadow:
+    0 20px 50px rgb(from var(--black) r g b / 9%),
+    inset 0 1px 0 rgb(from var(--white) r g b / 28%);
+}
+
+.documents__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   margin-bottom: 22px;
 }
 
@@ -158,14 +172,15 @@ function toggleFaqItem(key) {
 
 .documents__title {
   margin: 0;
-  font-size: clamp(34px, 5vw, 44px);
-  line-height: 0.96;
+  font-size: clamp(42px, 7vw, 48px);
+  line-height: 0.95;
 }
 
 .documents__text {
   margin: 0;
   font-size: 16px;
   font-weight: 500;
+  line-height: 1.5;
 }
 
 .documents__grid {
@@ -507,6 +522,10 @@ function toggleFaqItem(key) {
   .documents__library {
     padding-top: 20px;
     margin-bottom: 30px;
+  }
+
+  .documents__intro {
+    padding: 22px 18px;
   }
 
   .documents__title {
