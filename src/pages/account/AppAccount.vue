@@ -43,9 +43,9 @@
             </div>
           </div>
 
-          <RouterLink class="account__back-link link-reset" to="/">
-            <el-button class="account__back-button" type="primary">Выйти</el-button>
-          </RouterLink>
+          <el-button class="account__back-button" type="primary" @click="handleSignOut">
+            Выйти
+          </el-button>
         </el-header>
 
         <el-main class="account__main">
@@ -85,9 +85,7 @@
                     <div class="account__panel-head">
                       <div>
                         <p class="account__panel-eyebrow">Клиентский профиль</p>
-                        <h3 class="account__panel-title">
-                          Последний зарегистрированный пользователь
-                        </h3>
+                        <h3 class="account__panel-title">Профиль текущего пользователя</h3>
                       </div>
                       <el-tag :type="latestUser ? 'success' : 'info'" effect="light" round>
                         {{ latestUser ? 'Данные получены' : 'Ожидаем регистрацию' }}
@@ -114,7 +112,7 @@
 
                   <el-empty
                     v-else
-                    description="После первой регистрации здесь появятся данные клиента."
+                    description="После входа здесь появятся данные текущего пользователя."
                   />
                 </el-card>
               </div>
@@ -155,7 +153,7 @@
                 <div class="account__panel-head">
                   <div>
                     <p class="account__panel-eyebrow">База клиентов</p>
-                    <h3 class="account__panel-title">Зарегистрированные пользователи</h3>
+                    <h3 class="account__panel-title">Текущий профиль</h3>
                   </div>
                   <el-tag type="primary" effect="light" round>
                     {{ registeredUsers.length }} записей
@@ -168,7 +166,7 @@
                 row-key="email"
                 border
                 stripe
-                empty-text="Зарегистрированных пользователей пока нет."
+                empty-text="Профиль текущего пользователя пока недоступен."
               >
                 <el-table-column label="Имя" min-width="180">
                   <template #default="{ row }">
@@ -230,8 +228,13 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Files, Histogram, Monitor, Setting, User } from '@element-plus/icons-vue'
-import { RouterLink } from 'vue-router'
-import { loadRegisteredUser } from '@/utils/accountStorage'
+import { useRouter } from 'vue-router'
+import {
+  getCurrentSession,
+  normalizeAuthUser,
+  signOutCurrentUser,
+  subscribeToAuthStateChange,
+} from '@/utils/supabaseAuth'
 import { fetchCrmUsers } from '@/utils/supabaseDatabase'
 
 const navigationItems = [
@@ -363,12 +366,22 @@ const registeredUser = ref(null)
 const registeredUsers = ref([])
 const isUsersLoading = ref(false)
 const usersLoadError = ref('')
+const router = useRouter()
+
+let authSubscription = null
 
 async function syncRegisteredUsers() {
-  registeredUser.value = loadRegisteredUser()
   isUsersLoading.value = true
 
   try {
+    const session = await getCurrentSession()
+
+    if (!session?.user) {
+      router.replace('/')
+      return
+    }
+
+    registeredUser.value = normalizeAuthUser(session.user)
     registeredUsers.value = await fetchCrmUsers()
     usersLoadError.value = ''
   } catch (error) {
@@ -376,6 +389,17 @@ async function syncRegisteredUsers() {
       error instanceof Error ? error.message : 'Не удалось загрузить пользователей из Supabase.'
   } finally {
     isUsersLoading.value = false
+  }
+}
+
+async function handleSignOut() {
+  try {
+    await signOutCurrentUser()
+    usersLoadError.value = ''
+    await router.push('/')
+  } catch (error) {
+    usersLoadError.value =
+      error instanceof Error ? error.message : 'Не удалось завершить сессию.'
   }
 }
 
@@ -406,40 +430,34 @@ const currentSectionRoadmap = computed(() => sectionRoadmaps[activeSection.value
 
 const dashboardMetrics = computed(() => [
   {
-    label: 'Всего пользователей',
+    label: 'Активная сессия',
     value: registeredUsers.value.length,
-    tag: 'Клиенты',
+    tag: registeredUsers.value.length ? 'Есть доступ' : 'Проверка',
     tagType: 'primary',
-    note: 'Количество пользователей, зарегистрированных через форму на сайте.',
+    note: 'Профиль доступен только для пользователя с активной Supabase-сессией.',
   },
   {
-    label: 'Последняя регистрация',
+    label: 'Имя профиля',
     value: latestUserName.value,
     tag: latestUser.value ? 'Активно' : 'Пусто',
     tagType: latestUser.value ? 'success' : 'info',
-    note: 'Последний пользователь, данные которого доступны в локальном хранилище CRM.',
+    note: 'Имя пользователя, связанного с текущей сессией.',
   },
   {
-    label: 'Последний email',
+    label: 'Email профиля',
     value: latestUserEmail.value,
     tag: 'Контакт',
     tagType: 'warning',
-    note: 'Актуальная почта последнего зарегистрированного клиента.',
+    note: 'Почта текущего авторизованного пользователя.',
   },
   {
-    label: 'Дата регистрации',
+    label: 'Создание аккаунта',
     value: latestUserRegistrationDate.value,
     tag: 'Время',
     tagType: 'danger',
-    note: 'Дата и время последнего успешного создания учетной записи.',
+    note: 'Дата и время создания текущей учетной записи.',
   },
 ])
-
-function handleStorageChange(event) {
-  if (!event.key || event.key.startsWith('smartswim-registered-')) {
-    void syncRegisteredUsers()
-  }
-}
 
 function handleWindowFocus() {
   void syncRegisteredUsers()
@@ -455,13 +473,22 @@ function handleVisibilityChange() {
 
 onMounted(() => {
   void syncRegisteredUsers()
-  window.addEventListener('storage', handleStorageChange)
+  authSubscription = subscribeToAuthStateChange((_event, session) => {
+    if (!session) {
+      registeredUser.value = null
+      registeredUsers.value = []
+      router.replace('/')
+      return
+    }
+
+    void syncRegisteredUsers()
+  })
   window.addEventListener('focus', handleWindowFocus)
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('storage', handleStorageChange)
+  authSubscription?.unsubscribe()
   window.removeEventListener('focus', handleWindowFocus)
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })

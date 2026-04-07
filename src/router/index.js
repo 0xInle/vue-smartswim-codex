@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { getCurrentSession } from '@/utils/supabaseAuth'
 
 const HomePage = () => import('@/pages/home/AppHome.vue')
 const AppCompetitions = () => import('@/pages/competitions/AppCompetitions.vue')
@@ -89,9 +90,28 @@ const router = createRouter({
       component: AppAccount,
       meta: {
         showFloatingHeader: false,
+        requiresAuth: true,
       },
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresAuth) {
+    return true
+  }
+
+  try {
+    const session = await getCurrentSession()
+
+    if (session) {
+      return true
+    }
+  } catch {
+    return { path: '/' }
+  }
+
+  return { path: '/' }
 })
 
 export default router

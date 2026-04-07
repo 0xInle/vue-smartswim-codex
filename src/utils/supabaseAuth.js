@@ -1,36 +1,95 @@
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+import { getSupabaseClient, getSupabaseConfigError } from '@/utils/supabaseClient'
 
-function getSupabaseHeaders() {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase не настроен. Добавьте VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY.')
+function toError(message, fallback = 'Не удалось выполнить запрос к Supabase.') {
+  return new Error(message || fallback)
+}
+
+export function normalizeAuthUser(user) {
+  if (!user) {
+    return null
   }
 
   return {
-    'Content-Type': 'application/json',
-    apikey: supabaseAnonKey,
+    id: user.id ?? null,
+    name: user.user_metadata?.name || '',
+    email: user.email || '',
+    registeredAt: user.created_at || null,
   }
 }
 
 export async function signUpWithPassword({ email, password, name }) {
-  const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
-    method: 'POST',
-    headers: getSupabaseHeaders(),
-    body: JSON.stringify({
-      email,
-      password,
+  const { data, error } = await getSupabaseClient().auth.signUp({
+    email,
+    password,
+    options: {
       data: {
         name,
       },
-    }),
+    },
   })
 
-  const payload = await response.json().catch(() => ({}))
-
-  if (!response.ok) {
-    const message = payload?.msg || payload?.message || 'Не удалось зарегистрироваться.'
-    throw new Error(message)
+  if (error) {
+    throw toError(error.message, 'Не удалось зарегистрироваться.')
   }
 
-  return payload
+  return data
+}
+
+export async function signInWithPassword({ email, password }) {
+  const { data, error } = await getSupabaseClient().auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error) {
+    throw toError(error.message, 'Не удалось войти в личный кабинет.')
+  }
+
+  return data
+}
+
+export async function signOutCurrentUser() {
+  const { error } = await getSupabaseClient().auth.signOut()
+
+  if (error) {
+    throw toError(error.message, 'Не удалось завершить сессию.')
+  }
+}
+
+export async function getCurrentSession() {
+  const { data, error } = await getSupabaseClient().auth.getSession()
+
+  if (error) {
+    throw toError(error.message, getSupabaseConfigError())
+  }
+
+  return data.session
+}
+
+export async function getCurrentUser() {
+  const { data, error } = await getSupabaseClient().auth.getUser()
+
+  if (error) {
+    throw toError(error.message, 'Не удалось получить данные пользователя.')
+  }
+
+  return data.user
+}
+
+export function subscribeToAuthStateChange(callback) {
+  try {
+    const { data } = getSupabaseClient().auth.onAuthStateChange((event, session) => {
+      callback(event, session)
+    })
+
+    return data.subscription
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+
+    if (message === getSupabaseConfigError()) {
+      return null
+    }
+
+    throw error
+  }
 }

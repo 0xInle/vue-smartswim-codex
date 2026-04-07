@@ -1,66 +1,41 @@
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-function getSupabaseConfigError() {
-  return 'Supabase не настроен. Добавьте VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY.'
-}
-
-function getSupabaseRestHeaders() {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(getSupabaseConfigError())
-  }
-
-  return {
-    'Content-Type': 'application/json',
-    apikey: supabaseAnonKey,
-    Authorization: `Bearer ${supabaseAnonKey}`,
-  }
-}
-
-function getSupabaseRestUrl(pathname, search = '') {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(getSupabaseConfigError())
-  }
-
-  return `${supabaseUrl}/rest/v1/${pathname}${search}`
-}
+import { getCurrentSession } from '@/utils/supabaseAuth'
+import { getSupabaseClient } from '@/utils/supabaseClient'
 
 export async function fetchCrmUsers() {
-  const searchParams = new URLSearchParams({
-    select: 'id,email,name,registered_at',
-    order: 'registered_at.desc',
-  })
+  const session = await getCurrentSession()
 
-  const response = await fetch(getSupabaseRestUrl('crm_users', `?${searchParams.toString()}`), {
-    method: 'GET',
-    headers: getSupabaseRestHeaders(),
-    cache: 'no-store',
-  })
+  if (!session) {
+    throw new Error('Сессия истекла. Войдите в личный кабинет заново.')
+  }
 
-  const payload = await response.json().catch(() => [])
+  const { data, error } = await getSupabaseClient()
+    .from('crm_users')
+    .select('id,email,name,registered_at')
+    .eq('id', session.user.id)
+    .maybeSingle()
 
-  if (!response.ok) {
-    const message = Array.isArray(payload)
-      ? 'Не удалось загрузить пользователей.'
-      : payload?.message || payload?.hint || 'Не удалось загрузить пользователей.'
-
-    if (typeof message === 'string' && /crm_users/i.test(message)) {
+  if (error) {
+    if (/crm_users/i.test(error.message)) {
       throw new Error(
-        'Таблица crm_users не найдена. Выполните SQL из файла supabase/crm_users.sql в Supabase SQL Editor.',
+        'Профиль CRM недоступен: таблица crm_users не найдена. Выполните SQL из файла supabase/crm_users.sql в Supabase SQL Editor.',
       )
     }
 
-    throw new Error(message)
+    throw new Error(error.message || 'Не удалось загрузить профиль пользователя из CRM.')
   }
 
-  if (!Array.isArray(payload)) {
-    return []
+  if (!data) {
+    throw new Error(
+      'Пользователь авторизован в Supabase Auth, но профиль в crm_users не создан. Проверьте trigger handle_auth_user_created и содержимое таблицы crm_users.',
+    )
   }
 
-  return payload.map((user) => ({
-    id: user.id ?? null,
-    email: user.email ?? '',
-    name: user.name ?? '',
-    registeredAt: user.registered_at ?? null,
-  }))
+  return [
+    {
+      id: data.id ?? null,
+      email: data.email ?? '',
+      name: data.name ?? '',
+      registeredAt: data.registered_at ?? null,
+    },
+  ]
 }

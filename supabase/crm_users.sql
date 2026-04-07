@@ -8,11 +8,12 @@ create table if not exists public.crm_users (
 alter table public.crm_users enable row level security;
 
 drop policy if exists "Allow public read crm users" on public.crm_users;
-create policy "Allow public read crm users"
+drop policy if exists "Allow authenticated users to read own crm profile" on public.crm_users;
+create policy "Allow authenticated users to read own crm profile"
 on public.crm_users
 for select
-to anon, authenticated
-using (true);
+to authenticated
+using (auth.uid() = id);
 
 create or replace function public.handle_auth_user_created()
 returns trigger
