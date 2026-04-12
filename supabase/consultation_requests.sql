@@ -9,7 +9,17 @@ create table if not exists public.consultation_requests (
   status text not null default 'new',
   created_at timestamptz not null default timezone('utc', now()),
   constraint consultation_requests_status_check
-    check (status in ('new', 'contacted', 'scheduled', 'closed'))
+    check (
+      status in (
+        'new',
+        'processed',
+        'call_back',
+        'busy',
+        'unavailable',
+        'scheduled',
+        'closed'
+      )
+    )
 );
 
 alter table public.consultation_requests
@@ -27,6 +37,27 @@ drop policy if exists "Allow admin insert consultation requests" on public.consu
 alter table public.consultation_requests
   alter column consultation_time type time
   using consultation_time::time;
+
+alter table public.consultation_requests
+  drop constraint if exists consultation_requests_status_check;
+
+update public.consultation_requests
+set status = 'processed'
+where status = 'contacted';
+
+alter table public.consultation_requests
+  add constraint consultation_requests_status_check
+  check (
+    status in (
+      'new',
+      'processed',
+      'call_back',
+      'busy',
+      'unavailable',
+      'scheduled',
+      'closed'
+    )
+  );
 
 create or replace function public.normalize_phone(input_phone text)
 returns text

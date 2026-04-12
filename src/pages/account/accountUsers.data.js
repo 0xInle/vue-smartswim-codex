@@ -1,0 +1,46 @@
+import { CRM_ROLE } from '@/utils/crmRoles'
+
+const mockUsersSeed = [
+  ['u001', 'Артем Соколов', 'artem.sokolov@smartswim.app', '+7 (999) 101-00-01', CRM_ROLE.USER, 'active', '2026-03-02T09:15:00'],
+  ['u002', 'Мария Иванова', 'maria.ivanova@smartswim.app', '+7 (999) 101-00-02', CRM_ROLE.USER, 'active', '2026-03-03T10:20:00'],
+  ['u003', 'Денис Петров', 'denis.petrov@smartswim.app', '+7 (999) 101-00-03', CRM_ROLE.TRAINER, 'active', '2026-03-03T13:40:00'],
+  ['u004', 'Екатерина Смирнова', 'ekaterina.smirnova@smartswim.app', '+7 (999) 101-00-04', CRM_ROLE.USER, 'pending', '2026-03-04T08:10:00'],
+  ['u005', 'Илья Кузнецов', 'ilya.kuznetsov@smartswim.app', '+7 (999) 101-00-05', CRM_ROLE.USER, 'active', '2026-03-04T18:05:00'],
+  ['u006', 'София Волкова', 'sofia.volkova@smartswim.app', '+7 (999) 101-00-06', CRM_ROLE.USER, 'active', '2026-03-05T11:30:00'],
+  ['u007', 'Максим Орлов', 'maksim.orlov@smartswim.app', '+7 (999) 101-00-07', CRM_ROLE.USER, 'blocked', '2026-03-05T16:25:00'],
+  ['u008', 'Анна Васильева', 'anna.vasilyeva@smartswim.app', '+7 (999) 101-00-08', CRM_ROLE.USER, 'active', '2026-03-06T09:05:00'],
+  ['u009', 'Никита Мельников', 'nikita.melnikov@smartswim.app', '+7 (999) 101-00-09', CRM_ROLE.USER, 'active', '2026-03-06T14:18:00'],
+  ['u010', 'Полина Федорова', 'polina.fedorova@smartswim.app', '+7 (999) 101-00-10', CRM_ROLE.USER, 'pending', '2026-03-07T12:42:00'],
+  ['u011', 'Кирилл Павлов', 'kirill.pavlov@smartswim.app', '+7 (999) 101-00-11', CRM_ROLE.USER, 'active', '2026-03-07T17:50:00'],
+  ['u012', 'Дарья Семенова', 'daria.semenova@smartswim.app', '+7 (999) 101-00-12', CRM_ROLE.USER, 'active', '2026-03-08T07:35:00'],
+  ['u013', 'Егор Голубев', 'egor.golubev@smartswim.app', '+7 (999) 101-00-13', CRM_ROLE.USER, 'active', '2026-03-08T15:22:00'],
+  ['u014', 'Алиса Морозова', 'alisa.morozova@smartswim.app', '+7 (999) 101-00-14', CRM_ROLE.USER, 'active', '2026-03-09T10:15:00'],
+  ['u015', 'Тимур Лебедев', 'timur.lebedev@smartswim.app', '+7 (999) 101-00-15', CRM_ROLE.USER, 'blocked', '2026-03-09T19:12:00'],
+  ['u016', 'Виктория Новикова', 'viktoria.novikova@smartswim.app', '+7 (999) 101-00-16', CRM_ROLE.USER, 'active', '2026-03-10T08:55:00'],
+  ['u017', 'Роман Козлов', 'roman.kozlov@smartswim.app', '+7 (999) 101-00-17', CRM_ROLE.USER, 'active', '2026-03-10T13:08:00'],
+  ['u018', 'Ольга Андреева', 'olga.andreeva@smartswim.app', '+7 (999) 101-00-18', CRM_ROLE.USER, 'pending', '2026-03-11T09:48:00'],
+  ['u019', 'Степан Макаров', 'stepan.makarov@smartswim.app', '+7 (999) 101-00-19', CRM_ROLE.USER, 'active', '2026-03-11T18:16:00'],
+  ['u020', 'Ксения Николаева', 'ksenia.nikolaeva@smartswim.app', '+7 (999) 101-00-20', CRM_ROLE.USER, 'active', '2026-03-12T11:11:00'],
+  ['u021', 'Лев Захаров', 'lev.zakharov@smartswim.app', '+7 (999) 101-00-21', CRM_ROLE.USER, 'active', '2026-03-12T16:09:00'],
+  ['u022', 'Анастасия Борисова', 'anastasia.borisova@smartswim.app', '+7 (999) 101-00-22', CRM_ROLE.USER, 'active', '2026-03-13T09:27:00'],
+  ['u023', 'Матвей Виноградов', 'matvey.vinogradov@smartswim.app', '+7 (999) 101-00-23', CRM_ROLE.TRAINER, 'active', '2026-03-13T14:30:00'],
+  ['u024', 'Вероника Белова', 'veronika.belova@smartswim.app', '+7 (999) 101-00-24', CRM_ROLE.USER, 'pending', '2026-03-14T12:04:00'],
+  ['u025', 'Глеб Тарасов', 'gleb.tarasov@smartswim.app', '+7 (999) 101-00-25', CRM_ROLE.USER, 'active', '2026-03-14T17:45:00'],
+  ['u026', 'Елена Комарова', 'elena.komarova@smartswim.app', '+7 (999) 101-00-26', CRM_ROLE.USER, 'active', '2026-03-15T08:36:00'],
+  ['u027', 'Павел Жуков', 'pavel.zhukov@smartswim.app', '+7 (999) 101-00-27', CRM_ROLE.USER, 'blocked', '2026-03-15T15:14:00'],
+  ['u028', 'Юлия Алексеева', 'yulia.alekseeva@smartswim.app', '+7 (999) 101-00-28', CRM_ROLE.USER, 'active', '2026-03-16T10:52:00'],
+  ['u029', 'Иван Дмитриев', 'ivan.dmitriev@smartswim.app', '+7 (999) 101-00-29', CRM_ROLE.USER, 'active', '2026-03-16T19:20:00'],
+  ['u030', 'Арина Попова', 'arina.popova@smartswim.app', '+7 (999) 101-00-30', CRM_ROLE.USER, 'active', '2026-03-17T09:09:00'],
+]
+
+export const accountMockUsers = mockUsersSeed.map(
+  ([id, name, email, phone, role, status, registeredAt]) => ({
+    id,
+    name,
+    email,
+    phone,
+    role,
+    status,
+    registeredAt,
+  }),
+)

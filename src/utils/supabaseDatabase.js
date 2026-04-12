@@ -18,6 +18,17 @@ function isMissingTableError(error, tableName) {
   )
 }
 
+function isConsultationStatusConstraintError(error) {
+  if (!error) {
+    return false
+  }
+
+  return (
+    error.code === '23514' &&
+    /consultation_requests_status_check/i.test(error.message || '')
+  )
+}
+
 function mapCrmUser(row) {
   return {
     id: row.id ?? null,
@@ -30,6 +41,7 @@ function mapCrmUser(row) {
 
 function mapConsultationRequest(row) {
   const rawTime = row.consultation_time ?? ''
+  const normalizedStatus = row.status === 'contacted' ? 'processed' : row.status ?? 'new'
 
   return {
     id: row.id ?? null,
@@ -38,7 +50,7 @@ function mapConsultationRequest(row) {
     phone: row.phone ?? '',
     consultationDate: row.consultation_date ?? '',
     consultationTime: typeof rawTime === 'string' ? rawTime.slice(0, 5) : '',
-    status: row.status ?? 'new',
+    status: normalizedStatus,
     createdAt: row.created_at ?? null,
   }
 }
@@ -130,6 +142,61 @@ export async function fetchConsultationRequests() {
   }
 
   return (data ?? []).map(mapConsultationRequest)
+}
+
+export async function updateConsultationRequestStatus({ id, status }) {
+  const session = await getCurrentSession()
+
+  if (!session) {
+    throw new Error('Сессия истекла. Войдите в CRM заново.')
+  }
+
+  const client = getSupabaseClient()
+
+  const { data, error } = await client
+    .from('consultation_requests')
+    .update({
+      status,
+    })
+    .eq('id', id)
+    .select('id,first_name,last_name,phone,consultation_date,consultation_time,status,created_at')
+    .single()
+
+  if (error) {
+    if (status === 'processed' && isConsultationStatusConstraintError(error)) {
+      const fallbackResult = await client
+        .from('consultation_requests')
+        .update({
+          status: 'contacted',
+        })
+        .eq('id', id)
+        .select('id,first_name,last_name,phone,consultation_date,consultation_time,status,created_at')
+        .single()
+
+      if (!fallbackResult.error) {
+        return mapConsultationRequest({
+          ...fallbackResult.data,
+          status: 'processed',
+        })
+      }
+    }
+
+    if (isMissingTableError(error, 'consultation_requests')) {
+      throw new Error(
+        toMissingTableError('consultation_requests', 'supabase/consultation_requests.sql'),
+      )
+    }
+
+    if (isConsultationStatusConstraintError(error)) {
+      throw new Error(
+        'В Supabase еще не обновлен список статусов consultation_requests. Выполните SQL из файла supabase/consultation_requests.sql и повторите действие.',
+      )
+    }
+
+    throw new Error(error.message || 'Не удалось обновить статус заявки.')
+  }
+
+  return mapConsultationRequest(data)
 }
 
 export function subscribeToConsultationRequests(callback) {
