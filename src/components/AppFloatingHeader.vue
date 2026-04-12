@@ -209,15 +209,15 @@
               class="app-registration__field-grid"
               :class="{ 'app-registration__field-grid--single': isSignInMode }"
             >
-              <label v-if="!isSignInMode" class="app-registration__field">
+              <label class="app-registration__field">
                 <span class="app-registration__label">Пароль</span>
                 <input
                   v-model="registrationForm.password"
                   class="app-registration__input"
                   type="password"
                   name="password"
-                  autocomplete="new-password"
-                  placeholder="Минимум 8 символов"
+                  :autocomplete="isSignInMode ? 'current-password' : 'new-password'"
+                  :placeholder="isSignInMode ? 'Введите пароль' : 'Минимум 8 символов'"
                   :aria-invalid="Boolean(registrationErrors.password)"
                 />
                 <span v-if="registrationErrors.password" class="app-registration__error">
@@ -225,7 +225,7 @@
                 </span>
               </label>
 
-              <label class="app-registration__field">
+              <label v-if="!isSignInMode" class="app-registration__field">
                 <span class="app-registration__label">Подтвердите пароль</span>
                 <input
                   v-model="registrationForm.confirmPassword"
@@ -300,11 +300,6 @@
       </div>
     </Transition>
 
-    <Transition name="app-toast">
-      <div v-if="isRegistrationToastVisible" class="app-toast" role="status" aria-live="polite">
-        {{ registrationToastMessage }}
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -312,6 +307,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import IconSwimmer from '@/assets/images/icon-swimmer.svg'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { showToast } from '@/utils/toast'
 import {
   getCurrentSession,
   normalizeAuthUser,
@@ -346,8 +342,6 @@ const registrationStatus = ref('idle')
 const registrationMessage = ref('')
 const registeredUser = ref(null)
 const hasActiveSession = ref(false)
-const isRegistrationToastVisible = ref(false)
-const registrationToastMessage = ref('')
 const authMode = ref('sign-up')
 const headerStyle = ref({
   top: 'auto',
@@ -377,7 +371,6 @@ let resizeFrameId = 0
 let homeScrollFrameId = 0
 let keyboardFrameId = 0
 let registrationCloseTimeoutId = 0
-let registrationToastTimeoutId = 0
 let resizeObserver = null
 let shouldCloseMobileMenuAfterNavigation = false
 let homeSectionRef = null
@@ -741,19 +734,6 @@ function closeMobileMenu() {
   isMobileMenuOpen.value = false
 }
 
-function showRegistrationToast(message) {
-  if (registrationToastTimeoutId) {
-    window.clearTimeout(registrationToastTimeoutId)
-  }
-
-  registrationToastMessage.value = message
-  isRegistrationToastVisible.value = true
-  registrationToastTimeoutId = window.setTimeout(() => {
-    isRegistrationToastVisible.value = false
-    registrationToastTimeoutId = 0
-  }, 3200)
-}
-
 function resetRegistrationFeedback() {
   registrationStatus.value = 'idle'
   registrationMessage.value = ''
@@ -944,6 +924,14 @@ function getRegistrationErrorMessage(error) {
   return message
 }
 
+async function openAccountRoute() {
+  await router.push('/account')
+
+  if (router.currentRoute.value.path !== '/account') {
+    throw new Error('Не удалось открыть личный кабинет. Обновите страницу и попробуйте снова.')
+  }
+}
+
 async function handleRegistrationSubmit() {
   if (!validateRegistrationForm()) {
     return
@@ -958,21 +946,20 @@ async function handleRegistrationSubmit() {
         email: registrationForm.email,
         password: registrationForm.password,
       })
-      registeredUser.value = normalizeAuthUser(payload.user)
 
-      hasActiveSession.value = Boolean(payload.session)
-      registrationStatus.value = 'success'
-      registrationMessage.value = 'Вход выполнен. Открываем личный кабинет.'
-      showRegistrationToast('Вход выполнен')
-
-      if (registrationCloseTimeoutId) {
-        window.clearTimeout(registrationCloseTimeoutId)
+      if (!payload.session) {
+        throw new Error('Не удалось открыть сессию. Попробуйте войти еще раз.')
       }
 
-      registrationCloseTimeoutId = window.setTimeout(() => {
-        closeRegistrationModal()
-        router.push('/account')
-      }, 500)
+      registeredUser.value = normalizeAuthUser(payload.user)
+
+      hasActiveSession.value = true
+      registrationStatus.value = 'success'
+      registrationMessage.value = 'Вход выполнен. Открываем личный кабинет.'
+      showToast('Вход выполнен')
+
+      await openAccountRoute()
+      closeRegistrationModal()
       return
     }
 
@@ -993,21 +980,15 @@ async function handleRegistrationSubmit() {
     hasActiveSession.value = Boolean(payload.session)
     registrationStatus.value = 'success'
     registrationMessage.value = getRegistrationSuccessMessage(payload)
-    showRegistrationToast('Регистрация прошла успешно')
+    showToast('Регистрация прошла успешно')
 
     if (!payload.session) {
       authMode.value = 'sign-in'
       return
     }
 
-    if (registrationCloseTimeoutId) {
-      window.clearTimeout(registrationCloseTimeoutId)
-    }
-
-    registrationCloseTimeoutId = window.setTimeout(() => {
-      closeRegistrationModal()
-      router.push('/account')
-    }, 700)
+    await openAccountRoute()
+    closeRegistrationModal()
   } catch (error) {
     registrationStatus.value = 'error'
     registrationMessage.value = getRegistrationErrorMessage(error)
@@ -1189,10 +1170,6 @@ onBeforeUnmount(() => {
 
   if (registrationCloseTimeoutId) {
     window.clearTimeout(registrationCloseTimeoutId)
-  }
-
-  if (registrationToastTimeoutId) {
-    window.clearTimeout(registrationToastTimeoutId)
   }
 
   if (resizeObserver) {
@@ -1884,24 +1861,6 @@ onBeforeUnmount(() => {
   outline: none;
 }
 
-.app-toast {
-  position: fixed;
-  top: 22px;
-  right: 22px;
-  max-width: min(360px, calc(100vw - 32px));
-  padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--cyan) 82%, transparent);
-  box-shadow: 0 18px 40px rgb(from var(--black) r g b / 18%);
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.4;
-  color: var(--black);
-  backdrop-filter: blur(18px);
-  z-index: 260;
-}
-
 .app-registration-modal-enter-active,
 .app-registration-modal-leave-active {
   transition: opacity 0.24s ease;
@@ -1923,19 +1882,6 @@ onBeforeUnmount(() => {
 .app-registration-modal-leave-to .app-registration__dialog {
   opacity: 0;
   transform: translateY(22px) scale(0.98);
-}
-
-.app-toast-enter-active,
-.app-toast-leave-active {
-  transition:
-    opacity 0.24s ease,
-    transform 0.24s ease;
-}
-
-.app-toast-enter-from,
-.app-toast-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
 }
 
 @keyframes app-mobile-nav-link-in {
@@ -1964,8 +1910,7 @@ onBeforeUnmount(() => {
   .app-mobile-nav,
   .app-mobile-nav *,
   .app-registration,
-  .app-registration * ,
-  .app-toast {
+  .app-registration * {
     pointer-events: auto;
   }
 }
@@ -2011,12 +1956,6 @@ onBeforeUnmount(() => {
   .app-registration__input {
     font-size: 16px;
   }
-
-  .app-toast {
-    top: 16px;
-    right: 16px;
-  }
-
   .app-registration__field-grid {
     grid-template-columns: 1fr;
   }

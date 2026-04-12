@@ -1,7 +1,49 @@
+import { CRM_ROLE } from '@/utils/crmRoles'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
 
-export async function fetchCrmUsers() {
+function toMissingTableError(tableName, sqlFilePath) {
+  return `CRM недоступна: таблица ${tableName} не найдена. Выполните SQL из файла ${sqlFilePath} в Supabase SQL Editor.`
+}
+
+function isMissingTableError(error, tableName) {
+  if (!error) {
+    return false
+  }
+
+  return (
+    error.code === '42P01' ||
+    new RegExp(`relation .*${tableName}.* does not exist`, 'i').test(error.message || '') ||
+    new RegExp(`table .*${tableName}.* not found`, 'i').test(error.message || '')
+  )
+}
+
+function mapCrmUser(row) {
+  return {
+    id: row.id ?? null,
+    email: row.email ?? '',
+    name: row.name ?? '',
+    role: row.role ?? CRM_ROLE.USER,
+    registeredAt: row.registered_at ?? null,
+  }
+}
+
+function mapConsultationRequest(row) {
+  const rawTime = row.consultation_time ?? ''
+
+  return {
+    id: row.id ?? null,
+    firstName: row.first_name ?? '',
+    lastName: row.last_name ?? '',
+    phone: row.phone ?? '',
+    consultationDate: row.consultation_date ?? '',
+    consultationTime: typeof rawTime === 'string' ? rawTime.slice(0, 5) : '',
+    status: row.status ?? 'new',
+    createdAt: row.created_at ?? null,
+  }
+}
+
+export async function fetchCurrentCrmUser() {
   const session = await getCurrentSession()
 
   if (!session) {
@@ -10,15 +52,13 @@ export async function fetchCrmUsers() {
 
   const { data, error } = await getSupabaseClient()
     .from('crm_users')
-    .select('id,email,name,registered_at')
+    .select('id,email,name,role,registered_at')
     .eq('id', session.user.id)
     .maybeSingle()
 
   if (error) {
-    if (/crm_users/i.test(error.message)) {
-      throw new Error(
-        'Профиль CRM недоступен: таблица crm_users не найдена. Выполните SQL из файла supabase/crm_users.sql в Supabase SQL Editor.',
-      )
+    if (isMissingTableError(error, 'crm_users')) {
+      throw new Error(toMissingTableError('crm_users', 'supabase/crm_users.sql'))
     }
 
     throw new Error(error.message || 'Не удалось загрузить профиль пользователя из CRM.')
@@ -30,12 +70,84 @@ export async function fetchCrmUsers() {
     )
   }
 
-  return [
-    {
-      id: data.id ?? null,
-      email: data.email ?? '',
-      name: data.name ?? '',
-      registeredAt: data.registered_at ?? null,
-    },
-  ]
+  return mapCrmUser(data)
+}
+
+export async function createConsultationRequest(payload) {
+  const { error } = await getSupabaseClient()
+    .from('consultation_requests')
+    .insert({
+      first_name: payload.firstName,
+      last_name: payload.lastName,
+      phone: payload.phone,
+      consultation_date: payload.consultationDate,
+      consultation_time: payload.consultationTime,
+      status: payload.status ?? 'new',
+    })
+
+  if (error) {
+    if (isMissingTableError(error, 'consultation_requests')) {
+      throw new Error(
+        toMissingTableError('consultation_requests', 'supabase/consultation_requests.sql'),
+      )
+    }
+
+    throw new Error(error.message || 'Не удалось отправить заявку на консультацию.')
+  }
+
+  return {
+    id: null,
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+    phone: payload.phone,
+    consultationDate: payload.consultationDate,
+    consultationTime: payload.consultationTime,
+    status: payload.status ?? 'new',
+    createdAt: null,
+  }
+}
+
+export async function fetchConsultationRequests() {
+  const session = await getCurrentSession()
+
+  if (!session) {
+    throw new Error('Сессия истекла. Войдите в CRM заново.')
+  }
+
+  const { data, error } = await getSupabaseClient()
+    .from('consultation_requests')
+    .select('id,first_name,last_name,phone,consultation_date,consultation_time,status,created_at')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    if (isMissingTableError(error, 'consultation_requests')) {
+      throw new Error(
+        toMissingTableError('consultation_requests', 'supabase/consultation_requests.sql'),
+      )
+    }
+
+    throw new Error(error.message || 'Не удалось загрузить заявки на консультацию.')
+  }
+
+  return (data ?? []).map(mapConsultationRequest)
+}
+
+export function subscribeToConsultationRequests(callback) {
+  const client = getSupabaseClient()
+  const channel = client
+    .channel('consultation-requests-feed')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'consultation_requests',
+      },
+      callback,
+    )
+    .subscribe()
+
+  return () => {
+    void client.removeChannel(channel)
+  }
 }

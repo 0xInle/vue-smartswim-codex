@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { getCurrentSession } from '@/utils/supabaseAuth'
+import { fetchCurrentCrmUser } from '@/utils/supabaseDatabase'
 
 const HomePage = () => import('@/pages/home/AppHome.vue')
 const AppCompetitions = () => import('@/pages/competitions/AppCompetitions.vue')
@@ -104,7 +105,13 @@ router.beforeEach(async (to) => {
   try {
     const session = await getCurrentSession()
 
-    if (session) {
+    if (!session) {
+      return { path: '/' }
+    }
+
+    const currentCrmUser = await fetchCurrentCrmUser()
+
+    if (currentCrmUser?.role) {
       return true
     }
   } catch {

@@ -49,7 +49,11 @@ cp .env.example .env.local
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-publishable-key
+SUPABASE_PROJECT_REF=
+SUPABASE_ACCESS_TOKEN=
 ```
+
+`SUPABASE_PROJECT_REF` и `SUPABASE_ACCESS_TOKEN` не нужны для работы клиентского приложения. Они используются только для локальных служебных команд, например для вывода реальных таблиц проекта через Management API.
 
 5. Запустите проект:
 
@@ -71,6 +75,7 @@ npm run dev
 - вход в личный кабинет
 - маршрут `/account`
 - загрузка данных CRM-профиля
+- отправка hero-формы консультации
 
 Если Supabase не настроен, приложение покажет ошибки только в соответствующих сценариях.
 
@@ -83,13 +88,77 @@ npm run dev
 3. Вставьте их в `.env.local`.
 4. Откройте `SQL Editor` в Supabase.
 5. Выполните SQL из файла [supabase/crm_users.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/crm_users.sql).
+6. Выполните SQL из файла [supabase/consultation_requests.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/consultation_requests.sql).
 
 Этот SQL:
 
 - создает таблицу `public.crm_users`
+- создает таблицу `public.allowed_admin_emails`
+- создает таблицу `public.trainers`
+- добавляет поле `role` со значениями `admin | trainer | user`
 - включает `row level security`
 - создает policy для чтения собственного профиля
 - создает trigger, который синхронизирует пользователя из `auth.users` в `crm_users`
+- назначает роль `admin` только тем email, которые заранее внесены в `public.allowed_admin_emails`
+
+SQL для `consultation_requests`:
+
+- создает таблицу заявок на консультацию;
+- оставляет публичный `insert` для hero-формы на главной;
+- ограничивает `select/update/delete` по заявкам только ролью `admin`.
+
+## Роли
+
+- `admin` — полный доступ к CRM и заявкам.
+- `trainer` — доступ в `/account`, детальные рабочие блоки будут добавлены позже.
+- `user` — доступ в `/account`, персональные блоки будут добавлены позже.
+
+Маршрут `/account` доступен всем авторизованным пользователям, но содержимое кабинета зависит от роли.
+
+## Чистый старт ролей
+
+Если хотите начать с чистого состояния:
+
+1. Удалите существующих пользователей в `Supabase Dashboard -> Authentication -> Users`.
+2. Выполните актуальный SQL из `supabase/crm_users.sql` и `supabase/consultation_requests.sql`.
+3. Зарегистрируйте аккаунт `smartswim@inbox.ru`.
+4. Этот аккаунт автоматически получит роль `admin`.
+
+Почему это сработает:
+
+- `smartswim@inbox.ru` заранее добавляется в `public.allowed_admin_emails`;
+- при регистрации trigger проверяет именно эту allowlist-таблицу, а не сам email как магическое правило;
+- все остальные новые регистрации создаются с ролью `user`.
+
+Если нужно выдать роль `admin` другому пользователю:
+
+```sql
+insert into public.allowed_admin_emails (email, note)
+values ('admin2@example.com', 'Дополнительный администратор')
+on conflict (email) do update
+set note = excluded.note;
+
+update public.crm_users
+set role = 'admin'
+where lower(email) = lower('admin2@example.com');
+```
+
+Если нужно выдать роль `trainer`, email должен быть заранее внесен в таблицу `public.trainers`:
+
+```sql
+insert into public.trainers (email, name, note)
+values ('trainer@example.com', 'Имя тренера', 'Тренерский доступ')
+on conflict (email) do update
+set
+  name = excluded.name,
+  note = excluded.note;
+
+update public.crm_users
+set role = 'trainer'
+where lower(email) = lower('trainer@example.com');
+```
+
+При новой регистрации trigger сам присвоит `trainer`, если email уже существует в `public.trainers`.
 
 ## Команды
 
@@ -117,6 +186,14 @@ npm run preview
 npm run lint
 ```
 
+Вывести реальные таблицы Supabase-проекта:
+
+```sh
+npm run supabase:list-tables
+```
+
+Для этой команды нужен `SUPABASE_ACCESS_TOKEN` с доступом к проекту. Если `SUPABASE_PROJECT_REF` не задан, команда попытается извлечь его из `VITE_SUPABASE_URL`.
+
 ## Проверка после установки
 
 Если хотите быстро проверить, что проект поднялся корректно:
@@ -126,6 +203,7 @@ npm run lint
 3. Откройте главную страницу.
 4. Проверьте переходы по основным маршрутам.
 5. Если настраивали Supabase, проверьте регистрацию, вход и страницу `/account`.
+6. Для `smartswim@inbox.ru` проверьте, что после регистрации открывается кабинет администратора.
 
 ## Структура проекта
 
@@ -151,7 +229,17 @@ npm run lint
 - существует ли `.env.local`
 - заполнены ли `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY`
 - выполнен ли SQL из `supabase/crm_users.sql`
+- выполнен ли SQL из `supabase/consultation_requests.sql`
+- для `npm run supabase:list-tables` заполнен ли `SUPABASE_ACCESS_TOKEN`
 
 ### Открывается `/account`, но нет профиля пользователя
 
 Скорее всего, в Supabase не создана или не заполнена таблица `crm_users`, либо не сработал trigger `handle_auth_user_created`.
+
+### Админ не видит CRM-заявки
+
+Проверьте:
+
+- выполнен ли SQL из `supabase/consultation_requests.sql`
+- зарегистрирован ли пользователь как `smartswim@inbox.ru`
+- есть ли у записи в `public.crm_users` роль `admin`

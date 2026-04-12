@@ -42,3 +42,4 @@ __screenshots__/
 !.env.example
 
 AGENTS.md
+.agent

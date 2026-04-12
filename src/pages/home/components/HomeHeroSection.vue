@@ -54,7 +54,7 @@
             </div>
           </div>
 
-          <form class="home__form">
+          <form class="home__form" novalidate @submit.prevent="handleConsultationSubmit">
             <div class="home__form-header">
               <div class="home__form-title">Запланировать консультацию</div>
               <p class="home__form-text">
@@ -62,18 +62,64 @@
               </p>
             </div>
 
-            <label class="home__label" for="name">Имя</label>
-            <input class="home__input" type="text" id="name" placeholder="Введите имя" />
+            <input
+              v-model="consultationForm.website"
+              class="home__honeypot"
+              type="text"
+              name="website"
+              tabindex="-1"
+              autocomplete="off"
+              aria-hidden="true"
+            />
 
-            <label class="home__label" for="phone">Телефон</label>
-            <input class="home__input" type="tel" id="phone" placeholder="Введите номер телефона" />
+            <label class="home__field" for="consultation-full-name">
+              <span class="home__label">Имя и фамилия</span>
+              <input
+                id="consultation-full-name"
+                v-model.trim="consultationForm.fullName"
+                class="home__input"
+                :class="{ 'home__input--error': consultationErrors.fullName }"
+                type="text"
+                name="full-name"
+                autocomplete="name"
+                placeholder="Введите имя и фамилию"
+                :aria-invalid="Boolean(consultationErrors.fullName)"
+                @input="clearFieldError('fullName')"
+              />
+              <span v-if="consultationErrors.fullName" class="home__error">
+                {{ consultationErrors.fullName }}
+              </span>
+            </label>
+
+            <label class="home__field" for="consultation-phone">
+              <span class="home__label">Телефон</span>
+              <input
+                id="consultation-phone"
+                v-model.trim="consultationForm.phone"
+                class="home__input"
+                :class="{ 'home__input--error': consultationErrors.phone }"
+                type="tel"
+                name="phone"
+                autocomplete="tel"
+                placeholder="Введите номер телефона"
+                :aria-invalid="Boolean(consultationErrors.phone)"
+                @input="clearFieldError('phone')"
+              />
+              <span v-if="consultationErrors.phone" class="home__error">
+                {{ consultationErrors.phone }}
+              </span>
+            </label>
 
             <div class="home__datetime">
               <div ref="dateDropdownRef" class="home__dropdown home__dropdown--date">
                 <button
                   type="button"
                   class="home__dropdown-trigger home__dropdown-trigger--date btn-reset"
-                  :class="{ 'home__dropdown-trigger--open': isDateOpen }"
+                  :class="{
+                    'home__dropdown-trigger--open': isDateOpen,
+                    'home__dropdown-trigger--error': consultationErrors.date,
+                  }"
+                  :aria-invalid="Boolean(consultationErrors.date)"
                   @click="toggleDateDropdown"
                 >
                   <span class="home__dropdown-label">Дата</span>
@@ -126,9 +172,11 @@
                           type="button"
                           class="home__calendar-day btn-reset"
                           :class="{
+                            'home__calendar-day--disabled': day.isDisabled,
                             'home__calendar-day--today': day.isToday,
                             'home__calendar-day--selected': day.isSelected,
                           }"
+                          :disabled="day.isDisabled"
                           @click="selectDate(day.date)"
                         >
                           {{ day.label }}
@@ -143,7 +191,11 @@
                 <button
                   type="button"
                   class="home__dropdown-trigger home__dropdown-trigger--time btn-reset"
-                  :class="{ 'home__dropdown-trigger--open': isTimeOpen }"
+                  :class="{
+                    'home__dropdown-trigger--open': isTimeOpen,
+                    'home__dropdown-trigger--error': consultationErrors.time,
+                  }"
+                  :aria-invalid="Boolean(consultationErrors.time)"
                   @click="toggleTimeDropdown"
                 >
                   <span class="home__dropdown-label">Время</span>
@@ -171,7 +223,16 @@
               </div>
             </div>
 
-            <button class="home__submit-button btn-reset">Отправить</button>
+            <p
+              v-if="consultationErrors.date || consultationErrors.time"
+              class="home__error home__error--inline"
+            >
+              {{ consultationErrors.date || consultationErrors.time }}
+            </p>
+
+            <button class="home__submit-button btn-reset" :disabled="isSubmitting">
+              {{ isSubmitting ? 'Отправляем...' : 'Отправить' }}
+            </button>
 
             <div class="home__contact">
               <IconPhone class="home__icon home__icon--phone" />
@@ -189,6 +250,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import IconPhone from '@/assets/images/icon-phone.svg'
 import IconSwimmer from '@/assets/images/icon-swimmer.svg'
 import { publicAsset } from '@/utils/publicAsset'
+import { createConsultationRequest } from '@/utils/supabaseDatabase'
+import { showToast } from '@/utils/toast'
 
 const isDateOpen = ref(false)
 const isTimeOpen = ref(false)
@@ -202,6 +265,15 @@ const today = new Date()
 today.setHours(0, 0, 0, 0)
 const calendarMonth = ref(new Date(today.getFullYear(), today.getMonth(), 1))
 const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+const consultationForm = ref({
+  fullName: '',
+  phone: '',
+  website: '',
+})
+const consultationErrors = ref(getEmptyConsultationErrors())
+const isSubmitting = ref(false)
+const CONSULTATION_SUBMIT_COOLDOWN_MS = 60_000
+const CONSULTATION_SUBMIT_STORAGE_KEY = 'smartswim-consultation-submit-at'
 
 const timeOptions = computed(() => {
   const times = []
@@ -225,6 +297,19 @@ const selectedDate = ref(new Date(today))
 selectedDate.value.setHours(0, 0, 0, 0)
 const selectedTime = ref(getInitialTime())
 
+function getEmptyConsultationErrors() {
+  return {
+    fullName: '',
+    phone: '',
+    date: '',
+    time: '',
+  }
+}
+
+function isDateInPast(date) {
+  return date.getTime() < today.getTime()
+}
+
 function formatTriggerDate(date) {
   const day = String(date.getDate()).padStart(2, '0')
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -242,6 +327,130 @@ function getInitialTime() {
   return timeOptions.value.includes(initialTime) ? initialTime : timeOptions.value[0]
 }
 
+function toIsoDate(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+function clearFieldError(field) {
+  consultationErrors.value = {
+    ...consultationErrors.value,
+    [field]: '',
+  }
+}
+
+function resetConsultationForm() {
+  consultationForm.value = {
+    fullName: '',
+    phone: '',
+    website: '',
+  }
+  consultationErrors.value = getEmptyConsultationErrors()
+  selectedDate.value = new Date(today)
+  selectedDate.value.setHours(0, 0, 0, 0)
+  selectedTime.value = getInitialTime()
+  calendarMonth.value = new Date(selectedDate.value.getFullYear(), selectedDate.value.getMonth(), 1)
+}
+
+function validateConsultationForm() {
+  const errors = getEmptyConsultationErrors()
+  const namePattern = /^[A-Za-zА-Яа-яЁё\s-]+$/
+  const fullName = consultationForm.value.fullName.trim().replace(/\s+/g, ' ')
+  const fullNameParts = fullName.split(' ').filter(Boolean)
+  const phone = consultationForm.value.phone.trim()
+  const phoneDigits = phone.replace(/\D/g, '')
+
+  if (!fullName) {
+    errors.fullName = 'Укажите имя и фамилию.'
+  } else if (!namePattern.test(fullName)) {
+    errors.fullName = 'Поле может содержать только буквы, пробел и дефис.'
+  } else if (fullNameParts.length < 2) {
+    errors.fullName = 'Введите имя и фамилию через пробел.'
+  } else if (fullNameParts.some((part) => part.length < 2)) {
+    errors.fullName = 'Имя и фамилия должны содержать минимум 2 символа.'
+  }
+
+  if (!phone) {
+    errors.phone = 'Укажите телефон.'
+  } else if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+    errors.phone = 'Укажите корректный номер телефона.'
+  }
+
+  if (!selectedDate.value || isDateInPast(selectedDate.value)) {
+    errors.date = 'Выберите актуальную дату консультации.'
+  }
+
+  if (!selectedTime.value) {
+    errors.time = 'Выберите время консультации.'
+  }
+
+  consultationErrors.value = errors
+
+  return !Object.values(errors).some(Boolean)
+}
+
+function splitConsultationFullName(fullName) {
+  const [firstName = '', ...lastNameParts] = fullName.trim().replace(/\s+/g, ' ').split(' ')
+
+  return {
+    firstName,
+    lastName: lastNameParts.join(' '),
+  }
+}
+
+async function handleConsultationSubmit() {
+  if (isSubmitting.value) {
+    return
+  }
+
+  if (consultationForm.value.website.trim()) {
+    return
+  }
+
+  if (!validateConsultationForm()) {
+    return
+  }
+
+  const lastSubmitAt = Number(window.localStorage.getItem(CONSULTATION_SUBMIT_STORAGE_KEY) || 0)
+
+  if (Date.now() - lastSubmitAt < CONSULTATION_SUBMIT_COOLDOWN_MS) {
+    showToast('Повторная отправка временно ограничена. Попробуйте через минуту.', {
+      type: 'error',
+    })
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    const { firstName, lastName } = splitConsultationFullName(consultationForm.value.fullName)
+
+    await createConsultationRequest({
+      firstName,
+      lastName,
+      phone: consultationForm.value.phone.trim(),
+      consultationDate: toIsoDate(selectedDate.value),
+      consultationTime: selectedTime.value,
+    })
+
+    window.localStorage.setItem(CONSULTATION_SUBMIT_STORAGE_KEY, String(Date.now()))
+    resetConsultationForm()
+    showToast('Заявка отправлена. Мы свяжемся с вами для подтверждения консультации.')
+  } catch (error) {
+    showToast(
+      error instanceof Error ? error.message : 'Не удалось отправить заявку. Попробуйте еще раз.',
+      {
+        type: 'error',
+      },
+    )
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
 const calendarTitle = computed(() =>
   new Intl.DateTimeFormat('ru-RU', {
     month: 'long',
@@ -249,9 +458,7 @@ const calendarTitle = computed(() =>
   }).format(calendarMonth.value),
 )
 
-const activeHeroVideo = computed(() =>
-  isCompactViewport.value ? heroVideoMobile : heroVideo,
-)
+const activeHeroVideo = computed(() => (isCompactViewport.value ? heroVideoMobile : heroVideo))
 
 const calendarDays = computed(() => {
   const firstDayOfMonth = new Date(
@@ -287,6 +494,7 @@ const calendarDays = computed(() => {
       date,
       label: dayNumber,
       isPlaceholder: false,
+      isDisabled: isDateInPast(date),
       isToday: date.getTime() === today.getTime(),
       isSelected: selectedDate.value?.getTime() === date.getTime(),
     })
@@ -306,22 +514,34 @@ function toggleTimeDropdown() {
 }
 
 function selectDate(date) {
+  if (isDateInPast(date)) {
+    return
+  }
+
   selectedDate.value = new Date(date)
   selectedDate.value.setHours(0, 0, 0, 0)
   isDateOpen.value = false
+  clearFieldError('date')
 }
 
 function selectTime(time) {
   selectedTime.value = time
   isTimeOpen.value = false
+  clearFieldError('time')
 }
 
 function changeCalendarMonth(direction) {
-  calendarMonth.value = new Date(
+  const nextMonth = new Date(
     calendarMonth.value.getFullYear(),
     calendarMonth.value.getMonth() + direction,
     1,
   )
+
+  if (nextMonth < new Date(today.getFullYear(), today.getMonth(), 1)) {
+    return
+  }
+
+  calendarMonth.value = nextMonth
 }
 
 function syncCompactViewport() {
@@ -336,6 +556,15 @@ function handleOutsideClick(event) {
   if (timeDropdownRef.value && !timeDropdownRef.value.contains(event.target)) {
     isTimeOpen.value = false
   }
+}
+
+function handleDocumentKeydown(event) {
+  if (event.key !== 'Escape') {
+    return
+  }
+
+  isDateOpen.value = false
+  isTimeOpen.value = false
 }
 
 function handleHeroVideoLoadStart() {
@@ -354,11 +583,13 @@ onMounted(() => {
   syncCompactViewport()
   window.addEventListener('resize', syncCompactViewport)
   document.addEventListener('click', handleOutsideClick)
+  document.addEventListener('keydown', handleDocumentKeydown)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', syncCompactViewport)
   document.removeEventListener('click', handleOutsideClick)
+  document.removeEventListener('keydown', handleDocumentKeydown)
 })
 </script>
 
@@ -621,6 +852,21 @@ onBeforeUnmount(() => {
   color: color-mix(in srgb, var(--black) 60%, var(--white));
 }
 
+.home__field {
+  display: grid;
+  gap: 8px;
+}
+
+.home__honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .home__input {
   width: 100%;
   min-height: 48px;
@@ -646,6 +892,27 @@ onBeforeUnmount(() => {
   outline: none;
   border-color: color-mix(in srgb, var(--cyan) 54%, var(--white));
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 18%, transparent);
+}
+
+.home__input--error,
+.home__dropdown-trigger--error {
+  border-color: color-mix(in srgb, var(--orange) 66%, var(--white));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 12%, transparent);
+}
+
+.home__error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.home__error {
+  color: color-mix(in srgb, var(--orange) 88%, var(--black));
+}
+
+.home__error--inline {
+  margin-top: -2px;
 }
 
 .home__datetime {
@@ -868,6 +1135,14 @@ onBeforeUnmount(() => {
   color: var(--white);
 }
 
+.home__calendar-day--disabled,
+.home__calendar-day--disabled:hover {
+  border-color: rgb(from var(--white) r g b / 10%);
+  background: rgb(from var(--white) r g b / 8%);
+  color: color-mix(in srgb, var(--black) 26%, var(--white));
+  cursor: not-allowed;
+}
+
 .home__calendar-day-placeholder {
   aspect-ratio: 1;
 }
@@ -933,6 +1208,11 @@ onBeforeUnmount(() => {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--button-text);
+}
+
+.home__submit-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .home__contact {
