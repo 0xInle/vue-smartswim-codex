@@ -7,11 +7,7 @@
           <h1 class="account__sidebar-title">Smart Swim</h1>
         </div>
 
-        <ElMenu
-          :default-active="activeSection"
-          class="account__menu"
-          @select="handleSectionSelect"
-        >
+        <ElMenu :default-active="activeSection" class="account__menu" @select="handleSectionSelect">
           <ElMenuItem v-for="item in navigationItems" :key="item.id" :index="item.id">
             <ElIcon><component :is="item.icon" /></ElIcon>
             <span class="account__menu-label">{{ item.label }}</span>
@@ -55,7 +51,181 @@
 
           <template v-else-if="activeSection === 'dashboard'">
             <ElCard class="account__panel" shadow="never">
-              <div class="account__dashboard-empty"></div>
+              <template #header>
+                <div class="account__panel-head">
+                  <div>
+                    <p class="account__panel-eyebrow">Профиль</p>
+                    <h3 class="account__panel-title">Данные аккаунта</h3>
+                  </div>
+                </div>
+              </template>
+
+              <div class="account__profile-card">
+                <div class="account__profile-item">
+                  <span class="account__profile-label">Имя</span>
+                  <strong class="account__profile-value">
+                    {{ currentUser?.name || 'Не указано' }}
+                  </strong>
+                </div>
+                <div class="account__profile-item">
+                  <span class="account__profile-label">Почта</span>
+                  <strong class="account__profile-value">
+                    {{ currentUser?.email || 'Не указано' }}
+                  </strong>
+                </div>
+                <div class="account__profile-item">
+                  <span class="account__profile-label">Роль</span>
+                  <strong class="account__profile-value">{{ currentRoleLabel }}</strong>
+                </div>
+              </div>
+            </ElCard>
+          </template>
+
+          <template v-else-if="activeSection === 'settings'">
+            <ElCard class="account__panel" shadow="never">
+              <template #header>
+                <div class="account__panel-head">
+                  <div>
+                    <p class="account__panel-eyebrow">Безопасность</p>
+                    <h3 class="account__panel-title">Смена пароля</h3>
+                  </div>
+                </div>
+              </template>
+
+              <form
+                class="account__password-form"
+                novalidate
+                @submit.prevent="handlePasswordChange"
+              >
+                <label class="account__field">
+                  <span class="account__field-label">Почта</span>
+                  <input
+                    v-model.trim="passwordChangeForm.email"
+                    class="account__input"
+                    type="email"
+                    name="account-email"
+                    autocomplete="email"
+                    placeholder="example@mail.ru"
+                    :aria-invalid="Boolean(passwordChangeErrors.email)"
+                  />
+                  <span v-if="passwordChangeErrors.email" class="account__field-error">
+                    {{ passwordChangeErrors.email }}
+                  </span>
+                </label>
+
+                <label class="account__field">
+                  <span class="account__field-label">Старый пароль</span>
+                  <div class="account__input-wrap">
+                    <input
+                      v-model="passwordChangeForm.currentPassword"
+                      class="account__input account__input--password"
+                      :type="passwordFieldType('currentPassword')"
+                      name="current-password"
+                      autocomplete="current-password"
+                      placeholder="Введите текущий пароль"
+                      :aria-invalid="Boolean(passwordChangeErrors.currentPassword)"
+                    />
+                    <button
+                      type="button"
+                      class="account__visibility btn-reset"
+                      :aria-label="
+                        passwordVisibility.currentPassword
+                          ? 'Скрыть текущий пароль'
+                          : 'Показать текущий пароль'
+                      "
+                      @click="togglePasswordVisibility('currentPassword')"
+                    >
+                      <component :is="passwordVisibility.currentPassword ? Hide : View" />
+                    </button>
+                  </div>
+                  <span v-if="passwordChangeErrors.currentPassword" class="account__field-error">
+                    {{ passwordChangeErrors.currentPassword }}
+                  </span>
+                </label>
+
+                <div class="account__field-grid">
+                  <label class="account__field">
+                    <span class="account__field-label">Новый пароль</span>
+                    <div class="account__input-wrap">
+                      <input
+                        v-model="passwordChangeForm.newPassword"
+                        class="account__input account__input--password"
+                        :type="passwordFieldType('newPassword')"
+                        name="new-password"
+                        autocomplete="new-password"
+                        :placeholder="`Минимум ${MIN_PASSWORD_LENGTH} символов`"
+                        :aria-invalid="Boolean(passwordChangeErrors.newPassword)"
+                      />
+                      <button
+                        type="button"
+                        class="account__visibility btn-reset"
+                        :aria-label="
+                          passwordVisibility.newPassword
+                            ? 'Скрыть новый пароль'
+                            : 'Показать новый пароль'
+                        "
+                        @click="togglePasswordVisibility('newPassword')"
+                      >
+                        <component :is="passwordVisibility.newPassword ? Hide : View" />
+                      </button>
+                    </div>
+                    <span v-if="passwordChangeErrors.newPassword" class="account__field-error">
+                      {{ passwordChangeErrors.newPassword }}
+                    </span>
+                  </label>
+
+                  <label class="account__field">
+                    <span class="account__field-label">Подтвердите пароль</span>
+                    <div class="account__input-wrap">
+                      <input
+                        v-model="passwordChangeForm.confirmPassword"
+                        class="account__input account__input--password"
+                        :type="passwordFieldType('confirmPassword')"
+                        name="confirm-new-password"
+                        autocomplete="new-password"
+                        placeholder="Повторите новый пароль"
+                        :aria-invalid="Boolean(passwordChangeErrors.confirmPassword)"
+                      />
+                      <button
+                        type="button"
+                        class="account__visibility btn-reset"
+                        :aria-label="
+                          passwordVisibility.confirmPassword
+                            ? 'Скрыть подтверждение нового пароля'
+                            : 'Показать подтверждение нового пароля'
+                        "
+                        @click="togglePasswordVisibility('confirmPassword')"
+                      >
+                        <component :is="passwordVisibility.confirmPassword ? Hide : View" />
+                      </button>
+                    </div>
+                    <span v-if="passwordChangeErrors.confirmPassword" class="account__field-error">
+                      {{ passwordChangeErrors.confirmPassword }}
+                    </span>
+                  </label>
+                </div>
+
+                <p
+                  v-if="passwordChangeStatus === 'success' || passwordChangeStatus === 'error'"
+                  class="account__form-status"
+                  :class="{
+                    'account__form-status--success': passwordChangeStatus === 'success',
+                    'account__form-status--error': passwordChangeStatus === 'error',
+                  }"
+                >
+                  {{ passwordChangeMessage }}
+                </p>
+
+                <button
+                  type="submit"
+                  class="account__submit btn-reset"
+                  :disabled="passwordChangeStatus === 'loading'"
+                >
+                  {{
+                    passwordChangeStatus === 'loading' ? 'Обновляем пароль...' : 'Сменить пароль'
+                  }}
+                </button>
+              </form>
             </ElCard>
           </template>
 
@@ -135,7 +305,7 @@
 </template>
 
 <script setup>
-import { Calendar, Monitor } from '@element-plus/icons-vue'
+import { Calendar, Hide, Monitor, Setting, View } from '@element-plus/icons-vue'
 import {
   ElAlert,
   ElAside,
@@ -152,10 +322,17 @@ import {
   ElTableColumn,
   ElTag,
 } from 'element-plus'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { CRM_ROLE, isAdminRole } from '@/utils/crmRoles'
-import { signOutCurrentUser, subscribeToAuthStateChange } from '@/utils/supabaseAuth'
+import {
+  signInWithPassword,
+  signOutCurrentUser,
+  subscribeToAuthStateChange,
+  SUPABASE_MIN_PASSWORD_LENGTH,
+  updateCurrentUserPassword,
+} from '@/utils/supabaseAuth'
+import { showToast } from '@/utils/toast'
 import {
   fetchConsultationRequests,
   fetchCurrentCrmUser,
@@ -182,6 +359,25 @@ const isProfileLoading = ref(false)
 const isAdminDataLoading = ref(false)
 const profileLoadError = ref('')
 const adminDataError = ref('')
+const passwordChangeStatus = ref('idle')
+const passwordChangeMessage = ref('')
+const passwordChangeForm = reactive({
+  email: '',
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+})
+const passwordChangeErrors = reactive({
+  email: '',
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+})
+const passwordVisibility = reactive({
+  currentPassword: false,
+  newPassword: false,
+  confirmPassword: false,
+})
 
 let authSubscription = null
 let unsubscribeConsultationFeed = null
@@ -191,6 +387,7 @@ let accountSyncPromise = null
 let lastAccountSyncAt = 0
 
 const ACCOUNT_SYNC_COOLDOWN_MS = 1200
+const MIN_PASSWORD_LENGTH = SUPABASE_MIN_PASSWORD_LENGTH
 
 function getErrorMessage(error, fallback) {
   return error instanceof Error ? error.message : fallback
@@ -261,6 +458,114 @@ function formatConsultationFullName(request) {
   return [request?.firstName, request?.lastName].filter(Boolean).join(' ') || 'Не указано'
 }
 
+function resetPasswordVisibility() {
+  passwordVisibility.currentPassword = false
+  passwordVisibility.newPassword = false
+  passwordVisibility.confirmPassword = false
+}
+
+function resetPasswordChangeFeedback() {
+  passwordChangeStatus.value = 'idle'
+  passwordChangeMessage.value = ''
+  passwordChangeErrors.email = ''
+  passwordChangeErrors.currentPassword = ''
+  passwordChangeErrors.newPassword = ''
+  passwordChangeErrors.confirmPassword = ''
+}
+
+function resetPasswordChangeForm({ preserveEmail = true } = {}) {
+  const nextEmail = preserveEmail ? passwordChangeForm.email : ''
+
+  passwordChangeForm.email = nextEmail
+  passwordChangeForm.currentPassword = ''
+  passwordChangeForm.newPassword = ''
+  passwordChangeForm.confirmPassword = ''
+  resetPasswordVisibility()
+  resetPasswordChangeFeedback()
+}
+
+function passwordFieldType(field) {
+  return passwordVisibility[field] ? 'text' : 'password'
+}
+
+function togglePasswordVisibility(field) {
+  passwordVisibility[field] = !passwordVisibility[field]
+}
+
+function validatePasswordChangeForm() {
+  resetPasswordChangeFeedback()
+
+  if (!passwordChangeForm.email) {
+    passwordChangeErrors.email = 'Введите почту.'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(passwordChangeForm.email)) {
+    passwordChangeErrors.email = 'Укажите корректную почту.'
+  } else if (
+    currentUser.value?.email &&
+    passwordChangeForm.email.toLowerCase() !== currentUser.value.email.toLowerCase()
+  ) {
+    passwordChangeErrors.email = 'Используйте почту текущего аккаунта.'
+  }
+
+  if (!passwordChangeForm.currentPassword) {
+    passwordChangeErrors.currentPassword = 'Введите текущий пароль.'
+  }
+
+  if (!passwordChangeForm.newPassword) {
+    passwordChangeErrors.newPassword = 'Введите новый пароль.'
+  } else if (passwordChangeForm.newPassword.length < MIN_PASSWORD_LENGTH) {
+    passwordChangeErrors.newPassword = `Пароль должен содержать минимум ${MIN_PASSWORD_LENGTH} символов.`
+  }
+
+  if (!passwordChangeForm.confirmPassword) {
+    passwordChangeErrors.confirmPassword = 'Подтвердите новый пароль.'
+  } else if (passwordChangeForm.newPassword !== passwordChangeForm.confirmPassword) {
+    passwordChangeErrors.confirmPassword = 'Пароли не совпадают.'
+  }
+
+  if (
+    passwordChangeForm.currentPassword &&
+    passwordChangeForm.newPassword &&
+    passwordChangeForm.currentPassword === passwordChangeForm.newPassword
+  ) {
+    passwordChangeErrors.newPassword = 'Новый пароль должен отличаться от текущего.'
+  }
+
+  return !Object.values(passwordChangeErrors).some(Boolean)
+}
+
+async function handlePasswordChange() {
+  if (!validatePasswordChangeForm()) {
+    return
+  }
+
+  passwordChangeStatus.value = 'loading'
+  passwordChangeMessage.value = ''
+
+  try {
+    await signInWithPassword({
+      email: passwordChangeForm.email,
+      password: passwordChangeForm.currentPassword,
+    })
+
+    await updateCurrentUserPassword({
+      password: passwordChangeForm.newPassword,
+    })
+
+    passwordChangeStatus.value = 'success'
+    passwordChangeMessage.value = 'Пароль обновлён.'
+    showToast('Пароль обновлён')
+    resetPasswordChangeForm()
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Не удалось обновить пароль. Попробуйте снова.'
+
+    passwordChangeStatus.value = 'error'
+    passwordChangeMessage.value = /invalid login credentials/i.test(message)
+      ? 'Текущий пароль указан неверно.'
+      : message
+  }
+}
+
 async function syncCurrentUser() {
   if (currentUserSyncPromise) {
     return currentUserSyncPromise
@@ -271,9 +576,11 @@ async function syncCurrentUser() {
   currentUserSyncPromise = (async () => {
     try {
       currentUser.value = await fetchCurrentCrmUser()
+      passwordChangeForm.email = currentUser.value?.email || ''
       profileLoadError.value = ''
     } catch (error) {
       currentUser.value = null
+      passwordChangeForm.email = ''
       profileLoadError.value = getErrorMessage(error, 'Не удалось загрузить профиль кабинета.')
     } finally {
       isProfileLoading.value = false
@@ -391,16 +698,31 @@ function handleVisibilityChange() {
 
 const currentRole = computed(() => currentUser.value?.role || CRM_ROLE.USER)
 const isAdmin = computed(() => isAdminRole(currentRole.value))
+const currentRoleLabel = computed(() => {
+  if (currentRole.value === CRM_ROLE.ADMIN) {
+    return 'Администратор'
+  }
+
+  if (currentRole.value === CRM_ROLE.TRAINER) {
+    return 'Тренер'
+  }
+
+  return 'Пользователь'
+})
 
 const navigationItems = computed(() => {
   if (isAdmin.value) {
     return [
       { id: 'dashboard', label: 'Дашборд', icon: Monitor },
       { id: 'consultations', label: 'Консультации', icon: Calendar },
+      { id: 'settings', label: 'Настройки', icon: Setting },
     ]
   }
 
-  return [{ id: 'dashboard', label: 'Кабинет', icon: Monitor }]
+  return [
+    { id: 'dashboard', label: 'Кабинет', icon: Monitor },
+    { id: 'settings', label: 'Настройки', icon: Setting },
+  ]
 })
 
 const sectionContent = computed(() => {
@@ -412,6 +734,9 @@ const sectionContent = computed(() => {
       consultations: {
         title: 'Консультации',
       },
+      settings: {
+        title: 'Настройки',
+      },
     }
   }
 
@@ -420,12 +745,18 @@ const sectionContent = computed(() => {
       dashboard: {
         title: 'Кабинет тренера',
       },
+      settings: {
+        title: 'Настройки',
+      },
     }
   }
 
   return {
     dashboard: {
       title: 'Личный кабинет',
+    },
+    settings: {
+      title: 'Настройки',
     },
   }
 })
@@ -581,6 +912,12 @@ onBeforeUnmount(() => {
   padding: 24px;
 }
 
+.account__dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 16px;
+}
+
 .account__sync-alert {
   margin-bottom: 0;
 }
@@ -618,11 +955,157 @@ onBeforeUnmount(() => {
   color: #64748b;
 }
 
-.account__dashboard-empty {
-  min-height: 420px;
-  border: 1px dashed color-mix(in srgb, var(--cyan) 20%, white);
+.account__profile-card,
+.account__password-form {
+  display: grid;
+  gap: 14px;
+}
+
+.account__profile-item {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
   border-radius: 10px;
-  background: linear-gradient(180deg, rgb(248 251 255 / 0.9) 0%, rgb(255 255 255 / 0.72) 100%);
+  background: linear-gradient(180deg, rgb(246 251 255 / 0.94) 0%, rgb(255 255 255 / 0.82) 100%);
+}
+
+.account__profile-label,
+.account__field-label {
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.account__profile-value {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--black);
+}
+
+.account__field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.account__field {
+  display: grid;
+  gap: 8px;
+}
+
+.account__input-wrap {
+  position: relative;
+}
+
+.account__input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 24%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.9);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--black);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.account__input::placeholder {
+  color: color-mix(in srgb, var(--black) 42%, white);
+}
+
+.account__input:focus-visible {
+  border-color: color-mix(in srgb, var(--cyan) 54%, white);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 16%, transparent);
+  outline: none;
+}
+
+.account__input[aria-invalid='true'] {
+  border-color: color-mix(in srgb, var(--orange) 72%, transparent);
+}
+
+.account__input--password {
+  padding-right: 56px;
+}
+
+.account__visibility {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: #64748b;
+  transform: translateY(-50%);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.account__visibility:hover,
+.account__visibility:focus-visible {
+  color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 12%, transparent);
+  outline: none;
+}
+
+.account__visibility :deep(svg) {
+  width: 18px;
+  height: 18px;
+}
+
+.account__field-error {
+  font-size: 13px;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--orange) 84%, var(--black));
+}
+
+.account__form-status {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.account__form-status--success {
+  background: color-mix(in srgb, var(--aqua) 28%, white);
+  color: color-mix(in srgb, var(--black) 72%, white);
+}
+
+.account__form-status--error {
+  background: color-mix(in srgb, var(--orange) 16%, transparent);
+  color: color-mix(in srgb, var(--orange) 84%, var(--black));
+}
+
+.account__submit {
+  justify-self: start;
+  min-height: 48px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: var(--button-orange-bg);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--black);
+}
+
+.account__submit:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .account__table-primary {
@@ -711,6 +1194,10 @@ onBeforeUnmount(() => {
   .account__header {
     flex-direction: column;
   }
+
+  .account__dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 1023px) {
@@ -742,6 +1229,15 @@ onBeforeUnmount(() => {
   .account__panel-actions {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .account__field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account__submit {
+    width: 100%;
+    justify-self: stretch;
   }
 }
 </style>

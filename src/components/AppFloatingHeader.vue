@@ -155,7 +155,7 @@
         >
           <div class="app-registration__header">
             <h2 id="app-registration-title" class="app-registration__title">
-              {{ isSignInMode ? 'Вход в кабинет' : 'Регистрация' }}
+              {{ registrationTitle }}
             </h2>
             <button
               type="button"
@@ -173,7 +173,7 @@
             novalidate
             @submit.prevent="handleRegistrationSubmit"
           >
-            <label v-if="!isSignInMode" class="app-registration__field">
+            <label v-if="isSignUpMode" class="app-registration__field">
               <span class="app-registration__label">Имя</span>
               <input
                 v-model.trim="registrationForm.name"
@@ -196,9 +196,10 @@
                 class="app-registration__input"
                 type="email"
                 name="email"
-                autocomplete="email"
+                :autocomplete="isPasswordResetMode ? 'off' : 'email'"
                 placeholder="example@mail.ru"
                 :aria-invalid="Boolean(registrationErrors.email)"
+                :disabled="isPasswordResetMode"
               />
               <span v-if="registrationErrors.email" class="app-registration__error">
                 {{ registrationErrors.email }}
@@ -206,43 +207,72 @@
             </label>
 
             <div
+              v-if="showPasswordGrid"
               class="app-registration__field-grid"
-              :class="{ 'app-registration__field-grid--single': isSignInMode }"
+              :class="{ 'app-registration__field-grid--single': isSinglePasswordColumn }"
             >
               <label class="app-registration__field">
-                <span class="app-registration__label">Пароль</span>
-                <input
-                  v-model="registrationForm.password"
-                  class="app-registration__input"
-                  type="password"
-                  name="password"
-                  :autocomplete="isSignInMode ? 'current-password' : 'new-password'"
-                  :placeholder="isSignInMode ? 'Введите пароль' : 'Минимум 8 символов'"
-                  :aria-invalid="Boolean(registrationErrors.password)"
-                />
+                <span class="app-registration__label">
+                  {{ isPasswordResetMode ? 'Новый пароль' : 'Пароль' }}
+                </span>
+                <div class="app-registration__input-wrap">
+                  <input
+                    v-model="registrationForm.password"
+                    class="app-registration__input app-registration__input--password"
+                    :type="passwordFieldType('password')"
+                    name="password"
+                    :autocomplete="isSignInMode ? 'current-password' : 'new-password'"
+                    :placeholder="
+                      isSignInMode ? 'Введите пароль' : `Минимум ${MIN_PASSWORD_LENGTH} символов`
+                    "
+                    :aria-invalid="Boolean(registrationErrors.password)"
+                  />
+                  <button
+                    type="button"
+                    class="app-registration__visibility btn-reset"
+                    :aria-label="passwordVisibility.password ? 'Скрыть пароль' : 'Показать пароль'"
+                    @click="togglePasswordVisibility('password')"
+                  >
+                    <component :is="passwordVisibility.password ? Hide : View" />
+                  </button>
+                </div>
                 <span v-if="registrationErrors.password" class="app-registration__error">
                   {{ registrationErrors.password }}
                 </span>
               </label>
 
-              <label v-if="!isSignInMode" class="app-registration__field">
+              <label v-if="showConfirmPasswordField" class="app-registration__field">
                 <span class="app-registration__label">Подтвердите пароль</span>
-                <input
-                  v-model="registrationForm.confirmPassword"
-                  class="app-registration__input"
-                  type="password"
-                  name="confirm-password"
-                  autocomplete="new-password"
-                  placeholder="Повторите пароль"
-                  :aria-invalid="Boolean(registrationErrors.confirmPassword)"
-                />
+                <div class="app-registration__input-wrap">
+                  <input
+                    v-model="registrationForm.confirmPassword"
+                    class="app-registration__input app-registration__input--password"
+                    :type="passwordFieldType('confirmPassword')"
+                    name="confirm-password"
+                    autocomplete="new-password"
+                    placeholder="Повторите пароль"
+                    :aria-invalid="Boolean(registrationErrors.confirmPassword)"
+                  />
+                  <button
+                    type="button"
+                    class="app-registration__visibility btn-reset"
+                    :aria-label="
+                      passwordVisibility.confirmPassword
+                        ? 'Скрыть подтверждение пароля'
+                        : 'Показать подтверждение пароля'
+                    "
+                    @click="togglePasswordVisibility('confirmPassword')"
+                  >
+                    <component :is="passwordVisibility.confirmPassword ? Hide : View" />
+                  </button>
+                </div>
                 <span v-if="registrationErrors.confirmPassword" class="app-registration__error">
                   {{ registrationErrors.confirmPassword }}
                 </span>
               </label>
             </div>
 
-            <label v-if="!isSignInMode" class="app-registration__consent">
+            <label v-if="isSignUpMode" class="app-registration__consent">
               <input
                 v-model="registrationForm.consent"
                 class="app-registration__checkbox"
@@ -273,47 +303,61 @@
               class="app-registration__submit btn-reset"
               :disabled="registrationStatus === 'loading'"
             >
-              {{
-                registrationStatus === 'loading'
-                  ? isSignInMode
-                    ? 'Входим...'
-                    : 'Регистрируем...'
-                  : isSignInMode
-                    ? 'Войти'
-                    : 'Зарегистрироваться'
-              }}
+              {{ registrationStatus === 'loading' ? submitButtonLoadingLabel : submitButtonLabel }}
             </button>
 
             <button
+              v-if="showForgotPasswordLink"
               type="button"
-              class="app-registration__switch btn-reset"
-              @click="toggleAuthMode"
+              class="app-registration__secondary-link btn-reset"
+              @click="setAuthMode('forgot-password', { preserveEmail: true })"
             >
-              {{
-                isSignInMode
-                  ? 'Нет аккаунта? Зарегистрируйтесь'
-                  : 'Уже зарегистрированы? Войти'
-              }}
+              Забыли пароль?
+            </button>
+
+            <div v-if="showAuthSwitch" class="app-registration__switch-group">
+              <span class="app-registration__switch-copy">
+                {{ authSwitchCopy }}
+              </span>
+              <button
+                type="button"
+                class="app-registration__switch btn-reset"
+                @click="toggleAuthMode"
+              >
+                {{ authSwitchAction }}
+              </button>
+            </div>
+
+            <button
+              v-if="showBackToSignInLink"
+              type="button"
+              class="app-registration__secondary-link btn-reset"
+              @click="setAuthMode('sign-in', { preserveEmail: true })"
+            >
+              Вернуться ко входу
             </button>
           </form>
         </div>
       </div>
     </Transition>
-
   </div>
 </template>
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { Hide, View } from '@element-plus/icons-vue'
 import IconSwimmer from '@/assets/images/icon-swimmer.svg'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { showToast } from '@/utils/toast'
 import {
   getCurrentSession,
   normalizeAuthUser,
+  requestPasswordReset,
   signInWithPassword,
   signUpWithPassword,
   subscribeToAuthStateChange,
+  SUPABASE_MIN_PASSWORD_LENGTH,
+  updateCurrentUserPassword,
 } from '@/utils/supabaseAuth'
 
 const route = useRoute()
@@ -343,6 +387,7 @@ const registrationMessage = ref('')
 const registeredUser = ref(null)
 const hasActiveSession = ref(false)
 const authMode = ref('sign-up')
+const hasPasswordRecoveryIntent = ref(false)
 const headerStyle = ref({
   top: 'auto',
   bottom: `${HEADER_BOTTOM_OFFSET}px`,
@@ -360,6 +405,10 @@ const registrationErrors = reactive({
   password: '',
   confirmPassword: '',
   consent: '',
+})
+const passwordVisibility = reactive({
+  password: false,
+  confirmPassword: false,
 })
 
 const headerMetrics = {
@@ -385,9 +434,70 @@ const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable=""], [conte
 const isHomeRoute = computed(() => route.path === '/')
 const isBrandVisible = computed(() => (isHomeRoute.value ? isHeaderFloating.value : true))
 const isSignInMode = computed(() => authMode.value === 'sign-in')
+const isSignUpMode = computed(() => authMode.value === 'sign-up')
+const isForgotPasswordMode = computed(() => authMode.value === 'forgot-password')
+const isPasswordResetMode = computed(() => authMode.value === 'reset-password')
 const activeFloatingRef = computed(() =>
   isMobileViewport.value ? mobileBarRef.value : headerRef.value,
 )
+const registrationTitle = computed(() => {
+  if (isSignInMode.value) {
+    return 'Вход в кабинет'
+  }
+
+  if (isForgotPasswordMode.value) {
+    return 'Восстановление пароля'
+  }
+
+  if (isPasswordResetMode.value) {
+    return 'Новый пароль'
+  }
+
+  return 'Регистрация'
+})
+const showPasswordGrid = computed(() => !isForgotPasswordMode.value)
+const showConfirmPasswordField = computed(() => isSignUpMode.value || isPasswordResetMode.value)
+const isSinglePasswordColumn = computed(
+  () => isSignInMode.value || isSignUpMode.value || isPasswordResetMode.value,
+)
+const showForgotPasswordLink = computed(() => isSignInMode.value)
+const showAuthSwitch = computed(() => isSignInMode.value || isSignUpMode.value)
+const showBackToSignInLink = computed(() => isForgotPasswordMode.value || isPasswordResetMode.value)
+const authSwitchCopy = computed(() =>
+  isSignInMode.value ? 'Нет аккаунта?' : 'Уже зарегистрированы?',
+)
+const authSwitchAction = computed(() => (isSignInMode.value ? 'Зарегистрироваться' : 'Войти'))
+const submitButtonLabel = computed(() => {
+  if (isSignInMode.value) {
+    return 'Войти'
+  }
+
+  if (isForgotPasswordMode.value) {
+    return 'Отправить инструкцию'
+  }
+
+  if (isPasswordResetMode.value) {
+    return 'Сохранить новый пароль'
+  }
+
+  return 'Зарегистрироваться'
+})
+const submitButtonLoadingLabel = computed(() => {
+  if (isSignInMode.value) {
+    return 'Входим...'
+  }
+
+  if (isForgotPasswordMode.value) {
+    return 'Отправляем...'
+  }
+
+  if (isPasswordResetMode.value) {
+    return 'Сохраняем...'
+  }
+
+  return 'Регистрируем...'
+})
+const MIN_PASSWORD_LENGTH = SUPABASE_MIN_PASSWORD_LENGTH
 
 function syncRegisteredUserFromSession(session) {
   hasActiveSession.value = Boolean(session)
@@ -400,13 +510,56 @@ function syncRegisteredUserFromSession(session) {
   registeredUser.value = normalizeAuthUser(session.user)
 }
 
+function isSupabaseRecoveryUrl() {
+  const search = window.location.search || ''
+  const hash = window.location.hash || ''
+  const recoveryPattern = /(^|[?#&])type=recovery([&#]|$)/
+
+  return recoveryPattern.test(search) || recoveryPattern.test(hash)
+}
+
 async function syncRegisteredUser() {
   try {
     const session = await getCurrentSession()
     syncRegisteredUserFromSession(session)
+    return session
   } catch {
     hasActiveSession.value = false
     registeredUser.value = null
+    return null
+  }
+}
+
+async function handleAuthRedirectIntent(session, event = '') {
+  const authIntent = typeof route.query.auth === 'string' ? route.query.auth : ''
+
+  if (event === 'PASSWORD_RECOVERY') {
+    hasPasswordRecoveryIntent.value = true
+  }
+
+  if (!session || !authIntent) {
+    return
+  }
+
+  if (authIntent === 'reset-password') {
+    if (!hasPasswordRecoveryIntent.value) {
+      return
+    }
+
+    openRegistrationModal({
+      mode: 'reset-password',
+      allowAuthenticatedModal: true,
+    })
+    registrationStatus.value = 'idle'
+    registrationMessage.value = 'Введите новый пароль и сохраните его.'
+    registrationForm.email = session.user?.email || registrationForm.email
+    return
+  }
+
+  if (authIntent === 'confirm-email') {
+    registrationStatus.value = 'success'
+    registrationMessage.value = 'Почта подтверждена. Открываем личный кабинет.'
+    await openAccountRoute()
   }
 }
 
@@ -734,6 +887,25 @@ function closeMobileMenu() {
   isMobileMenuOpen.value = false
 }
 
+function buildAuthRedirectUrl(authAction) {
+  const url = new URL(import.meta.env.BASE_URL || '/', window.location.origin)
+  url.searchParams.set('auth', authAction)
+  return url.toString()
+}
+
+function resetPasswordVisibility() {
+  passwordVisibility.password = false
+  passwordVisibility.confirmPassword = false
+}
+
+function togglePasswordVisibility(field) {
+  passwordVisibility[field] = !passwordVisibility[field]
+}
+
+function passwordFieldType(field) {
+  return passwordVisibility[field] ? 'text' : 'password'
+}
+
 function resetRegistrationFeedback() {
   registrationStatus.value = 'idle'
   registrationMessage.value = ''
@@ -750,20 +922,35 @@ function resetRegistrationForm() {
   registrationForm.password = ''
   registrationForm.confirmPassword = ''
   registrationForm.consent = false
+  resetPasswordVisibility()
   resetRegistrationFeedback()
 }
 
-function setAuthMode(mode) {
+function setAuthMode(mode, options = {}) {
+  const { preserveEmail = false, preserveFeedback = false } = options
+  const nextEmail = preserveEmail ? registrationForm.email : ''
+  const nextStatus = preserveFeedback ? registrationStatus.value : 'idle'
+  const nextMessage = preserveFeedback ? registrationMessage.value : ''
+
   authMode.value = mode
-  resetRegistrationFeedback()
+  resetRegistrationForm()
+  registrationForm.email = nextEmail
+  registrationStatus.value = nextStatus
+  registrationMessage.value = nextMessage
 }
 
 function toggleAuthMode() {
   setAuthMode(isSignInMode.value ? 'sign-up' : 'sign-in')
 }
 
-function openRegistrationModal() {
-  if (hasActiveSession.value) {
+function openRegistrationModal(options = {}) {
+  const { mode = authMode.value, allowAuthenticatedModal = false, preserveEmail = false } = options
+
+  if (mode !== authMode.value) {
+    setAuthMode(mode, { preserveEmail })
+  }
+
+  if (hasActiveSession.value && !allowAuthenticatedModal) {
     closeMobileMenu()
     router.push('/account')
     return
@@ -795,38 +982,45 @@ function closeRegistrationModal() {
   isRegistrationModalOpen.value = false
   unlockViewportZoom()
   resetRegistrationForm()
+  hasPasswordRecoveryIntent.value = false
+  authMode.value = 'sign-up'
 }
 
 function validateRegistrationForm() {
   resetRegistrationFeedback()
-  const shouldValidatePasswordLength = !isSignInMode.value
 
-  if (!isSignInMode.value && !registrationForm.name) {
+  if (isSignUpMode.value && !registrationForm.name) {
     registrationErrors.name = 'Введите имя.'
   }
 
-  if (!registrationForm.email) {
+  if (!isPasswordResetMode.value && !registrationForm.email) {
     registrationErrors.email = 'Введите электронную почту.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registrationForm.email)) {
+  } else if (
+    !isPasswordResetMode.value &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registrationForm.email)
+  ) {
     registrationErrors.email = 'Укажите корректную почту.'
   }
 
-  if (!registrationForm.password) {
+  if (!isForgotPasswordMode.value && !registrationForm.password) {
     registrationErrors.password = 'Введите пароль.'
-  } else if (shouldValidatePasswordLength && registrationForm.password.length < 8) {
-    registrationErrors.password = 'Пароль должен содержать минимум 8 символов.'
+  } else if (
+    !isForgotPasswordMode.value &&
+    registrationForm.password.length < MIN_PASSWORD_LENGTH
+  ) {
+    registrationErrors.password = `Пароль должен содержать минимум ${MIN_PASSWORD_LENGTH} символов.`
   }
 
-  if (!isSignInMode.value && !registrationForm.confirmPassword) {
+  if (showConfirmPasswordField.value && !registrationForm.confirmPassword) {
     registrationErrors.confirmPassword = 'Подтвердите пароль.'
   } else if (
-    !isSignInMode.value &&
+    showConfirmPasswordField.value &&
     registrationForm.password !== registrationForm.confirmPassword
   ) {
     registrationErrors.confirmPassword = 'Пароли не совпадают.'
   }
 
-  if (!isSignInMode.value && !registrationForm.consent) {
+  if (isSignUpMode.value && !registrationForm.consent) {
     registrationErrors.consent = 'Нужно подтвердить согласие на обработку персональных данных.'
   }
 
@@ -834,14 +1028,17 @@ function validateRegistrationForm() {
 }
 
 function validateRegistrationField(field) {
-  const shouldValidatePasswordLength = !isSignInMode.value
-
   if (field === 'name') {
-    registrationErrors.name = isSignInMode.value || registrationForm.name ? '' : 'Введите имя.'
+    registrationErrors.name = isSignUpMode.value && !registrationForm.name ? 'Введите имя.' : ''
     return
   }
 
   if (field === 'email') {
+    if (isPasswordResetMode.value) {
+      registrationErrors.email = ''
+      return
+    }
+
     if (!registrationForm.email) {
       registrationErrors.email = 'Введите электронную почту.'
       return
@@ -854,26 +1051,29 @@ function validateRegistrationField(field) {
   }
 
   if (field === 'password') {
+    if (isForgotPasswordMode.value) {
+      registrationErrors.password = ''
+      return
+    }
+
     if (!registrationForm.password) {
       registrationErrors.password = 'Введите пароль.'
-    } else if (shouldValidatePasswordLength && registrationForm.password.length < 8) {
-      registrationErrors.password = 'Пароль должен содержать минимум 8 символов.'
+    } else if (registrationForm.password.length < MIN_PASSWORD_LENGTH) {
+      registrationErrors.password = `Пароль должен содержать минимум ${MIN_PASSWORD_LENGTH} символов.`
     } else {
       registrationErrors.password = ''
     }
 
-    if (!isSignInMode.value && registrationForm.confirmPassword) {
+    if (showConfirmPasswordField.value && registrationForm.confirmPassword) {
       registrationErrors.confirmPassword =
-        registrationForm.password === registrationForm.confirmPassword
-          ? ''
-          : 'Пароли не совпадают.'
+        registrationForm.password === registrationForm.confirmPassword ? '' : 'Пароли не совпадают.'
     }
 
     return
   }
 
   if (field === 'confirmPassword') {
-    if (isSignInMode.value) {
+    if (!showConfirmPasswordField.value) {
       registrationErrors.confirmPassword = ''
       return
     }
@@ -890,7 +1090,7 @@ function validateRegistrationField(field) {
 
   if (field === 'consent') {
     registrationErrors.consent =
-      isSignInMode.value || registrationForm.consent
+      !isSignUpMode.value || registrationForm.consent
         ? ''
         : 'Нужно подтвердить согласие на обработку персональных данных.'
   }
@@ -899,7 +1099,7 @@ function validateRegistrationField(field) {
 function getRegistrationSuccessMessage(payload) {
   return payload?.session
     ? 'Аккаунт создан. Открываем личный кабинет.'
-    : 'Регистрация прошла успешно. Проверьте почту, затем войдите по паролю.'
+    : 'Регистрация прошла успешно. Подтвердите почту, после перехода из письма откроем CRM.'
 }
 
 function getRegistrationErrorMessage(error) {
@@ -918,10 +1118,47 @@ function getRegistrationErrorMessage(error) {
   }
 
   if (/password/i.test(message) && /6/i.test(message)) {
-    return 'Пароль должен содержать минимум 6 символов.'
+    return `Пароль должен содержать минимум ${MIN_PASSWORD_LENGTH} символов.`
   }
 
   return message
+}
+
+async function handleRecoveryFlow() {
+  await requestPasswordReset({
+    email: registrationForm.email,
+    redirectTo: buildAuthRedirectUrl('reset-password'),
+  })
+
+  registrationStatus.value = 'success'
+  registrationMessage.value =
+    'Если аккаунт с такой почтой существует, инструкция по смене пароля придёт на email.'
+}
+
+async function handlePasswordResetFlow() {
+  await updateCurrentUserPassword({
+    password: registrationForm.password,
+  })
+
+  hasPasswordRecoveryIntent.value = false
+  registrationStatus.value = 'success'
+  registrationMessage.value = 'Пароль обновлён. Открываем личный кабинет.'
+  showToast('Пароль обновлён')
+  await openAccountRoute()
+  closeRegistrationModal()
+}
+
+async function handleRegistrationSuccessRedirect(session) {
+  if (!session) {
+    return
+  }
+
+  if (route.query.auth === 'reset-password') {
+    return
+  }
+
+  await openAccountRoute()
+  closeRegistrationModal()
 }
 
 async function openAccountRoute() {
@@ -941,6 +1178,16 @@ async function handleRegistrationSubmit() {
   registrationMessage.value = ''
 
   try {
+    if (isForgotPasswordMode.value) {
+      await handleRecoveryFlow()
+      return
+    }
+
+    if (isPasswordResetMode.value) {
+      await handlePasswordResetFlow()
+      return
+    }
+
     if (isSignInMode.value) {
       const payload = await signInWithPassword({
         email: registrationForm.email,
@@ -957,9 +1204,7 @@ async function handleRegistrationSubmit() {
       registrationStatus.value = 'success'
       registrationMessage.value = 'Вход выполнен. Открываем личный кабинет.'
       showToast('Вход выполнен')
-
-      await openAccountRoute()
-      closeRegistrationModal()
+      await handleRegistrationSuccessRedirect(payload.session)
       return
     }
 
@@ -967,6 +1212,7 @@ async function handleRegistrationSubmit() {
       email: registrationForm.email,
       password: registrationForm.password,
       name: registrationForm.name,
+      emailRedirectTo: buildAuthRedirectUrl('confirm-email'),
     })
 
     const nextRegisteredUser = normalizeAuthUser(payload.user) || {
@@ -983,12 +1229,11 @@ async function handleRegistrationSubmit() {
     showToast('Регистрация прошла успешно')
 
     if (!payload.session) {
-      authMode.value = 'sign-in'
+      setAuthMode('sign-in', { preserveEmail: true, preserveFeedback: true })
       return
     }
 
-    await openAccountRoute()
-    closeRegistrationModal()
+    await handleRegistrationSuccessRedirect(payload.session)
   } catch (error) {
     registrationStatus.value = 'error'
     registrationMessage.value = getRegistrationErrorMessage(error)
@@ -1085,7 +1330,11 @@ function handleKeydown(event) {
 }
 
 onMounted(() => {
-  void syncRegisteredUser()
+  hasPasswordRecoveryIntent.value = isSupabaseRecoveryUrl()
+
+  void syncRegisteredUser().then((session) => {
+    void handleAuthRedirectIntent(session)
+  })
   syncViewportMode()
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('resize', handleResize)
@@ -1093,7 +1342,7 @@ onMounted(() => {
   document.addEventListener('focusin', handleFocusIn)
   document.addEventListener('focusout', handleFocusOut)
 
-  authSubscription = subscribeToAuthStateChange((_event, session) => {
+  authSubscription = subscribeToAuthStateChange((event, session) => {
     if (!session) {
       hasActiveSession.value = false
       registeredUser.value = null
@@ -1101,6 +1350,7 @@ onMounted(() => {
     }
 
     syncRegisteredUserFromSession(session)
+    void handleAuthRedirectIntent(session, event)
   })
 
   if (window.visualViewport && isAndroidDevice()) {
@@ -1728,6 +1978,10 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
+.app-registration__input-wrap {
+  position: relative;
+}
+
 .app-registration__label {
   font-size: 12px;
   font-weight: 800;
@@ -1754,6 +2008,10 @@ onBeforeUnmount(() => {
     background-color 0.2s ease;
 }
 
+.app-registration__input--password {
+  padding-right: 56px;
+}
+
 .app-registration__input::placeholder {
   color: color-mix(in srgb, var(--black) 42%, var(--white));
 }
@@ -1770,6 +2028,40 @@ onBeforeUnmount(() => {
 
 .app-registration__input[aria-invalid='true'] {
   border-color: color-mix(in srgb, var(--orange) 72%, transparent);
+}
+
+.app-registration__input:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.app-registration__visibility {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: color-mix(in srgb, var(--black) 72%, var(--white));
+  transform: translateY(-50%);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.app-registration__visibility:hover,
+.app-registration__visibility:focus-visible {
+  color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 12%, transparent);
+  outline: none;
+}
+
+.app-registration__visibility :deep(svg) {
+  width: 18px;
+  height: 18px;
 }
 
 .app-registration__consent {
@@ -1846,17 +2138,47 @@ onBeforeUnmount(() => {
   opacity: 0.72;
 }
 
-.app-registration__switch {
-  align-self: center;
+.app-registration__switch-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   margin-top: 4px;
+}
+
+.app-registration__switch-copy {
+  display: block;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--white) 74%, transparent);
+  white-space: nowrap;
+}
+
+.app-registration__switch {
+  font-size: 13px;
+  font-weight: 900;
   line-height: 1.4;
   color: var(--aqua);
 }
 
 .app-registration__switch:hover,
 .app-registration__switch:focus-visible {
+  color: var(--white);
+  outline: none;
+}
+
+.app-registration__secondary-link {
+  align-self: center;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--light-blue);
+}
+
+.app-registration__secondary-link:hover,
+.app-registration__secondary-link:focus-visible {
   color: var(--white);
   outline: none;
 }

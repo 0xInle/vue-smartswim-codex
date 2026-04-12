@@ -1,5 +1,7 @@
 import { getSupabaseClient, getSupabaseConfigError } from '@/utils/supabaseClient'
 
+export const SUPABASE_MIN_PASSWORD_LENGTH = 6
+
 function toError(message, fallback = 'Не удалось выполнить запрос к Supabase.') {
   return new Error(message || fallback)
 }
@@ -17,11 +19,12 @@ export function normalizeAuthUser(user) {
   }
 }
 
-export async function signUpWithPassword({ email, password, name }) {
+export async function signUpWithPassword({ email, password, name, emailRedirectTo }) {
   const { data, error } = await getSupabaseClient().auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo,
       data: {
         name,
       },
@@ -43,6 +46,30 @@ export async function signInWithPassword({ email, password }) {
 
   if (error) {
     throw toError(error.message, 'Не удалось войти в личный кабинет.')
+  }
+
+  return data
+}
+
+export async function requestPasswordReset({ email, redirectTo }) {
+  const { data, error } = await getSupabaseClient().auth.resetPasswordForEmail(email, {
+    redirectTo,
+  })
+
+  if (error) {
+    throw toError(error.message, 'Не удалось отправить письмо для восстановления пароля.')
+  }
+
+  return data
+}
+
+export async function updateCurrentUserPassword({ password }) {
+  const { data, error } = await getSupabaseClient().auth.updateUser({
+    password,
+  })
+
+  if (error) {
+    throw toError(error.message, 'Не удалось обновить пароль.')
   }
 
   return data
