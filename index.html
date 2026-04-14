@@ -3,6 +3,47 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      ;(() => {
+        const CACHE_BUST_PARAM = 'deploy'
+
+        function reloadWithCacheBust() {
+          const url = new URL(window.location.href)
+
+          if (url.searchParams.has(CACHE_BUST_PARAM)) {
+            return
+          }
+
+          url.searchParams.set(CACHE_BUST_PARAM, Date.now().toString())
+          window.location.replace(url.toString())
+        }
+
+        window.addEventListener(
+          'error',
+          (event) => {
+            const target = event.target
+
+            if (
+              target instanceof HTMLScriptElement &&
+              target.src.includes('/assets/')
+            ) {
+              reloadWithCacheBust()
+            }
+
+            if (
+              target instanceof HTMLLinkElement &&
+              target.rel === 'stylesheet' &&
+              target.href.includes('/assets/')
+            ) {
+              reloadWithCacheBust()
+            }
+          },
+          true,
+        )
+
+        window.addEventListener('vite:preloadError', reloadWithCacheBust)
+      })()
+    </script>
     <title>Smartswim</title>
     <link
       rel="preload"
