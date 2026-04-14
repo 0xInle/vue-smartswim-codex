@@ -5,39 +5,9 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import svgLoader from 'vite-svg-loader'
 
-function normalizeBasePath(basePath) {
-  if (!basePath || basePath === '/') {
-    return '/'
-  }
-
-  const trimmedBasePath = basePath.replace(/^\/+|\/+$/g, '')
-
-  return trimmedBasePath ? `/${trimmedBasePath}/` : '/'
-}
-
-function resolveBase(command) {
-  if (command !== 'build') {
-    return '/'
-  }
-
-  const explicitBasePath = normalizeBasePath(process.env.VITE_PUBLIC_BASE)
-
-  if (explicitBasePath !== '/') {
-    return explicitBasePath
-  }
-
-  const repositoryName = process.env.GITHUB_REPOSITORY?.split('/')[1]
-
-  if (!repositoryName || repositoryName.endsWith('.github.io')) {
-    return '/'
-  }
-
-  return normalizeBasePath(repositoryName)
-}
-
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
-  base: resolveBase(command),
+  base: command === 'build' ? '/vue-smartswim-codex/' : '/',
   plugins: [vue(), command === 'serve' ? vueDevTools() : null, svgLoader()].filter(Boolean),
   resolve: {
     alias: {

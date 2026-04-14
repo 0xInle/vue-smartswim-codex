@@ -34,6 +34,6 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 
-router.isReady().then(() => {
-  app.mount('#app')
-})
+await router.isReady()
+
+app.mount('#app')
