@@ -51,7 +51,14 @@
             <div class="trainers__card-body">
               <div class="trainers__card-top">
                 <div class="trainers__card-heading">
-                  <h2 class="trainers__card-title">{{ trainer.name }}</h2>
+                  <h2 class="trainers__card-title">
+                    <span class="trainers__card-title-line">{{
+                      getTrainerSurname(trainer.name)
+                    }}</span>
+                    <span class="trainers__card-title-line">
+                      {{ getTrainerGivenName(trainer.name) }}
+                    </span>
+                  </h2>
                 </div>
 
                 <button
@@ -62,19 +69,21 @@
                   aria-label="Открыть подробную информацию о тренере"
                   @click.stop="toggleTrainerDetails(trainer.id)"
                 >
-                  <span class="trainers__card-bookmark-icon" aria-hidden="true"></span>
+                  <span class="trainers__card-bookmark-label">
+                    {{ activeTrainerId === trainer.id ? 'Скрыть' : 'Подробнее' }}
+                  </span>
                 </button>
               </div>
 
               <div class="trainers__card-summary">
                 <ul class="trainers__meta list-reset">
                   <li class="trainers__meta-item">
-                    <span class="trainers__meta-label">Стаж</span>
+                    <span class="trainers__meta-label">Опыт работы</span>
                     <span class="trainers__meta-value">{{ trainer.experience }}</span>
                   </li>
                   <li class="trainers__meta-item">
-                    <span class="trainers__meta-label">Основные техники для обучения</span>
-                    <span class="trainers__meta-value">{{ trainer.techniques }}</span>
+                    <span class="trainers__meta-label">Основной профиль</span>
+                    <span class="trainers__meta-value">{{ trainer.primaryProfile }}</span>
                   </li>
                   <li class="trainers__meta-item">
                     <span class="trainers__meta-label">Свободно мест</span>
@@ -83,15 +92,69 @@
                 </ul>
               </div>
 
-              <div :id="`trainer-details-${trainer.id}`" class="trainers__card-details" @click.stop>
-                <p class="trainers__card-detail-text">{{ trainer.focus }}</p>
-                <p class="trainers__card-detail-text">{{ trainer.approach }}</p>
-                <p class="trainers__card-detail-text">{{ trainer.result }}</p>
-              </div>
-
-              <a href="tel:+79167290773" class="trainers__card-action link-reset">
+              <a :href="trainer.phoneHref" class="trainers__card-action link-reset">
                 Записаться к тренеру
               </a>
+            </div>
+
+            <div
+              :id="`trainer-details-${trainer.id}`"
+              class="trainers__card-details"
+              @click.stop
+            >
+              <div class="trainers__details-grid">
+                <div class="trainers__detail-item">
+                  <span class="trainers__detail-label">Образование</span>
+                  <span class="trainers__card-detail-text trainers__card-detail-text--stack">
+                    <span
+                      v-for="educationLine in trainer.education"
+                      :key="educationLine"
+                      class="trainers__detail-line"
+                    >
+                      {{ educationLine }}
+                    </span>
+                  </span>
+                </div>
+
+                <div class="trainers__detail-item">
+                  <span class="trainers__detail-label">Спортивные достижения</span>
+                  <span class="trainers__card-detail-text">{{ trainer.achievements }}</span>
+                </div>
+
+                <div class="trainers__detail-item">
+                  <span class="trainers__detail-label">С кем работает</span>
+                  <span class="trainers__card-detail-text">{{ trainer.audience }}</span>
+                </div>
+
+                <div class="trainers__detail-item">
+                  <span class="trainers__detail-label">Минимальный возраст</span>
+                  <span class="trainers__card-detail-text">{{ trainer.minimumAge }}</span>
+                </div>
+
+                <div class="trainers__detail-item">
+                  <span class="trainers__detail-label">Уровень подготовки</span>
+                  <span class="trainers__card-detail-text">{{ trainer.level }}</span>
+                </div>
+
+                <div class="trainers__detail-item">
+                  <span class="trainers__detail-label">Метро</span>
+                  <span class="trainers__card-detail-text">{{ trainer.metro }}</span>
+                </div>
+
+                <div class="trainers__detail-item">
+                  <span class="trainers__detail-label">Email тренера</span>
+                  <a :href="`mailto:${trainer.email}`" class="trainers__card-detail-link link-reset">
+                    {{ trainer.email }}
+                  </a>
+                </div>
+
+                <div class="trainers__detail-item">
+                  <span class="trainers__detail-label">Телефон тренера</span>
+                  <a :href="trainer.phoneHref" class="trainers__card-detail-link link-reset">
+                    {{ trainer.phone }}
+                  </a>
+                </div>
+              </div>
             </div>
           </article>
         </div>
@@ -115,6 +178,16 @@ function toggleTrainerDetails(trainerId) {
   activeTrainerId.value = activeTrainerId.value === trainerId ? null : trainerId
 }
 
+function getTrainerSurname(fullName) {
+  const parts = fullName.split(' ').filter(Boolean)
+  return parts.at(-1) || fullName
+}
+
+function getTrainerGivenName(fullName) {
+  const parts = fullName.split(' ').filter(Boolean)
+  return parts.slice(0, -1).join(' ')
+}
+
 function handleGlobalPointerDown(event) {
   if (!activeTrainerId.value) {
     return
@@ -131,12 +204,20 @@ function handleGlobalPointerDown(event) {
   activeTrainerId.value = null
 }
 
+function handleGlobalKeyDown(event) {
+  if (event.key === 'Escape') {
+    activeTrainerId.value = null
+  }
+}
+
 onMounted(() => {
   window.addEventListener('pointerdown', handleGlobalPointerDown)
+  window.addEventListener('keydown', handleGlobalKeyDown)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('pointerdown', handleGlobalPointerDown)
+  window.removeEventListener('keydown', handleGlobalKeyDown)
 })
 </script>
 
@@ -332,8 +413,8 @@ onBeforeUnmount(() => {
   position: relative;
   display: grid;
   flex: 1 1 auto;
-  grid-template-rows: auto auto 1fr auto;
-  gap: 14px;
+  align-content: start;
+  gap: 10px;
   padding: 18px 18px 20px;
   background: rgb(from var(--white) r g b / 96%);
   z-index: 1;
@@ -347,21 +428,25 @@ onBeforeUnmount(() => {
 }
 
 .trainers__card-top {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
   gap: 12px;
+  padding-right: 80px;
 }
 
 .trainers__card-bookmark {
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 0;
   z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  min-height: 30px;
+  padding: 6px 10px;
   border: 1px solid color-mix(in srgb, var(--cyan) 22%, var(--white));
-  border-radius: 999px;
+  border-radius: 10px;
   background: rgb(from var(--white) r g b / 90%);
   box-shadow:
     0 10px 24px rgb(from var(--black) r g b / 7%),
@@ -382,41 +467,22 @@ onBeforeUnmount(() => {
     inset 0 1px 0 rgb(from var(--white) r g b / 42%);
 }
 
-.trainers__card-bookmark-icon {
-  position: relative;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--cyan) 30%, var(--white));
-}
-
-.trainers__card-bookmark-icon::before,
-.trainers__card-bookmark-icon::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  background: color-mix(in srgb, var(--black) 58%, var(--white));
-  transform: translate(-50%, -50%);
-  transition: transform 0.25s ease;
-}
-
-.trainers__card-bookmark-icon::before {
-  width: 6px;
-  height: 1px;
-}
-
-.trainers__card-bookmark-icon::after {
-  width: 1px;
-  height: 6px;
-}
-
-.trainers__card--open .trainers__card-bookmark-icon::after {
-  transform: translate(-50%, -50%) scaleY(0);
+.trainers__card-bookmark-label {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--black) 72%, var(--white));
 }
 
 .trainers__card-title {
   font-size: 24px;
+  display: grid;
+  gap: 2px;
+}
+
+.trainers__card-title-line {
+  display: block;
 }
 
 .trainers__meta {
@@ -447,21 +513,19 @@ onBeforeUnmount(() => {
 
 .trainers__card-details {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  bottom: calc(47px + 14px);
-  width: calc(100% - 36px);
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
   min-height: 0;
-  padding: 20px 18px;
+  padding: 16px;
   border-radius: 10px;
-  background: var(--white);
+  background: rgb(from var(--white) r g b / 96%);
   border: 1px solid color-mix(in srgb, var(--cyan) 28%, var(--white));
   backdrop-filter: blur(16px);
-  opacity: 0;
-  display: grid;
-  align-content: start;
-  gap: 12px;
+  overflow: hidden;
   transform: translateX(100%);
+  opacity: 0;
   pointer-events: none;
   transition:
     opacity 0.3s ease,
@@ -470,6 +534,55 @@ onBeforeUnmount(() => {
   box-shadow:
     0 24px 44px rgb(from var(--black) r g b / 14%),
     inset 0 1px 0 rgb(from var(--white) r g b / 34%);
+}
+
+.trainers__details-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.trainers__detail-item {
+  display: grid;
+  gap: 3px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cyan) 18%, var(--white));
+}
+
+.trainers__detail-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.trainers__detail-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+.trainers__card-detail-text--stack {
+  display: grid;
+  gap: 2px;
+}
+
+.trainers__detail-line::before {
+  content: '• ';
+  color: color-mix(in srgb, var(--orange) 80%, var(--white));
+}
+
+.trainers__card-detail-link {
+  color: color-mix(in srgb, var(--black) 78%, var(--cyan));
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.trainers__card-detail-link:hover {
+  color: var(--orange);
 }
 
 .trainers__card--open .trainers__card-details {
@@ -558,8 +671,8 @@ onBeforeUnmount(() => {
   }
 
   .trainers__card-bookmark {
-    width: 32px;
-    height: 32px;
+    min-height: 28px;
+    padding: 6px 9px;
   }
 
   .trainers__meta {
@@ -567,14 +680,11 @@ onBeforeUnmount(() => {
   }
 
   .trainers__card-details {
-    top: auto;
-    right: 16px;
-    bottom: calc(16px + 47px + 28px);
-    left: 16px;
-    width: auto;
-    min-height: 0;
-    padding: 16px;
-    max-height: none;
+    padding: 14px;
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
   }
 }
 
