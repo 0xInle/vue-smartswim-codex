@@ -16,6 +16,7 @@ import {
   formatConsultationStatus,
   getErrorMessage,
 } from '@/pages/account/utils/accountFormatters'
+import { getRussianPhoneSearchValue } from '@/utils/phone'
 
 export function useConsultationRequests({ isAdmin }) {
   const consultationRequests = ref([])
@@ -181,6 +182,7 @@ export function useConsultationRequests({ isAdmin }) {
         request.lastName,
         formatConsultationFullName(request),
         request.phone,
+        getRussianPhoneSearchValue(request.phone),
         request.consultationDate,
         request.consultationTime,
         formatCompactDateTime(request.createdAt),

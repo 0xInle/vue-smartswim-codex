@@ -134,212 +134,220 @@
             </RouterLink>
           </nav>
 
-          <a class="app-mobile-nav__phone link-reset" href="tel:+79167290773">8 916 729 07 73</a>
+          <a class="app-mobile-nav__phone link-reset" href="tel:+79167290773"
+            >+7 (916) 729-07-73</a
+          >
         </aside>
       </Transition>
     </div>
 
-    <Transition name="app-registration-modal">
-      <div
-        v-if="isRegistrationModalOpen"
-        class="app-registration"
-        aria-hidden="false"
-        @click.self="closeRegistrationModal"
-      >
+    <Teleport to="body">
+      <Transition name="app-registration-modal">
         <div
-          ref="registrationDialogRef"
-          class="app-registration__dialog"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="app-registration-title"
+          v-if="isRegistrationModalOpen"
+          class="app-registration"
+          aria-hidden="false"
+          @click.self="closeRegistrationModal"
         >
-          <div class="app-registration__header">
-            <h2 id="app-registration-title" class="app-registration__title">
-              {{ registrationTitle }}
-            </h2>
-            <button
-              type="button"
-              class="app-registration__close btn-reset"
-              aria-label="Закрыть форму регистрации"
-              @click="closeRegistrationModal"
-            >
-              <span></span>
-              <span></span>
-            </button>
-          </div>
-
-          <form
-            class="app-registration__form"
-            novalidate
-            @submit.prevent="handleRegistrationSubmit"
+          <div
+            ref="registrationDialogRef"
+            class="app-registration__dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="app-registration-title"
           >
-            <label v-if="isSignUpMode" class="app-registration__field">
-              <span class="app-registration__label">Имя</span>
-              <input
-                v-model.trim="registrationForm.name"
-                class="app-registration__input"
-                type="text"
-                name="name"
-                autocomplete="name"
-                placeholder="Как к вам обращаться"
-                :aria-invalid="Boolean(registrationErrors.name)"
-              />
-              <span v-if="registrationErrors.name" class="app-registration__error">
-                {{ registrationErrors.name }}
-              </span>
-            </label>
-
-            <label class="app-registration__field">
-              <span class="app-registration__label">Почта</span>
-              <input
-                v-model.trim="registrationForm.email"
-                class="app-registration__input"
-                type="email"
-                name="email"
-                :autocomplete="isPasswordResetMode ? 'off' : 'email'"
-                placeholder="example@mail.ru"
-                :aria-invalid="Boolean(registrationErrors.email)"
-                :disabled="isPasswordResetMode"
-              />
-              <span v-if="registrationErrors.email" class="app-registration__error">
-                {{ registrationErrors.email }}
-              </span>
-            </label>
-
-            <div
-              v-if="showPasswordGrid"
-              class="app-registration__field-grid"
-              :class="{ 'app-registration__field-grid--single': isSinglePasswordColumn }"
-            >
-              <label class="app-registration__field">
-                <span class="app-registration__label">
-                  {{ isPasswordResetMode ? 'Новый пароль' : 'Пароль' }}
-                </span>
-                <div class="app-registration__input-wrap">
-                  <input
-                    v-model="registrationForm.password"
-                    class="app-registration__input app-registration__input--password"
-                    :type="passwordFieldType('password')"
-                    name="password"
-                    :autocomplete="isSignInMode ? 'current-password' : 'new-password'"
-                    :placeholder="
-                      isSignInMode ? 'Введите пароль' : `Минимум ${MIN_PASSWORD_LENGTH} символов`
-                    "
-                    :aria-invalid="Boolean(registrationErrors.password)"
-                  />
-                  <button
-                    type="button"
-                    class="app-registration__visibility btn-reset"
-                    :aria-label="passwordVisibility.password ? 'Скрыть пароль' : 'Показать пароль'"
-                    @click="togglePasswordVisibility('password')"
-                  >
-                    <component :is="passwordVisibility.password ? Hide : View" />
-                  </button>
-                </div>
-                <span v-if="registrationErrors.password" class="app-registration__error">
-                  {{ registrationErrors.password }}
-                </span>
-              </label>
-
-              <label v-if="showConfirmPasswordField" class="app-registration__field">
-                <span class="app-registration__label">Подтвердите пароль</span>
-                <div class="app-registration__input-wrap">
-                  <input
-                    v-model="registrationForm.confirmPassword"
-                    class="app-registration__input app-registration__input--password"
-                    :type="passwordFieldType('confirmPassword')"
-                    name="confirm-password"
-                    autocomplete="new-password"
-                    placeholder="Повторите пароль"
-                    :aria-invalid="Boolean(registrationErrors.confirmPassword)"
-                  />
-                  <button
-                    type="button"
-                    class="app-registration__visibility btn-reset"
-                    :aria-label="
-                      passwordVisibility.confirmPassword
-                        ? 'Скрыть подтверждение пароля'
-                        : 'Показать подтверждение пароля'
-                    "
-                    @click="togglePasswordVisibility('confirmPassword')"
-                  >
-                    <component :is="passwordVisibility.confirmPassword ? Hide : View" />
-                  </button>
-                </div>
-                <span v-if="registrationErrors.confirmPassword" class="app-registration__error">
-                  {{ registrationErrors.confirmPassword }}
-                </span>
-              </label>
-            </div>
-
-            <label v-if="isSignUpMode" class="app-registration__consent">
-              <input
-                v-model="registrationForm.consent"
-                class="app-registration__checkbox"
-                type="checkbox"
-                name="consent"
-              />
-              <span class="app-registration__consent-copy"
-                >Согласен на обработку персональных данных</span
-              >
-            </label>
-            <span v-if="registrationErrors.consent" class="app-registration__error">
-              {{ registrationErrors.consent }}
-            </span>
-
-            <p
-              v-if="registrationStatus === 'success' || registrationStatus === 'error'"
-              class="app-registration__status"
-              :class="{
-                'app-registration__status--success': registrationStatus === 'success',
-                'app-registration__status--error': registrationStatus === 'error',
-              }"
-            >
-              {{ registrationMessage }}
-            </p>
-
-            <button
-              type="submit"
-              class="app-registration__submit btn-reset"
-              :disabled="registrationStatus === 'loading'"
-            >
-              {{ registrationStatus === 'loading' ? submitButtonLoadingLabel : submitButtonLabel }}
-            </button>
-
-            <button
-              v-if="showForgotPasswordLink"
-              type="button"
-              class="app-registration__secondary-link btn-reset"
-              @click="setAuthMode('forgot-password', { preserveEmail: true })"
-            >
-              Забыли пароль?
-            </button>
-
-            <div v-if="showAuthSwitch" class="app-registration__switch-group">
-              <span class="app-registration__switch-copy">
-                {{ authSwitchCopy }}
-              </span>
+            <div class="app-registration__header">
+              <h2 id="app-registration-title" class="app-registration__title">
+                {{ registrationTitle }}
+              </h2>
               <button
                 type="button"
-                class="app-registration__switch btn-reset"
-                @click="toggleAuthMode"
+                class="app-registration__close btn-reset"
+                aria-label="Закрыть форму регистрации"
+                @click="closeRegistrationModal"
               >
-                {{ authSwitchAction }}
+                <span></span>
+                <span></span>
               </button>
             </div>
 
-            <button
-              v-if="showBackToSignInLink"
-              type="button"
-              class="app-registration__secondary-link btn-reset"
-              @click="setAuthMode('sign-in', { preserveEmail: true })"
+            <form
+              class="app-registration__form"
+              novalidate
+              @submit.prevent="handleRegistrationSubmit"
             >
-              Вернуться ко входу
-            </button>
-          </form>
+              <label v-if="isSignUpMode" class="app-registration__field">
+                <span class="app-registration__label">Имя</span>
+                <input
+                  v-model.trim="registrationForm.name"
+                  class="app-registration__input"
+                  type="text"
+                  name="name"
+                  autocomplete="name"
+                  placeholder="Как к вам обращаться"
+                  :aria-invalid="Boolean(registrationErrors.name)"
+                />
+                <span v-if="registrationErrors.name" class="app-registration__error">
+                  {{ registrationErrors.name }}
+                </span>
+              </label>
+
+              <label class="app-registration__field">
+                <span class="app-registration__label">Почта</span>
+                <input
+                  v-model.trim="registrationForm.email"
+                  class="app-registration__input"
+                  type="email"
+                  name="email"
+                  :autocomplete="isPasswordResetMode ? 'off' : 'email'"
+                  placeholder="example@mail.ru"
+                  :aria-invalid="Boolean(registrationErrors.email)"
+                  :disabled="isPasswordResetMode"
+                />
+                <span v-if="registrationErrors.email" class="app-registration__error">
+                  {{ registrationErrors.email }}
+                </span>
+              </label>
+
+              <div
+                v-if="showPasswordGrid"
+                class="app-registration__field-grid"
+                :class="{ 'app-registration__field-grid--single': isSinglePasswordColumn }"
+              >
+                <label class="app-registration__field">
+                  <span class="app-registration__label">
+                    {{ isPasswordResetMode ? 'Новый пароль' : 'Пароль' }}
+                  </span>
+                  <div class="app-registration__input-wrap">
+                    <input
+                      v-model="registrationForm.password"
+                      class="app-registration__input app-registration__input--password"
+                      :type="passwordFieldType('password')"
+                      name="password"
+                      :autocomplete="isSignInMode ? 'current-password' : 'new-password'"
+                      :placeholder="
+                        isSignInMode ? 'Введите пароль' : `Минимум ${MIN_PASSWORD_LENGTH} символов`
+                      "
+                      :aria-invalid="Boolean(registrationErrors.password)"
+                    />
+                    <button
+                      type="button"
+                      class="app-registration__visibility btn-reset"
+                      :aria-label="
+                        passwordVisibility.password ? 'Скрыть пароль' : 'Показать пароль'
+                      "
+                      @click="togglePasswordVisibility('password')"
+                    >
+                      <component :is="passwordVisibility.password ? Hide : View" />
+                    </button>
+                  </div>
+                  <span v-if="registrationErrors.password" class="app-registration__error">
+                    {{ registrationErrors.password }}
+                  </span>
+                </label>
+
+                <label v-if="showConfirmPasswordField" class="app-registration__field">
+                  <span class="app-registration__label">Подтвердите пароль</span>
+                  <div class="app-registration__input-wrap">
+                    <input
+                      v-model="registrationForm.confirmPassword"
+                      class="app-registration__input app-registration__input--password"
+                      :type="passwordFieldType('confirmPassword')"
+                      name="confirm-password"
+                      autocomplete="new-password"
+                      placeholder="Повторите пароль"
+                      :aria-invalid="Boolean(registrationErrors.confirmPassword)"
+                    />
+                    <button
+                      type="button"
+                      class="app-registration__visibility btn-reset"
+                      :aria-label="
+                        passwordVisibility.confirmPassword
+                          ? 'Скрыть подтверждение пароля'
+                          : 'Показать подтверждение пароля'
+                      "
+                      @click="togglePasswordVisibility('confirmPassword')"
+                    >
+                      <component :is="passwordVisibility.confirmPassword ? Hide : View" />
+                    </button>
+                  </div>
+                  <span v-if="registrationErrors.confirmPassword" class="app-registration__error">
+                    {{ registrationErrors.confirmPassword }}
+                  </span>
+                </label>
+              </div>
+
+              <label v-if="isSignUpMode" class="app-registration__consent">
+                <input
+                  v-model="registrationForm.consent"
+                  class="app-registration__checkbox"
+                  type="checkbox"
+                  name="consent"
+                />
+                <span class="app-registration__consent-copy"
+                  >Согласен на обработку персональных данных</span
+                >
+              </label>
+              <span v-if="registrationErrors.consent" class="app-registration__error">
+                {{ registrationErrors.consent }}
+              </span>
+
+              <p
+                v-if="registrationStatus === 'success' || registrationStatus === 'error'"
+                class="app-registration__status"
+                :class="{
+                  'app-registration__status--success': registrationStatus === 'success',
+                  'app-registration__status--error': registrationStatus === 'error',
+                }"
+              >
+                {{ registrationMessage }}
+              </p>
+
+              <button
+                type="submit"
+                class="app-registration__submit btn-reset"
+                :disabled="registrationStatus === 'loading'"
+              >
+                {{
+                  registrationStatus === 'loading' ? submitButtonLoadingLabel : submitButtonLabel
+                }}
+              </button>
+
+              <button
+                v-if="showForgotPasswordLink"
+                type="button"
+                class="app-registration__secondary-link btn-reset"
+                @click="setAuthMode('forgot-password', { preserveEmail: true })"
+              >
+                Забыли пароль?
+              </button>
+
+              <div v-if="showAuthSwitch" class="app-registration__switch-group">
+                <span class="app-registration__switch-copy">
+                  {{ authSwitchCopy }}
+                </span>
+                <button
+                  type="button"
+                  class="app-registration__switch btn-reset"
+                  @click="toggleAuthMode"
+                >
+                  {{ authSwitchAction }}
+                </button>
+              </div>
+
+              <button
+                v-if="showBackToSignInLink"
+                type="button"
+                class="app-registration__secondary-link btn-reset"
+                @click="setAuthMode('sign-in', { preserveEmail: true })"
+              >
+                Вернуться ко входу
+              </button>
+            </form>
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -1105,6 +1113,10 @@ function getRegistrationSuccessMessage(payload) {
 function getRegistrationErrorMessage(error) {
   const message = error instanceof Error ? error.message : 'Не удалось зарегистрироваться.'
 
+  if (/email rate limit exceeded/i.test(message) || /over_email_send_rate_limit/i.test(message)) {
+    return 'Supabase временно ограничил отправку писем подтверждения. На встроенной почте доступно только 2 письма в час. Подождите около часа или подключите custom SMTP.'
+  }
+
   if (/already registered/i.test(message)) {
     return 'Пользователь с такой почтой уже зарегистрирован. Используйте вход.'
   }
@@ -1435,6 +1447,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .app-header-wrapper {
   z-index: 120;
+  pointer-events: none;
 }
 
 .app-header {
@@ -1450,6 +1463,11 @@ onBeforeUnmount(() => {
   background: color-mix(in srgb, var(--white) 95%, transparent);
   gap: 20px;
   z-index: 100;
+  pointer-events: auto;
+}
+
+.app-header * {
+  pointer-events: auto;
 }
 
 .app-header--stopped {

@@ -39,7 +39,7 @@ const toastState = useToastState()
   line-height: 1.4;
   color: var(--black);
   backdrop-filter: blur(14px);
-  z-index: 260;
+  z-index: 420;
   pointer-events: none;
 }
 

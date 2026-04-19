@@ -1,3 +1,5 @@
+import { formatRussianPhone, toRussianPhoneHref } from '@/utils/phone'
+
 export const contactCards = [
   {
     title: 'Контакты',
@@ -17,8 +19,8 @@ export const contactCards = [
   },
   {
     title: 'Телефон',
-    value: '+7 (916) 729-07-73',
-    href: 'tel:+79167290773',
+    value: formatRussianPhone('+7 (916) 729-07-73'),
+    href: toRussianPhoneHref('+7 (916) 729-07-73'),
     accent: 'TEL',
   },
   {

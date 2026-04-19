@@ -1,0 +1,1283 @@
+.trainers__hero,
+.trainers__grid-section {
+  position: relative;
+}
+
+.trainers__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(280px, 0.82fr);
+  gap: 22px;
+  padding: 28px 0 34px;
+  margin-bottom: 50px;
+  align-items: stretch;
+}
+
+.trainers__hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    var(--very-light-blue) 0%,
+    var(--very-light-blue) 50%,
+    var(--white) 50%,
+    var(--white) 100%
+  );
+  z-index: -1;
+}
+
+.trainers__hero-copy,
+.trainers__hero-aside,
+.trainers__fact-card,
+.trainers__card {
+  border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
+  box-shadow:
+    0 20px 50px rgb(from var(--black) r g b / 9%),
+    inset 0 1px 0 rgb(from var(--white) r g b / 28%);
+}
+
+.trainers__hero-copy {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  padding: 44px 28px;
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 50%);
+}
+
+.trainers__title,
+.trainers__card-title {
+  margin: 0;
+  line-height: 0.96;
+}
+
+.trainers__title {
+  margin: 0;
+  font-family: inherit;
+  font-size: clamp(40px, 6vw, 48px);
+}
+
+.trainers__text,
+.trainers__fact-label,
+.trainers__card-detail-text,
+.trainers__meta-value,
+.trainers__meta-label {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.trainers__hero-aside {
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.trainers__fact-card {
+  display: grid;
+  gap: 8px;
+  padding: 22px;
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 76%);
+}
+
+.trainers__fact-value {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.trainers__fact-label,
+.trainers__card-detail-text,
+.trainers__meta-value {
+  color: color-mix(in srgb, var(--black) 68%, var(--white));
+}
+
+.trainers__grid-section {
+  padding-bottom: 120px;
+}
+
+.trainers__image-showcase {
+  margin-bottom: 50px;
+}
+
+.trainers__image-shell {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
+  box-shadow:
+    0 24px 54px rgb(from var(--black) r g b / 12%),
+    inset 0 1px 0 rgb(from var(--white) r g b / 28%);
+}
+
+.trainers__filters-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(180px, 0.9fr)) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 34px;
+}
+
+.trainers__filter-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.trainers__filter-field--search {
+  min-width: 0;
+}
+
+.trainers__filter-label {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--black) 56%, var(--white));
+}
+
+.trainers__filter-control {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 24%, var(--white));
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 92%);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--black);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.trainers__filter-control::placeholder {
+  color: color-mix(in srgb, var(--black) 42%, var(--white));
+}
+
+.trainers__filter-control:focus-visible {
+  border-color: color-mix(in srgb, var(--cyan) 58%, var(--white));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 14%, transparent);
+  outline: none;
+}
+
+.trainers__filter-control option {
+  color: var(--black);
+}
+
+.trainers__select {
+  width: 100%;
+}
+
+.trainers__select .el-select__wrapper {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 24%, var(--white));
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 94%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 24%, white);
+}
+
+.trainers__select .el-select__wrapper.is-hovering:not(.is-focused) {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 34%, white);
+}
+
+.trainers__select.is-focus .el-select__wrapper,
+.trainers__select .el-select__wrapper.is-focused {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--cyan) 58%, white),
+    0 0 0 4px color-mix(in srgb, var(--cyan) 14%, transparent);
+}
+
+.trainers__select .el-select__selected-item {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--black);
+}
+
+.trainers__select .el-select__placeholder {
+  color: color-mix(in srgb, var(--black) 42%, var(--white));
+}
+
+.trainers__select .el-select__suffix {
+  margin-left: auto;
+}
+
+.trainers__select .el-select__caret {
+  margin-left: 0;
+  font-size: 16px;
+  color: color-mix(in srgb, var(--black) 58%, var(--white));
+}
+
+.trainers__select-popper.el-popper {
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--cyan) 22%, var(--white));
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 98%);
+  box-shadow: 0 22px 54px rgb(from var(--black) r g b / 14%);
+}
+
+.trainers__select-popper .el-select-dropdown__item {
+  height: 40px;
+  padding-inline: 18px 26px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 40px;
+  color: var(--black);
+}
+
+.trainers__select-popper .el-select-dropdown__item.is-hovering {
+  background: color-mix(in srgb, var(--very-light-blue) 76%, white);
+}
+
+.trainers__select-popper .el-select-dropdown__item.is-selected {
+  color: var(--cyan);
+}
+
+.trainers__filter-reset {
+  --button-bg: var(--button-light-blue-bg);
+  --button-hover-bg: var(--button-light-blue-hover-bg);
+  --button-focus-color: var(--light-blue);
+  --button-text: var(--black);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 47px;
+  padding: 0 18px;
+  border-radius: 10px;
+  background-color: var(--button-current-bg, var(--button-bg));
+  color: var(--button-text);
+  font-size: 15px;
+  font-weight: 500;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.trainers__filter-reset:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.trainers__filter-reset:not(:disabled):hover,
+.trainers__filter-reset:not(:disabled):focus-visible {
+  background-color: var(--button-current-bg, var(--button-hover-bg));
+}
+
+.trainers__showcase-image {
+  display: block;
+  width: 100%;
+  min-height: 460px;
+  max-height: 620px;
+}
+
+.trainers__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  overflow: visible;
+}
+
+.trainers__empty {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 44px 20px;
+  border: 1px dashed color-mix(in srgb, var(--cyan) 26%, var(--white));
+  border-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    rgb(from var(--white) r g b / 88%) 0%,
+    rgb(from var(--white) r g b / 74%) 100%
+  );
+  text-align: center;
+}
+
+.trainers__empty-title {
+  margin: 0;
+  font-family: Oswald, sans-serif;
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--black);
+}
+
+.trainers__empty-text {
+  margin: 0;
+  max-width: 540px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--black) 62%, var(--white));
+}
+
+.trainers__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 520px;
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 96%);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.trainers__card:hover,
+.trainers__card:focus-within {
+  border-color: color-mix(in srgb, var(--cyan) 40%, var(--white));
+  box-shadow:
+    0 28px 60px rgb(from var(--black) r g b / 12%),
+    inset 0 1px 0 rgb(from var(--white) r g b / 34%);
+}
+
+.trainers__photo-placeholder {
+  position: relative;
+  flex: 0 0 220px;
+  overflow: hidden;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cyan) 20%, var(--white));
+  background: transparent;
+}
+
+.trainers__photo-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 14px;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--black) 46%, var(--white));
+}
+
+.trainers__card-body {
+  position: relative;
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: 10px;
+  padding: 18px 18px 20px;
+  background: rgb(from var(--white) r g b / 96%);
+  z-index: 1;
+}
+
+.trainers__card-top,
+.trainers__card-heading,
+.trainers__card-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.trainers__card-top {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  padding-right: 80px;
+}
+
+.trainers__card-bookmark {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 22%, var(--white));
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 90%);
+  box-shadow:
+    0 10px 24px rgb(from var(--black) r g b / 7%),
+    inset 0 1px 0 rgb(from var(--white) r g b / 36%);
+  cursor: pointer;
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.trainers__card-bookmark:hover,
+.trainers__card--open .trainers__card-bookmark {
+  border-color: color-mix(in srgb, var(--cyan) 36%, var(--white));
+  background: rgb(from var(--white) r g b / 98%);
+  box-shadow:
+    0 14px 28px rgb(from var(--black) r g b / 10%),
+    inset 0 1px 0 rgb(from var(--white) r g b / 42%);
+}
+
+.trainers__card-bookmark-label {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--black) 72%, var(--white));
+}
+
+.trainers__card-title {
+  font-size: 24px;
+  display: grid;
+  gap: 2px;
+}
+
+.trainers__card-title-line {
+  display: block;
+}
+
+.trainers__meta {
+  display: grid;
+  grid-template-rows: minmax(52px, auto) minmax(84px, auto) minmax(52px, auto);
+  gap: 8px;
+}
+
+.trainers__meta-item {
+  display: grid;
+  align-content: start;
+  gap: 1px;
+}
+
+.trainers__meta-label {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+.trainers__meta-value,
+.trainers__card-detail-text {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.trainers__card-details {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  min-height: 0;
+  padding: 16px;
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 96%);
+  border: 1px solid color-mix(in srgb, var(--cyan) 28%, var(--white));
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+  z-index: 2;
+  box-shadow:
+    0 24px 44px rgb(from var(--black) r g b / 14%),
+    inset 0 1px 0 rgb(from var(--white) r g b / 34%);
+}
+
+.trainers__details-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.trainers__detail-item {
+  display: grid;
+  gap: 3px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cyan) 18%, var(--white));
+}
+
+.trainers__detail-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.trainers__detail-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+.trainers__card-detail-text--stack {
+  display: grid;
+  gap: 2px;
+}
+
+.trainers__detail-line::before {
+  content: '• ';
+  color: color-mix(in srgb, var(--orange) 80%, var(--white));
+}
+
+.trainers__card-detail-link {
+  color: color-mix(in srgb, var(--black) 78%, var(--cyan));
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.trainers__card-detail-link:hover {
+  color: var(--orange);
+}
+
+.trainers__card--open .trainers__card-details {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.trainers__card-action {
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
+  --button-text: var(--black);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 47px;
+  padding: 13.25px 30px;
+  border-radius: 10px;
+  background-color: var(--button-current-bg, var(--button-bg));
+  color: var(--button-text);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-align: center;
+  margin-top: auto;
+}
+
+.trainers-booking {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: rgb(from var(--black) r g b / 32%);
+  backdrop-filter: blur(10px);
+}
+
+.trainers-booking__dialog {
+  width: min(480px, 100%);
+  max-height: min(92vh, calc(var(--app-screen-height) - 32px));
+  overflow: auto;
+  padding: 22px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--white) 22%, transparent);
+  background: rgb(from var(--white) r g b / 96%);
+  box-shadow:
+    0 30px 70px rgb(from var(--black) r g b / 16%),
+    inset 0 1px 0 rgb(from var(--white) r g b / 34%);
+}
+
+.trainers-booking__form,
+.trainers-booking__field,
+.trainers-booking__trainer-card {
+  display: grid;
+  gap: 10px;
+}
+
+.trainers-booking__text,
+.trainers-booking__hint,
+.trainers-booking__trainer-meta {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--black) 62%, var(--white));
+}
+
+.trainers-booking__text {
+  margin-bottom: 10px;
+}
+
+.trainers-booking__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 72%, transparent);
+  color: var(--black);
+  font-size: 28px;
+  line-height: 1;
+  box-shadow:
+    0 10px 24px rgb(from var(--black) r g b / 7%),
+    inset 0 1px 0 rgb(from var(--white) r g b / 34%);
+}
+
+.trainers-booking__trainer-card {
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.trainers-booking__label,
+.trainers-booking__trainer-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--black) 60%, var(--white));
+}
+
+.trainers-booking__trainer-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.05;
+  color: var(--cyan);
+  text-wrap: balance;
+}
+
+.trainers-booking__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.trainers-booking__form {
+  gap: 10px;
+}
+
+.trainers-booking__datetime {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.trainers-booking__dropdown {
+  position: relative;
+  z-index: 1;
+}
+
+.trainers-booking__dropdown--date,
+.trainers-booking__dropdown--time,
+.trainers-booking__dropdown--format {
+  position: relative;
+}
+
+.trainers-booking__dropdown-trigger {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 110px;
+  padding: 14px 16px 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 24%, var(--white));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 84%, transparent);
+  color: var(--black);
+  text-align: left;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.trainers-booking__dropdown-trigger:hover,
+.trainers-booking__dropdown-trigger--open {
+  border-color: color-mix(in srgb, var(--cyan) 64%, var(--white));
+}
+
+.trainers-booking__dropdown-trigger--error {
+  border-color: color-mix(in srgb, var(--orange) 66%, var(--white));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 12%, transparent);
+}
+
+.trainers-booking__dropdown-trigger--compact {
+  min-height: 48px;
+  padding: 10px 16px;
+  justify-content: center;
+  gap: 6px;
+}
+
+.trainers-booking__dropdown-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--black) 54%, var(--white));
+}
+
+.trainers-booking__dropdown-value {
+  font-family: Oswald, sans-serif;
+  font-size: clamp(28px, 6vw, 40px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--black);
+}
+
+.trainers-booking__dropdown-value--compact {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.trainers-booking__dropdown-icon {
+  position: absolute;
+  right: 18px;
+  bottom: 20px;
+  width: 12px;
+  height: 12px;
+  border-right: 2px solid var(--black);
+  border-bottom: 2px solid var(--black);
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+  pointer-events: none;
+}
+
+.trainers-booking__dropdown-trigger--compact .trainers-booking__dropdown-icon {
+  bottom: 18px;
+}
+
+.trainers-booking__dropdown-trigger--open .trainers-booking__dropdown-icon {
+  transform: rotate(-135deg) translateY(-2px);
+}
+
+.trainers-booking__dropdown-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  right: 0;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--white) 28%, transparent);
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 96%);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--black) 14%, transparent);
+  overflow-y: auto;
+  z-index: 80;
+}
+
+.trainers-booking__dropdown--date:has(.trainers-booking__dropdown-trigger--open),
+.trainers-booking__dropdown--time:has(.trainers-booking__dropdown-trigger--open),
+.trainers-booking__dropdown--format:has(.trainers-booking__dropdown-trigger--open) {
+  z-index: 40;
+}
+
+.trainers-booking__dropdown-panel--date {
+  top: auto;
+  bottom: -100%;
+  width: min(320px, calc(100vw - 48px));
+  right: auto;
+}
+
+.trainers-booking__dropdown-panel--time {
+  top: auto;
+  bottom: -100%;
+  width: min(280px, calc(100vw - 48px));
+  left: auto;
+}
+
+.trainers-booking__dropdown-panel--format {
+  left: 0;
+  right: 0;
+}
+
+.trainers-booking__dropdown-head {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.trainers-booking__dropdown-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--cyan);
+}
+
+.trainers-booking__dropdown-caption {
+  font-size: 12px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--black) 58%, var(--white));
+}
+
+.trainers-booking__calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.trainers-booking__calendar-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  gap: 4px;
+  text-align: center;
+}
+
+.trainers-booking__calendar-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid color-mix(in srgb, var(--white) 24%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 36%, transparent);
+  font-size: 24px;
+  line-height: 36px;
+  color: var(--black);
+}
+
+.trainers-booking__calendar-arrow-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.trainers-booking__calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.trainers-booking__calendar-weekday {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--black) 52%, var(--white));
+}
+
+.trainers-booking__calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.trainers-booking__calendar-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 1px solid rgb(from var(--white) r g b / 18%);
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 18%);
+  background-clip: padding-box;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--black);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.trainers-booking__calendar-day:hover {
+  border-color: color-mix(in srgb, var(--cyan) 64%, var(--white));
+  background: color-mix(in srgb, var(--cyan) 60%, transparent);
+  color: var(--white);
+}
+
+.trainers-booking__calendar-day--disabled,
+.trainers-booking__calendar-day--disabled:hover {
+  border-color: rgb(from var(--white) r g b / 10%);
+  background: rgb(from var(--white) r g b / 8%);
+  color: color-mix(in srgb, var(--black) 26%, var(--white));
+  cursor: not-allowed;
+}
+
+.trainers-booking__calendar-day-placeholder {
+  aspect-ratio: 1;
+}
+
+.trainers-booking__calendar-day--today {
+  border-color: color-mix(in srgb, var(--cyan) 58%, var(--white));
+}
+
+.trainers-booking__calendar-day--selected {
+  background: rgb(from var(--cyan) r g b / 76%);
+  border-color: rgb(from var(--cyan) r g b / 72%);
+  color: var(--white);
+}
+
+.trainers-booking__time-grid,
+.trainers-booking__format-list {
+  display: grid;
+  gap: 10px;
+}
+
+.trainers-booking__time-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.trainers-booking__time-chip,
+.trainers-booking__format-option {
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid rgb(from var(--white) r g b / 18%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 18%, transparent);
+  background-clip: padding-box;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--black);
+  text-align: center;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.trainers-booking__time-chip:hover,
+.trainers-booking__format-option:hover {
+  border-color: color-mix(in srgb, var(--cyan) 64%, var(--white));
+  background: color-mix(in srgb, var(--cyan) 60%, transparent);
+  color: var(--white);
+}
+
+.trainers-booking__time-chip--selected,
+.trainers-booking__format-option--selected {
+  background: rgb(from var(--cyan) r g b / 76%);
+  border-color: rgb(from var(--cyan) r g b / 72%);
+  color: var(--white);
+}
+
+.trainers-booking__input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 24%, var(--white));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 84%, transparent);
+  color: var(--black);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.trainers-booking__input::placeholder {
+  color: color-mix(in srgb, var(--black) 42%, var(--white));
+}
+
+.trainers-booking__input[aria-invalid='true'] {
+  border-color: color-mix(in srgb, var(--orange) 66%, var(--white));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 12%, transparent);
+}
+
+.trainers-booking__input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--cyan) 54%, var(--white));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 18%, transparent);
+}
+
+.trainers-booking__input--textarea {
+  min-height: 112px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  resize: none;
+}
+
+.trainers-booking__auth-box {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 10px;
+  background: rgb(from var(--very-light-blue) r g b / 26%);
+  border: 1px solid color-mix(in srgb, var(--cyan) 18%, var(--white));
+}
+
+.trainers-booking__checkbox {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--black) 72%, var(--white));
+}
+
+.trainers-booking__checkbox input {
+  margin-top: 3px;
+}
+
+.trainers-booking__error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--orange) 86%, var(--black));
+}
+
+.trainers-booking__error--inline {
+  margin-top: -2px;
+}
+
+.trainers-booking__status {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.trainers-booking__status--error {
+  background: color-mix(in srgb, var(--orange) 14%, transparent);
+  color: color-mix(in srgb, var(--orange) 88%, var(--black));
+}
+
+.trainers-booking__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.trainers-booking__secondary,
+.trainers-booking__submit {
+  flex: 1 1 0;
+  min-height: 47px;
+  padding: 11px 30px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.trainers-booking__secondary {
+  --button-bg: var(--button-light-blue-bg);
+  --button-hover-bg: var(--button-light-blue-hover-bg);
+  --button-focus-color: var(--light-blue);
+  --button-text: var(--black);
+  background-color: var(--button-current-bg, var(--button-bg));
+  color: var(--button-text);
+}
+
+.trainers-booking__submit {
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
+  --button-text: var(--black);
+  background-color: var(--button-current-bg, var(--button-bg));
+  color: var(--button-text);
+}
+
+.trainers-booking__submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.trainers-booking__honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.trainers-booking-modal-enter-active,
+.trainers-booking-modal-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.trainers-booking-modal-enter-active .trainers-booking__dialog,
+.trainers-booking-modal-leave-active .trainers-booking__dialog {
+  transition:
+    transform 0.25s ease,
+    opacity 0.25s ease;
+}
+
+.trainers-booking-modal-enter-from,
+.trainers-booking-modal-leave-to {
+  opacity: 0;
+}
+
+.trainers-booking-modal-enter-from .trainers-booking__dialog,
+.trainers-booking-modal-leave-to .trainers-booking__dialog {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+
+@media (max-width: 1100px) {
+  .trainers__filters-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trainers__filter-reset {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .trainers__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .trainers__hero {
+    grid-template-columns: 1fr;
+  }
+
+  .trainers__hero::before {
+    background: linear-gradient(180deg, var(--very-light-blue) 0%, var(--white) 100%);
+  }
+
+  .trainers__image-shell {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 700px) {
+  .trainers__filters-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .trainers__filter-reset {
+    width: 100%;
+    grid-column: auto;
+    justify-self: stretch;
+  }
+
+  .trainers__hero {
+    margin-bottom: 30px;
+  }
+
+  .trainers__title {
+    font-size: clamp(34px, 10vw, 42px);
+  }
+
+  .trainers__grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .trainers__hero-copy,
+  .trainers__hero-aside {
+    padding: 22px 18px;
+  }
+
+  .trainers__image-showcase {
+    margin-bottom: 30px;
+  }
+
+  .trainers__image-shell {
+    min-height: 280px;
+  }
+
+  .trainers__showcase-image {
+    min-height: 280px;
+  }
+
+  .trainers__card {
+    min-height: 0;
+  }
+
+  .trainers__card-body {
+    padding: 16px;
+  }
+
+  .trainers__card-bookmark {
+    min-height: 28px;
+    padding: 6px 9px;
+  }
+
+  .trainers__meta {
+    grid-template-rows: auto;
+  }
+
+  .trainers__card-details {
+    padding: 14px;
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .trainers-booking__grid,
+  .trainers-booking__datetime {
+    grid-template-columns: 1fr;
+  }
+
+  .trainers-booking__dialog {
+    padding: 18px;
+  }
+
+  .trainers-booking__dropdown-panel {
+    padding: 16px;
+  }
+
+  .trainers-booking__dropdown-panel--date,
+  .trainers-booking__dropdown-panel--time,
+  .trainers-booking__dropdown-panel--format {
+    top: calc(100% + 12px);
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+  }
+
+  .trainers-booking__time-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trainers-booking__actions {
+    flex-direction: column-reverse;
+  }
+
+  .trainers-booking__secondary,
+  .trainers-booking__submit {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .trainers__title {
+    font-size: clamp(30px, 9vw, 34px);
+  }
+}

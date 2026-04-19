@@ -5,6 +5,7 @@ import {
   USERS_PAGE_SIZE,
 } from '@/pages/account/utils/accountConstants'
 import { formatUserStatus } from '@/pages/account/utils/accountFormatters'
+import { formatRussianPhone, getRussianPhoneSearchValue } from '@/utils/phone'
 import { getCrmRoleLabel } from '@/utils/crmRoles'
 import { showToast } from '@/utils/toast'
 
@@ -38,6 +39,7 @@ export function useAccountUsers() {
         user.name,
         user.email,
         user.phone,
+        getRussianPhoneSearchValue(user.phone),
         user.role,
         getCrmRoleLabel(user.role),
         formatUserStatus(user.status),
@@ -102,7 +104,7 @@ export function useAccountUsers() {
       ...users.value[userIndex],
       name: userEditForm.name.trim(),
       email: userEditForm.email.trim(),
-      phone: userEditForm.phone.trim(),
+      phone: formatRussianPhone(userEditForm.phone.trim()),
       role: userEditForm.role,
       status: userEditForm.status,
     }
@@ -144,6 +146,7 @@ export function useAccountUsers() {
   watch([usersSearch, usersRoleFilter], resetUsersPage)
 
   return {
+    users,
     usersPage,
     usersSearch,
     usersRoleFilter,

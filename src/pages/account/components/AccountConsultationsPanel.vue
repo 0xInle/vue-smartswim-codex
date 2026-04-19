@@ -8,7 +8,7 @@
           class="account__input account__input--toolbar"
           type="search"
           name="consultation-search"
-          placeholder="Имя, телефон, дата, статус"
+          placeholder="Поиск по заявкам"
           @input="$emit('update:search', $event.target.value)"
         />
       </label>
@@ -46,122 +46,113 @@
 
     <div v-if="isLoading && !requests.length" class="account__loading-state">Загружаем заявки...</div>
 
-    <ElTable
-      v-else-if="requests.length"
-      class="account__consultations-table"
-      :data="rows"
-      row-key="key"
-      border
-      stripe
-      empty-text="Новых заявок пока нет."
-      :span-method="spanMethod"
-    >
-      <ElTableColumn label="Клиент" min-width="220">
-        <template #default="{ row }">
-          <div v-if="row.kind === 'data'" class="account__table-user">
-            <div class="account__table-primary">
-              {{ formatConsultationFullName(row.request) }}
-            </div>
-          </div>
+    <div v-else-if="rows.length" class="account__native-table-wrap">
+      <table class="account__native-table account__native-table--consultations">
+        <thead class="account__native-table-head">
+          <tr>
+            <th>Клиент</th>
+            <th>Телефон</th>
+            <th>Дата</th>
+            <th>Время</th>
+            <th>Статус</th>
+            <th>Получена</th>
+          </tr>
+        </thead>
 
-          <div v-else class="account__consultation-actions-row">
-            <button
-              type="button"
-              class="account__table-action account__table-action--success btn-reset"
-              :disabled="loadingId === row.request.id"
-              @click="$emit('mark-processed', row.request)"
-            >
-              Обработана
-            </button>
+        <tbody>
+          <template v-for="row in rows" :key="row.key">
+            <tr v-if="row.kind === 'data'" class="account__native-table-row">
+              <td class="account__native-table-cell account__native-table-cell--primary">
+                <div class="account__table-user">
+                  <div class="account__table-primary">
+                    {{ formatConsultationFullName(row.request) }}
+                  </div>
+                </div>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--phone">
+                {{ row.request.phone }}
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                {{ formatConsultationDate(row.request.consultationDate) }}
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                {{ row.request.consultationTime || 'Не указано' }}
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <ElTag :type="consultationStatusType(row.request.status)" effect="light" round>
+                  {{ formatConsultationStatus(row.request.status) }}
+                </ElTag>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                {{ formatCompactDateTime(row.request.createdAt) }}
+              </td>
+            </tr>
 
-            <div class="account__consultation-status-editor">
-              <ElSelect
-                :model-value="getDraftStatus(row.request.id)"
-                class="account__select"
-                popper-class="account__select-popper"
-                placeholder="Выберите исход"
-                @update:model-value="$emit('draft-change', row.request.id, $event)"
-              >
-                <ElOption
-                  v-for="option in statusOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                />
-              </ElSelect>
+            <tr v-else class="account__native-table-row account__native-table-row--actions">
+              <td class="account__native-table-cell" colspan="6">
+                <div class="account__consultation-actions-row">
+                  <button
+                    type="button"
+                    class="account__table-action account__table-action--success btn-reset"
+                    :disabled="loadingId === row.request.id"
+                    @click="$emit('mark-processed', row.request)"
+                  >
+                    Обработана
+                  </button>
 
-              <button
-                type="button"
-                class="account__table-action account__table-action--edit btn-reset"
-                :disabled="loadingId === row.request.id || getDraftStatus(row.request.id) === row.request.status"
-                @click="$emit('apply-draft', row.request)"
-              >
-                Применить
-              </button>
-            </div>
+                  <div class="account__consultation-status-editor">
+                    <ElSelect
+                      :model-value="getDraftStatus(row.request.id)"
+                      class="account__select"
+                      popper-class="account__select-popper"
+                      placeholder="Выберите исход"
+                      @update:model-value="$emit('draft-change', row.request.id, $event)"
+                    >
+                      <ElOption
+                        v-for="option in statusOptions"
+                        :key="option.value"
+                        :label="option.label"
+                        :value="option.value"
+                      />
+                    </ElSelect>
 
-            <button
-              type="button"
-              class="account__table-action account__table-action--ghost btn-reset"
-              :disabled="loadingId === row.request.id || row.request.status === consultationStatus.new"
-              @click="$emit('reset-status', row.request)"
-            >
-              Сбросить
-            </button>
-          </div>
-        </template>
-      </ElTableColumn>
+                    <button
+                      type="button"
+                      class="account__table-action account__table-action--edit btn-reset"
+                      :disabled="
+                        loadingId === row.request.id ||
+                        getDraftStatus(row.request.id) === row.request.status
+                      "
+                      @click="$emit('apply-draft', row.request)"
+                    >
+                      Применить
+                    </button>
+                  </div>
 
-      <ElTableColumn prop="phone" label="Телефон" min-width="150">
-        <template #default="{ row }">
-          <span v-if="row.kind === 'data'">{{ row.request.phone }}</span>
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn label="Дата" min-width="116" align="center">
-        <template #default="{ row }">
-          <span v-if="row.kind === 'data'">
-            {{ formatConsultationDate(row.request.consultationDate) }}
-          </span>
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn label="Время" min-width="88" align="center">
-        <template #default="{ row }">
-          <span v-if="row.kind === 'data'">
-            {{ row.request.consultationTime || 'Не указано' }}
-          </span>
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn label="Статус" min-width="156" align="center">
-        <template #default="{ row }">
-          <ElTag
-            v-if="row.kind === 'data'"
-            :type="consultationStatusType(row.request.status)"
-            effect="light"
-            round
-          >
-            {{ formatConsultationStatus(row.request.status) }}
-          </ElTag>
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn label="Получена" min-width="116" align="center">
-        <template #default="{ row }">
-          <span v-if="row.kind === 'data'">
-            {{ formatCompactDateTime(row.request.createdAt) }}
-          </span>
-        </template>
-      </ElTableColumn>
-    </ElTable>
+                  <button
+                    type="button"
+                    class="account__table-action account__table-action--ghost btn-reset"
+                    :disabled="
+                      loadingId === row.request.id || row.request.status === consultationStatus.new
+                    "
+                    @click="$emit('reset-status', row.request)"
+                  >
+                    Сбросить
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
 
     <ElEmpty v-else description="Новых заявок пока нет." />
   </ElCard>
 </template>
 
 <script setup>
-import { ElButton, ElCard, ElEmpty, ElOption, ElSelect, ElTable, ElTableColumn, ElTag } from 'element-plus'
+import { ElButton, ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import { CONSULTATION_STATUS } from '@/pages/account/utils/accountConstants'
 import {
   consultationStatusType,
@@ -209,10 +200,6 @@ defineProps({
     default: null,
   },
   getDraftStatus: {
-    type: Function,
-    required: true,
-  },
-  spanMethod: {
     type: Function,
     required: true,
   },

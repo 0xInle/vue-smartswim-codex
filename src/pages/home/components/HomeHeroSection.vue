@@ -95,15 +95,16 @@
               <span class="home__label">Телефон</span>
               <input
                 id="consultation-phone"
-                v-model.trim="consultationForm.phone"
+                :value="consultationForm.phone"
                 class="home__input"
                 :class="{ 'home__input--error': consultationErrors.phone }"
                 type="tel"
                 name="phone"
                 autocomplete="tel"
-                placeholder="Введите номер телефона"
+                inputmode="tel"
+                placeholder="+7 (961) 471-33-80"
                 :aria-invalid="Boolean(consultationErrors.phone)"
-                @input="clearFieldError('phone')"
+                @input="handlePhoneInput"
               />
               <span v-if="consultationErrors.phone" class="home__error">
                 {{ consultationErrors.phone }}
@@ -251,6 +252,7 @@ import IconPhone from '@/assets/images/icon-phone.svg'
 import IconSwimmer from '@/assets/images/icon-swimmer.svg'
 import { publicAsset } from '@/utils/publicAsset'
 import { createConsultationRequest } from '@/utils/supabaseDatabase'
+import { formatRussianPhone, formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
 import { showToast } from '@/utils/toast'
 
 const isDateOpen = ref(false)
@@ -342,6 +344,11 @@ function clearFieldError(field) {
   }
 }
 
+function handlePhoneInput(event) {
+  consultationForm.value.phone = formatRussianPhoneInput(event.target.value)
+  clearFieldError('phone')
+}
+
 function resetConsultationForm() {
   consultationForm.value = {
     fullName: '',
@@ -361,7 +368,6 @@ function validateConsultationForm() {
   const fullName = consultationForm.value.fullName.trim().replace(/\s+/g, ' ')
   const fullNameParts = fullName.split(' ').filter(Boolean)
   const phone = consultationForm.value.phone.trim()
-  const phoneDigits = phone.replace(/\D/g, '')
 
   if (!fullName) {
     errors.fullName = 'Укажите имя и фамилию.'
@@ -375,8 +381,8 @@ function validateConsultationForm() {
 
   if (!phone) {
     errors.phone = 'Укажите телефон.'
-  } else if (phoneDigits.length < 10 || phoneDigits.length > 15) {
-    errors.phone = 'Укажите корректный номер телефона.'
+  } else if (!isRussianPhone(phone)) {
+    errors.phone = 'Укажите номер в формате +7 (961) 471-33-80.'
   }
 
   if (!selectedDate.value || isDateInPast(selectedDate.value)) {
@@ -427,11 +433,12 @@ async function handleConsultationSubmit() {
 
   try {
     const { firstName, lastName } = splitConsultationFullName(consultationForm.value.fullName)
+    const phone = formatRussianPhone(consultationForm.value.phone)
 
     await createConsultationRequest({
       firstName,
       lastName,
-      phone: consultationForm.value.phone.trim(),
+      phone,
       consultationDate: toIsoDate(selectedDate.value),
       consultationTime: selectedTime.value,
     })

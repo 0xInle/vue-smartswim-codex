@@ -29,28 +29,37 @@
             class="account__sync-alert"
           />
 
+          <ElAlert
+            v-if="trainerBookingsError"
+            :title="trainerBookingsError"
+            type="warning"
+            show-icon
+            :closable="false"
+            class="account__sync-alert"
+          />
+
+          <ElAlert
+            v-if="ownTrainerBookingsError"
+            :title="ownTrainerBookingsError"
+            type="warning"
+            show-icon
+            :closable="false"
+            class="account__sync-alert"
+          />
+
           <div v-if="isProfileLoading && !currentUser" class="account__loading-state">
             Загружаем кабинет...
           </div>
 
           <AccountDashboardPanel
-            v-else-if="activeSection === 'dashboard'"
-            :current-user="currentUser"
-            :current-role-label="currentRoleLabel"
+            v-else-if="isAdmin && activeSection === 'dashboard'"
+            :consultation-requests="consultationRequests"
+            :trainer-bookings="trainerBookings"
+            :users="users"
+            @select-section="handleSectionSelect"
           />
 
-          <AccountSettingsPanel
-            v-else-if="activeSection === 'settings'"
-            :form="passwordChangeForm"
-            :errors="passwordChangeErrors"
-            :visibility="passwordVisibility"
-            :status="passwordChangeStatus"
-            :message="passwordChangeMessage"
-            :min-password-length="minPasswordLength"
-            :password-field-type="passwordFieldType"
-            @submit="handlePasswordChange"
-            @toggle-visibility="togglePasswordVisibility"
-          />
+          <AccountUserPlaceholderPanel v-else-if="!isAdmin && activeSection === 'dashboard'" />
 
           <AccountConsultationsPanel
             v-else-if="isAdmin && activeSection === 'consultations'"
@@ -72,6 +81,32 @@
             @draft-change="handleConsultationDraftChange"
             @apply-draft="handleConsultationApplyDraft"
             @reset-status="handleConsultationResetStatus"
+          />
+
+          <AccountTrainerBookingsPanel
+            v-else-if="isAdmin && activeSection === 'trainer-bookings'"
+            :bookings="filteredTrainerBookings"
+            :is-loading="trainerBookingsLoading"
+            :search="trainerBookingsSearch"
+            :status-filter="trainerBookingsStatusFilter"
+            :status-options="trainerBookingsStatusOptions"
+            :new-count="newTrainerBookingsCount"
+            :total="filteredTrainerBookingsTotal"
+            @refresh="handleTrainerBookingsRefresh"
+            @update:search="trainerBookingsSearch = $event"
+            @update:status-filter="trainerBookingsStatusFilter = $event"
+          />
+
+          <AccountCompetitionsPanel
+            v-else-if="isAdmin && activeSection === 'competitions'"
+            :rows="filteredCompetitionPayments"
+            :is-loading="false"
+            :search="competitionSearch"
+            :competition-filter="competitionFilter"
+            :competition-options="competitionOptions"
+            :total="filteredCompetitionPaymentsTotal"
+            @update:search="competitionSearch = $event"
+            @update:competition-filter="competitionFilter = $event"
           />
 
           <AccountUsersPanel
@@ -96,6 +131,19 @@
             @close-delete="handleCloseUserDelete"
             @confirm-delete="handleConfirmUserDelete"
           />
+
+          <AccountSettingsPanel
+            v-else-if="isAdmin && activeSection === 'settings'"
+            :form="passwordChangeForm"
+            :errors="passwordChangeErrors"
+            :visibility="passwordVisibility"
+            :status="passwordChangeStatus"
+            :message="passwordChangeMessage"
+            :min-password-length="minPasswordLength"
+            :password-field-type="passwordFieldType"
+            @submit="handlePasswordChange"
+            @toggle-visibility="togglePasswordVisibility"
+          />
         </ElMain>
       </ElContainer>
     </ElContainer>
@@ -103,20 +151,26 @@
 </template>
 
 <script setup>
-import { Calendar, Monitor, Setting, User } from '@element-plus/icons-vue'
+import { Calendar, Monitor, Setting, Trophy, User } from '@element-plus/icons-vue'
 import { ElAlert, ElContainer, ElMain } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import AccountCompetitionsPanel from '@/pages/account/components/AccountCompetitionsPanel.vue'
 import AccountConsultationsPanel from '@/pages/account/components/AccountConsultationsPanel.vue'
 import AccountDashboardPanel from '@/pages/account/components/AccountDashboardPanel.vue'
 import AccountHeaderBar from '@/pages/account/components/AccountHeaderBar.vue'
 import AccountSettingsPanel from '@/pages/account/components/AccountSettingsPanel.vue'
 import AccountSidebar from '@/pages/account/components/AccountSidebar.vue'
+import AccountTrainerBookingsPanel from '@/pages/account/components/AccountTrainerBookingsPanel.vue'
+import AccountUserPlaceholderPanel from '@/pages/account/components/AccountUserPlaceholderPanel.vue'
 import AccountUsersPanel from '@/pages/account/components/AccountUsersPanel.vue'
+import { useOwnTrainerBookings } from '@/pages/account/composables/useOwnTrainerBookings'
 import { useAccountPasswordChange } from '@/pages/account/composables/useAccountPasswordChange'
 import { useAccountSession } from '@/pages/account/composables/useAccountSession'
+import { useCompetitionPayments } from '@/pages/account/composables/useCompetitionPayments'
 import { useAccountUsers } from '@/pages/account/composables/useAccountUsers'
 import { useConsultationRequests } from '@/pages/account/composables/useConsultationRequests'
+import { useTrainerBookings } from '@/pages/account/composables/useTrainerBookings'
 import { ACCOUNT_SYNC_COOLDOWN_MS } from '@/pages/account/utils/accountConstants'
 import { CRM_ROLE } from '@/utils/crmRoles'
 import { subscribeToAuthStateChange } from '@/utils/supabaseAuth'
@@ -169,6 +223,12 @@ const {
 } = useAccountPasswordChange({ currentUser })
 
 const {
+  ownTrainerBookingsError,
+  syncOwnTrainerBookings,
+  clearOwnTrainerBookings,
+} = useOwnTrainerBookings()
+
+const {
   consultationRequests,
   consultationStatusLoadingId,
   isAdminDataLoading,
@@ -192,6 +252,31 @@ const {
 } = useConsultationRequests({ isAdmin })
 
 const {
+  trainerBookingsLoading,
+  trainerBookingsError,
+  trainerBookings,
+  trainerBookingsSearch,
+  trainerBookingsStatusFilter,
+  trainerBookingsStatusOptions,
+  newTrainerBookingsCount,
+  filteredTrainerBookings,
+  filteredTrainerBookingsTotal,
+  handleTrainerBookingsRefresh,
+  syncTrainerBookings,
+  stopTrainerBookingsFeed,
+  clearTrainerBookingsState,
+} = useTrainerBookings({ isAdmin })
+
+const {
+  competitionSearch,
+  competitionFilter,
+  competitionOptions,
+  filteredCompetitionPayments,
+  filteredCompetitionPaymentsTotal,
+} = useCompetitionPayments()
+
+const {
+  users,
   usersPage,
   usersSearch,
   usersRoleFilter,
@@ -228,6 +313,12 @@ async function syncAccountData({ force = false } = {}) {
     try {
       await syncCurrentUser()
       await syncAdminData()
+      await syncTrainerBookings()
+      if (isAdmin.value) {
+        clearOwnTrainerBookings()
+      } else {
+        await syncOwnTrainerBookings()
+      }
     } finally {
       accountSyncPromise = null
     }
@@ -240,22 +331,12 @@ function handleSectionSelect(sectionId) {
   activeSection.value = sectionId
 }
 
-function handleWindowFocus() {
-  void syncAccountData()
-}
-
-function handleVisibilityChange() {
-  if (document.visibilityState !== 'visible') {
-    return
-  }
-
-  void syncAccountData()
-}
-
 function handleSignOutClick() {
   void handleSignOut({
     onSuccess: () => {
       clearConsultationState()
+      clearTrainerBookingsState()
+      clearOwnTrainerBookings()
     },
     onError: (message) => {
       adminDataError.value = message
@@ -268,14 +349,15 @@ const navigationItems = computed(() => {
     return [
       { id: 'dashboard', label: 'Дашборд', icon: Monitor },
       { id: 'consultations', label: 'Консультации', icon: Calendar },
+      { id: 'trainer-bookings', label: 'Записи к тренерам', icon: Calendar },
+      { id: 'competitions', label: 'Соревнования', icon: Trophy },
       { id: 'users', label: 'Пользователи', icon: User },
       { id: 'settings', label: 'Настройки', icon: Setting },
     ]
   }
 
   return [
-    { id: 'dashboard', label: 'Кабинет', icon: Monitor },
-    { id: 'settings', label: 'Настройки', icon: Setting },
+    { id: 'dashboard', label: 'Личный кабинет', icon: Monitor },
   ]
 })
 
@@ -284,6 +366,8 @@ const sectionContent = computed(() => {
     return {
       dashboard: { title: 'Дашборд' },
       consultations: { title: 'Консультации' },
+      'trainer-bookings': { title: 'Записи к тренерам' },
+      competitions: { title: 'Соревнования' },
       users: { title: 'Пользователи' },
       settings: { title: 'Настройки' },
     }
@@ -292,13 +376,11 @@ const sectionContent = computed(() => {
   if (currentRole.value === CRM_ROLE.TRAINER) {
     return {
       dashboard: { title: 'Кабинет тренера' },
-      settings: { title: 'Настройки' },
     }
   }
 
   return {
     dashboard: { title: 'Личный кабинет' },
-    settings: { title: 'Настройки' },
   }
 })
 
@@ -329,22 +411,21 @@ onMounted(() => {
     if (!session) {
       clearCurrentUser()
       clearConsultationState()
+      clearTrainerBookingsState()
+      clearOwnTrainerBookings()
       stopConsultationFeed()
+      stopTrainerBookingsFeed()
       router.replace('/')
       return
     }
 
     void syncAccountData({ force: true })
   })
-
-  window.addEventListener('focus', handleWindowFocus)
-  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onBeforeUnmount(() => {
   authSubscription?.unsubscribe()
   stopConsultationFeed()
-  window.removeEventListener('focus', handleWindowFocus)
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  stopTrainerBookingsFeed()
 })
 </script>

@@ -35,7 +35,7 @@
         <img :src="documentsImage" alt="" class="documents__image" loading="lazy" decoding="async" />
         <div class="documents__image-decor">
           <div class="documents__image-panel">
-            <p class="documents__image-contact">8 916 729 07 73</p>
+            <p class="documents__image-contact">+7 (916) 729-07-73</p>
           </div>
           <div class="documents__image-panel">
             <p class="documents__image-contact">cupsmartswim@yandex.ru</p>

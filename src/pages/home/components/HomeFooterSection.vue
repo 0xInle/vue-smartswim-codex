@@ -13,7 +13,7 @@
         <a class="footer__link link-reset" href="mailto:cupsmartswim@yandex.ru">
           cupsmartswim@yandex.ru
         </a>
-        <a class="footer__link link-reset" href="tel:+79167290773"> +7 916 729 07 73 </a>
+        <a class="footer__link link-reset" href="tel:+79167290773">+7 (916) 729-07-73</a>
       </div>
     </div>
     <div class="footer__bottom flex">

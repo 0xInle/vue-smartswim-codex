@@ -6,6 +6,20 @@ function toError(message, fallback = 'Не удалось выполнить з�
   return new Error(message || fallback)
 }
 
+function isObfuscatedSignUpUser(user) {
+  if (!user) {
+    return false
+  }
+
+  return (
+    Array.isArray(user.identities) &&
+    user.identities.length === 0 &&
+    !user.role &&
+    !user.user_metadata?.email &&
+    !user.user_metadata?.sub
+  )
+}
+
 export function normalizeAuthUser(user) {
   if (!user) {
     return null
@@ -33,6 +47,10 @@ export async function signUpWithPassword({ email, password, name, emailRedirectT
 
   if (error) {
     throw toError(error.message, 'Не удалось зарегистрироваться.')
+  }
+
+  if (isObfuscatedSignUpUser(data.user)) {
+    throw toError('User already registered', 'Пользователь с такой почтой уже зарегистрирован.')
   }
 
   return data

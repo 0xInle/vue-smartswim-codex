@@ -8,7 +8,7 @@
           class="account__input account__input--toolbar"
           type="search"
           name="users-search"
-          placeholder="Имя, почта, телефон, роль"
+          placeholder="Поиск по пользователям"
           @input="$emit('update:search', $event.target.value)"
         />
       </label>
@@ -37,68 +37,66 @@
       </div>
     </div>
 
-    <ElTable
-      class="account__users-table"
-      :data="users"
-      row-key="id"
-      border
-      stripe
-      empty-text="Пользователи не найдены."
-    >
-      <ElTableColumn label="Пользователь" min-width="240">
-        <template #default="{ row }">
-          <div class="account__table-user">
-            <div class="account__table-primary">{{ row.name }}</div>
-            <div class="account__table-secondary">{{ row.email }}</div>
-          </div>
-        </template>
-      </ElTableColumn>
+    <div v-if="users.length" class="account__native-table-wrap">
+      <table class="account__native-table account__native-table--users">
+        <thead class="account__native-table-head">
+          <tr>
+            <th>Пользователь</th>
+            <th>Телефон</th>
+            <th>Роль</th>
+            <th>Регистрация</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
 
-      <ElTableColumn prop="phone" label="Телефон" min-width="180" />
+        <tbody>
+          <tr v-for="row in users" :key="row.id" class="account__native-table-row">
+            <td class="account__native-table-cell account__native-table-cell--primary">
+              <div class="account__table-user">
+                <div class="account__table-primary">{{ row.name }}</div>
+                <div class="account__table-secondary">{{ row.email }}</div>
+              </div>
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--phone">
+              <span class="account__table-phone">{{ row.phone }}</span>
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <ElTag
+                class="account__user-role-tag"
+                :type="userRoleTagType(row.role)"
+                effect="light"
+                round
+              >
+                {{ formatUserRole(row.role) }}
+              </ElTag>
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              {{ formatCompactDateTime(row.registeredAt) }}
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <div class="account__table-actions">
+                <button
+                  type="button"
+                  class="account__table-action account__table-action--edit btn-reset"
+                  @click="$emit('edit-user', row)"
+                >
+                  Редактировать
+                </button>
+                <button
+                  type="button"
+                  class="account__table-action account__table-action--delete btn-reset"
+                  @click="$emit('delete-user', row)"
+                >
+                  Удалить
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-      <ElTableColumn label="Роль" min-width="180" align="center">
-        <template #default="{ row }">
-          <ElTag class="account__user-role-tag" :type="userRoleTagType(row.role)" effect="light" round>
-            {{ formatUserRole(row.role) }}
-          </ElTag>
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn label="Статус" width="170" align="center">
-        <template #default="{ row }">
-          <ElTag :type="userStatusTagType(row.status)" effect="light" round>
-            {{ formatUserStatus(row.status) }}
-          </ElTag>
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn label="Регистрация" min-width="140" align="center">
-        <template #default="{ row }">
-          {{ formatCompactDateTime(row.registeredAt) }}
-        </template>
-      </ElTableColumn>
-
-      <ElTableColumn label="Действия" width="280" align="center">
-        <template #default="{ row }">
-          <div class="account__table-actions">
-            <button
-              type="button"
-              class="account__table-action account__table-action--edit btn-reset"
-              @click="$emit('edit-user', row)"
-            >
-              Редактировать
-            </button>
-            <button
-              type="button"
-              class="account__table-action account__table-action--delete btn-reset"
-              @click="$emit('delete-user', row)"
-            >
-              Удалить
-            </button>
-          </div>
-        </template>
-      </ElTableColumn>
-    </ElTable>
+    <ElEmpty v-else description="Пользователи не найдены." />
 
     <div v-if="pageCount > 1" class="account__pagination-wrap">
       <ElPagination
@@ -146,11 +144,13 @@
         <label class="account__field">
           <span class="account__field-label">Телефон</span>
           <input
-            v-model.trim="editForm.phone"
+            :value="editForm.phone"
             class="account__input"
-            type="text"
+            type="tel"
             name="user-phone"
-            placeholder="+7 (999) 000-00-00"
+            inputmode="tel"
+            placeholder="+7 (961) 471-33-80"
+            @input="editForm.phone = formatRussianPhoneInput($event.target.value)"
           />
         </label>
 
@@ -245,12 +245,11 @@
 <script setup>
 import {
   ElCard,
+  ElEmpty,
   ElDialog,
   ElOption,
   ElPagination,
   ElSelect,
-  ElTable,
-  ElTableColumn,
   ElTag,
 } from 'element-plus'
 import {
@@ -261,10 +260,9 @@ import {
 import {
   formatCompactDateTime,
   formatUserRole,
-  formatUserStatus,
   userRoleTagType,
-  userStatusTagType,
 } from '@/pages/account/utils/accountFormatters'
+import { formatRussianPhoneInput } from '@/utils/phone'
 
 defineProps({
   users: {

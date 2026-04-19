@@ -1,3 +1,30 @@
+import { formatRussianPhone, toRussianPhoneHref } from '@/utils/phone'
+
+export const trainerMetroFilterOptions = [
+  'Аэропорт',
+  'Белорусская',
+  'Динамо',
+  'Маяковская',
+  'Павелецкая',
+  'Петровский парк',
+  'Проспект Мира',
+  'Рижская',
+  'Серпуховская',
+  'Сокол',
+  'Стрешнево',
+  'Щукинская',
+]
+
+export const trainerPreparationLevelFilterOptions = [
+  'Начинающий',
+  'Подготовка к соревнованиям',
+  'Открытая вода',
+  'Индивидуальные тренировки',
+  'Групповые тренировки',
+]
+
+export const trainerAgeGroupFilterOptions = ['0-3 года', '4-6 лет', '7-17 лет', '18+']
+
 export const trainersHeroStats = [
   {
     value: '6 тренеров',
@@ -26,9 +53,12 @@ export const trainers = [
     minimumAge: '17 лет',
     level: 'Подготовка к соревнованиям, индивидуальные тренировки, групповые тренировки',
     metro: 'Сокол, Аэропорт',
+    metroStations: ['Сокол', 'Аэропорт'],
+    preparationLevels: ['Подготовка к соревнованиям', 'Индивидуальные тренировки', 'Групповые тренировки'],
+    ageGroups: ['7-17 лет', '18+'],
     email: 'belyaev@smartswim.ru',
-    phone: '+7 916 729-07-73',
-    phoneHref: 'tel:+79167290773',
+    phone: formatRussianPhone('+7 916 729-07-73'),
+    phoneHref: toRussianPhoneHref('+7 916 729-07-73'),
   },
   {
     id: 'anna-krylova',
@@ -42,9 +72,12 @@ export const trainers = [
     minimumAge: '6 лет',
     level: 'Начинающий, индивидуальные тренировки, групповые тренировки',
     metro: 'Проспект Мира, Рижская',
+    metroStations: ['Проспект Мира', 'Рижская'],
+    preparationLevels: ['Начинающий', 'Индивидуальные тренировки', 'Групповые тренировки'],
+    ageGroups: ['0-3 года', '4-6 лет', '7-17 лет'],
     email: 'krylova@smartswim.ru',
-    phone: '+7 926 410-22-18',
-    phoneHref: 'tel:+79264102218',
+    phone: formatRussianPhone('+7 926 410-22-18'),
+    phoneHref: toRussianPhoneHref('+7 926 410-22-18'),
   },
   {
     id: 'dmitriy-sokolov',
@@ -58,9 +91,12 @@ export const trainers = [
     minimumAge: '15 лет',
     level: 'Подготовка к соревнованиям, открытая вода, индивидуальные тренировки',
     metro: 'Динамо, Петровский парк',
+    metroStations: ['Динамо', 'Петровский парк'],
+    preparationLevels: ['Подготовка к соревнованиям', 'Открытая вода', 'Индивидуальные тренировки'],
+    ageGroups: ['7-17 лет', '18+'],
     email: 'sokolov@smartswim.ru',
-    phone: '+7 903 155-48-22',
-    phoneHref: 'tel:+79031554822',
+    phone: formatRussianPhone('+7 903 155-48-22'),
+    phoneHref: toRussianPhoneHref('+7 903 155-48-22'),
   },
   {
     id: 'elena-morozova',
@@ -74,9 +110,12 @@ export const trainers = [
     minimumAge: '18 лет',
     level: 'Начинающий, индивидуальные тренировки, групповые тренировки',
     metro: 'Белорусская, Маяковская',
+    metroStations: ['Белорусская', 'Маяковская'],
+    preparationLevels: ['Начинающий', 'Индивидуальные тренировки', 'Групповые тренировки'],
+    ageGroups: ['18+'],
     email: 'morozova@smartswim.ru',
-    phone: '+7 915 233-60-14',
-    phoneHref: 'tel:+79152336014',
+    phone: formatRussianPhone('+7 915 233-60-14'),
+    phoneHref: toRussianPhoneHref('+7 915 233-60-14'),
   },
   {
     id: 'kirill-gromov',
@@ -90,9 +129,12 @@ export const trainers = [
     minimumAge: '14 лет',
     level: 'Открытая вода, групповые тренировки, подготовка к соревнованиям',
     metro: 'Щукинская, Стрешнево',
+    metroStations: ['Щукинская', 'Стрешнево'],
+    preparationLevels: ['Подготовка к соревнованиям', 'Открытая вода', 'Групповые тренировки'],
+    ageGroups: ['7-17 лет', '18+'],
     email: 'gromov@smartswim.ru',
-    phone: '+7 977 300-11-45',
-    phoneHref: 'tel:+79773001145',
+    phone: formatRussianPhone('+7 977 300-11-45'),
+    phoneHref: toRussianPhoneHref('+7 977 300-11-45'),
   },
   {
     id: 'sofiya-zhukova',
@@ -106,8 +148,11 @@ export const trainers = [
     minimumAge: '16 лет',
     level: 'Начинающий, открытая вода, индивидуальные тренировки, групповые тренировки',
     metro: 'Павелецкая, Серпуховская',
+    metroStations: ['Павелецкая', 'Серпуховская'],
+    preparationLevels: ['Начинающий', 'Открытая вода', 'Индивидуальные тренировки', 'Групповые тренировки'],
+    ageGroups: ['18+'],
     email: 'zhukova@smartswim.ru',
-    phone: '+7 985 410-09-67',
-    phoneHref: 'tel:+79854100967',
+    phone: formatRussianPhone('+7 985 410-09-67'),
+    phoneHref: toRussianPhoneHref('+7 985 410-09-67'),
   },
 ]

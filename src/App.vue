@@ -23,3 +23,11 @@ const shouldShowFloatingHeader = computed(() => route.meta.showFloatingHeader !=
   justify-content: center;
 }
 </style>
+
+<style>
+body.trainers-booking-modal-open .app-header-wrapper {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+</style>

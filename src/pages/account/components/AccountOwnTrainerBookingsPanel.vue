@@ -1,0 +1,88 @@
+<template>
+  <ElCard class="account__panel" shadow="never">
+    <template #header>
+      <div class="account__panel-head">
+        <div>
+          <p class="account__panel-eyebrow">Записи</p>
+          <h3 class="account__panel-title">Мои записи к тренерам</h3>
+        </div>
+        <div class="account__panel-actions">
+          <ElTag type="primary" effect="light" round>{{ total }} всего</ElTag>
+        </div>
+      </div>
+    </template>
+
+    <div v-if="isLoading && !bookings.length" class="account__loading-state">
+      Загружаем ваши записи...
+    </div>
+
+    <ElTable
+      v-else-if="bookings.length"
+      class="account__consultations-table"
+      :data="bookings"
+      row-key="id"
+      border
+      stripe
+      empty-text="Записей пока нет."
+    >
+      <ElTableColumn label="Тренер" min-width="220">
+        <template #default="{ row }">
+          <div class="account__table-primary">{{ row.trainerName }}</div>
+        </template>
+      </ElTableColumn>
+
+      <ElTableColumn label="Дата и время" min-width="180">
+        <template #default="{ row }">
+          {{ formatTrainerBookingSlot(row) }}
+        </template>
+      </ElTableColumn>
+
+      <ElTableColumn label="Комментарий" min-width="220">
+        <template #default="{ row }">
+          {{ row.comment || 'Без комментария' }}
+        </template>
+      </ElTableColumn>
+
+      <ElTableColumn label="Статус" min-width="156" align="center">
+        <template #default="{ row }">
+          <ElTag :type="trainerBookingStatusType(row.status)" effect="light" round>
+            {{ formatTrainerBookingStatus(row.status) }}
+          </ElTag>
+        </template>
+      </ElTableColumn>
+
+      <ElTableColumn label="Создана" min-width="116" align="center">
+        <template #default="{ row }">
+          {{ formatCompactDateTime(row.createdAt) }}
+        </template>
+      </ElTableColumn>
+    </ElTable>
+
+    <ElEmpty v-else description="Записей к тренерам пока нет." />
+  </ElCard>
+</template>
+
+<script setup>
+import { ElCard, ElEmpty, ElTable, ElTableColumn, ElTag } from 'element-plus'
+import {
+  formatCompactDateTime,
+  formatTrainerBookingSlot,
+  formatTrainerBookingStatus,
+  trainerBookingStatusType,
+} from '@/pages/account/utils/accountFormatters'
+
+defineProps({
+  bookings: {
+    type: Array,
+    required: true,
+  },
+  isLoading: {
+    type: Boolean,
+    required: true,
+  },
+  total: {
+    type: Number,
+    required: true,
+  },
+})
+</script>

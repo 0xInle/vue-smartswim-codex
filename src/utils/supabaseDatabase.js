@@ -1,6 +1,7 @@
 import { CRM_ROLE } from '@/utils/crmRoles'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
+import { formatRussianPhone, isRussianPhone } from '@/utils/phone'
 
 function toMissingTableError(tableName, sqlFilePath) {
   return `CRM недоступна: таблица ${tableName} не найдена. Выполните SQL из файла ${sqlFilePath} в Supabase SQL Editor.`
@@ -29,6 +30,14 @@ function isConsultationStatusConstraintError(error) {
   )
 }
 
+function isTrainerBookingStatusConstraintError(error) {
+  if (!error) {
+    return false
+  }
+
+  return error.code === '23514' && /trainer_bookings_status_check/i.test(error.message || '')
+}
+
 function mapCrmUser(row) {
   return {
     id: row.id ?? null,
@@ -47,10 +56,30 @@ function mapConsultationRequest(row) {
     id: row.id ?? null,
     firstName: row.first_name ?? '',
     lastName: row.last_name ?? '',
-    phone: row.phone ?? '',
+    phone: formatRussianPhone(row.phone ?? ''),
     consultationDate: row.consultation_date ?? '',
     consultationTime: typeof rawTime === 'string' ? rawTime.slice(0, 5) : '',
     status: normalizedStatus,
+    createdAt: row.created_at ?? null,
+  }
+}
+
+function mapTrainerBooking(row) {
+  const rawTime = row.preferred_time ?? ''
+
+  return {
+    id: row.id ?? null,
+    trainerId: row.trainer_id ?? '',
+    trainerName: row.trainer_name ?? '',
+    clientUserId: row.client_user_id ?? null,
+    firstName: row.client_first_name ?? '',
+    lastName: row.client_last_name ?? '',
+    phone: formatRussianPhone(row.client_phone ?? ''),
+    email: row.client_email ?? '',
+    preferredDate: row.preferred_date ?? '',
+    preferredTime: typeof rawTime === 'string' ? rawTime.slice(0, 5) : '',
+    comment: row.comment ?? '',
+    status: row.status ?? 'new',
     createdAt: row.created_at ?? null,
   }
 }
@@ -85,13 +114,75 @@ export async function fetchCurrentCrmUser() {
   return mapCrmUser(data)
 }
 
+export async function createTrainerBooking(payload) {
+  if (!isRussianPhone(payload.phone)) {
+    throw new Error('Укажите номер в формате +7 (961) 471-33-80.')
+  }
+
+  const session = await getCurrentSession().catch(() => null)
+  const resolvedClientUserId = session?.user?.id ?? null
+  const insertPayload = {
+    trainer_id: payload.trainerId,
+    trainer_name: payload.trainerName,
+    client_user_id: resolvedClientUserId,
+    client_first_name: payload.firstName,
+    client_last_name: payload.lastName,
+    client_phone: formatRussianPhone(payload.phone),
+    client_email: payload.email,
+    preferred_date: payload.preferredDate,
+    preferred_time: payload.preferredTime,
+    comment: payload.comment ?? '',
+    status: payload.status ?? 'new',
+  }
+
+  if (!session) {
+    const { error } = await getSupabaseClient().from('trainer_bookings').insert(insertPayload)
+
+    if (error) {
+      if (isMissingTableError(error, 'trainer_bookings')) {
+        throw new Error(toMissingTableError('trainer_bookings', 'supabase/trainer_bookings.sql'))
+      }
+
+      throw new Error(error.message || 'Не удалось записаться к тренеру.')
+    }
+
+    return mapTrainerBooking({
+      ...insertPayload,
+      id: null,
+      created_at: null,
+    })
+  }
+
+  const { data, error } = await getSupabaseClient()
+    .from('trainer_bookings')
+    .insert(insertPayload)
+    .select(
+      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at',
+    )
+    .single()
+
+  if (error) {
+    if (isMissingTableError(error, 'trainer_bookings')) {
+      throw new Error(toMissingTableError('trainer_bookings', 'supabase/trainer_bookings.sql'))
+    }
+
+    throw new Error(error.message || 'Не удалось записаться к тренеру.')
+  }
+
+  return mapTrainerBooking(data)
+}
+
 export async function createConsultationRequest(payload) {
+  if (!isRussianPhone(payload.phone)) {
+    throw new Error('Укажите номер в формате +7 (961) 471-33-80.')
+  }
+
   const { error } = await getSupabaseClient()
     .from('consultation_requests')
     .insert({
       first_name: payload.firstName,
       last_name: payload.lastName,
-      phone: payload.phone,
+      phone: formatRussianPhone(payload.phone),
       consultation_date: payload.consultationDate,
       consultation_time: payload.consultationTime,
       status: payload.status ?? 'new',
@@ -111,7 +202,7 @@ export async function createConsultationRequest(payload) {
     id: null,
     firstName: payload.firstName,
     lastName: payload.lastName,
-    phone: payload.phone,
+    phone: formatRussianPhone(payload.phone),
     consultationDate: payload.consultationDate,
     consultationTime: payload.consultationTime,
     status: payload.status ?? 'new',
@@ -142,6 +233,56 @@ export async function fetchConsultationRequests() {
   }
 
   return (data ?? []).map(mapConsultationRequest)
+}
+
+export async function fetchOwnTrainerBookings() {
+  const session = await getCurrentSession()
+
+  if (!session) {
+    throw new Error('Сессия истекла. Войдите в личный кабинет заново.')
+  }
+
+  const { data, error } = await getSupabaseClient()
+    .from('trainer_bookings')
+    .select(
+      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at',
+    )
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    if (isMissingTableError(error, 'trainer_bookings')) {
+      throw new Error(toMissingTableError('trainer_bookings', 'supabase/trainer_bookings.sql'))
+    }
+
+    throw new Error(error.message || 'Не удалось загрузить ваши записи к тренерам.')
+  }
+
+  return (data ?? []).map(mapTrainerBooking)
+}
+
+export async function fetchTrainerBookings() {
+  const session = await getCurrentSession()
+
+  if (!session) {
+    throw new Error('Сессия истекла. Войдите в CRM заново.')
+  }
+
+  const { data, error } = await getSupabaseClient()
+    .from('trainer_bookings')
+    .select(
+      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at',
+    )
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    if (isMissingTableError(error, 'trainer_bookings')) {
+      throw new Error(toMissingTableError('trainer_bookings', 'supabase/trainer_bookings.sql'))
+    }
+
+    throw new Error(error.message || 'Не удалось загрузить записи к тренерам.')
+  }
+
+  return (data ?? []).map(mapTrainerBooking)
 }
 
 export async function updateConsultationRequestStatus({ id, status }) {
@@ -199,6 +340,41 @@ export async function updateConsultationRequestStatus({ id, status }) {
   return mapConsultationRequest(data)
 }
 
+export async function updateTrainerBookingStatus({ id, status }) {
+  const session = await getCurrentSession()
+
+  if (!session) {
+    throw new Error('Сессия истекла. Войдите в CRM заново.')
+  }
+
+  const { data, error } = await getSupabaseClient()
+    .from('trainer_bookings')
+    .update({
+      status,
+    })
+    .eq('id', id)
+    .select(
+      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at',
+    )
+    .single()
+
+  if (error) {
+    if (isMissingTableError(error, 'trainer_bookings')) {
+      throw new Error(toMissingTableError('trainer_bookings', 'supabase/trainer_bookings.sql'))
+    }
+
+    if (isTrainerBookingStatusConstraintError(error)) {
+      throw new Error(
+        'В Supabase еще не обновлен список статусов trainer_bookings. Выполните SQL из файла supabase/trainer_bookings.sql и повторите действие.',
+      )
+    }
+
+    throw new Error(error.message || 'Не удалось обновить статус записи.')
+  }
+
+  return mapTrainerBooking(data)
+}
+
 export function subscribeToConsultationRequests(callback) {
   const client = getSupabaseClient()
   const channel = client
@@ -209,6 +385,26 @@ export function subscribeToConsultationRequests(callback) {
         event: '*',
         schema: 'public',
         table: 'consultation_requests',
+      },
+      callback,
+    )
+    .subscribe()
+
+  return () => {
+    void client.removeChannel(channel)
+  }
+}
+
+export function subscribeToTrainerBookings(callback) {
+  const client = getSupabaseClient()
+  const channel = client
+    .channel('trainer-bookings-feed')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'trainer_bookings',
       },
       callback,
     )

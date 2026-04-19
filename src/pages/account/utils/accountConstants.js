@@ -25,16 +25,37 @@ export const CONSULTATION_STATUS_OPTIONS = [
   { value: CONSULTATION_STATUS.CLOSED, label: 'Закрыта' },
 ]
 
+export const TRAINER_BOOKING_STATUS = Object.freeze({
+  NEW: 'new',
+  CONTACTED: 'contacted',
+  CONFIRMED: 'confirmed',
+  CANCELLED: 'cancelled',
+  COMPLETED: 'completed',
+})
+
+export const TRAINER_BOOKING_STATUS_OPTIONS = [
+  { value: TRAINER_BOOKING_STATUS.NEW, label: 'Новая' },
+  { value: TRAINER_BOOKING_STATUS.CONTACTED, label: 'Связались' },
+  { value: TRAINER_BOOKING_STATUS.CONFIRMED, label: 'Подтверждена' },
+  { value: TRAINER_BOOKING_STATUS.CANCELLED, label: 'Отменена' },
+  { value: TRAINER_BOOKING_STATUS.COMPLETED, label: 'Завершена' },
+]
+
 export const USER_STATUS_OPTIONS = [
-  { value: 'active', label: 'Активен' },
-  { value: 'pending', label: 'Ожидает' },
-  { value: 'blocked', label: 'Заблокирован' },
+  { value: 'paid', label: 'Оплачено' },
+  { value: 'unpaid', label: 'Не оплачено' },
 ]
 
 export const USER_ROLE_OPTIONS = [
   { value: CRM_ROLE.USER, label: 'Пользователь' },
   { value: CRM_ROLE.TRAINER, label: 'Тренер' },
   { value: CRM_ROLE.ADMIN, label: 'Администратор' },
+]
+
+export const COMPETITION_NAME_OPTIONS = [
+  { value: 'all', label: 'Все соревнования' },
+  { value: 'SmartSwimCup', label: 'SmartSwimCup' },
+  { value: 'smartiki', label: 'smartiki' },
 ]
 
 export function createDefaultPasswordChangeForm() {
@@ -70,6 +91,6 @@ export function createDefaultUserEditForm() {
     email: '',
     phone: '',
     role: CRM_ROLE.USER,
-    status: 'active',
+    status: 'paid',
   }
 }
