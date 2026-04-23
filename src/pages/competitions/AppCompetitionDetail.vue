@@ -9,7 +9,11 @@
             v-for="card in competition.cards"
             :key="`${competition.slug}-${card.title}`"
             :card="card"
-            :active="hasRegistrationFlow && selectedCardKey === getCardKey(card)"
+            :active="
+              hasRegistrationFlow &&
+              isRegistrationModalOpen &&
+              selectedCardKey === getCardKey(card)
+            "
             @open-registration="openRegistrationCard(card)"
           />
         </div>

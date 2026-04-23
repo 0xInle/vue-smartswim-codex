@@ -201,7 +201,7 @@ let lastAccountSyncAt = 0
 const {
   currentUser,
   currentRole,
-  currentRoleLabel,
+  // currentRoleLabel,
   isAdmin,
   isProfileLoading,
   profileLoadError,
@@ -222,11 +222,8 @@ const {
   minPasswordLength,
 } = useAccountPasswordChange({ currentUser })
 
-const {
-  ownTrainerBookingsError,
-  syncOwnTrainerBookings,
-  clearOwnTrainerBookings,
-} = useOwnTrainerBookings()
+const { ownTrainerBookingsError, syncOwnTrainerBookings, clearOwnTrainerBookings } =
+  useOwnTrainerBookings()
 
 const {
   consultationRequests,
@@ -356,9 +353,7 @@ const navigationItems = computed(() => {
     ]
   }
 
-  return [
-    { id: 'dashboard', label: 'Личный кабинет', icon: Monitor },
-  ]
+  return [{ id: 'dashboard', label: 'Личный кабинет', icon: Monitor }]
 })
 
 const sectionContent = computed(() => {

@@ -1,3 +1,5 @@
+import { publicAsset } from '@/utils/publicAsset'
+
 export const archiveSeasons = [
   {
     year: '2025',
@@ -53,3 +55,19 @@ export const archiveSeasons = [
     ],
   },
 ]
+
+export const archiveGalleryImages = [
+  { src: publicAsset('/images/07-img.webp'), alt: 'Архив соревнований Smart Swim 2025' },
+  { src: publicAsset('/images/08-img.webp'), alt: 'Архив соревнований Smart Swim 2024' },
+  { src: publicAsset('/images/09-img.webp'), alt: 'Архив соревнований Smart Swim 2023' },
+  { src: publicAsset('/images/10-img.webp'), alt: 'Архив соревнований Smart Swim 2022' },
+  { src: publicAsset('/images/11-img.webp'), alt: 'Момент с прошедших стартов Smart Swim' },
+  { src: publicAsset('/images/12-img.webp'), alt: 'Пловцы на архивных соревнованиях Smart Swim' },
+  { src: publicAsset('/images/13-img.webp'), alt: 'Награждение на соревнованиях Smart Swim' },
+  { src: publicAsset('/images/14-img.webp'), alt: 'Эмоции участников Smart Swim' },
+  { src: publicAsset('/images/15-img.webp'), alt: 'Финишный момент соревнований Smart Swim' },
+]
+
+export const archiveGridStyle = {
+  '--archive-grid-image': `url(${publicAsset('/images/06-img.webp')})`,
+}
