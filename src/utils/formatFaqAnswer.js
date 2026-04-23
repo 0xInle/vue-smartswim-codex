@@ -9,8 +9,12 @@ function escapeHtml(value) {
 
 function linkify(text) {
   const escapedText = escapeHtml(text)
+  const normalizedText = escapedText.replace(
+    /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi,
+    (match) => match.toLowerCase(),
+  )
 
-  return escapedText.replace(
+  return normalizedText.replace(
     /((?:https?:\/\/|www\.)[^\s<]+|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi,
     (match) => {
       const href = match.includes('@')

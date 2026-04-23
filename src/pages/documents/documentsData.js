@@ -30,7 +30,7 @@ export const documents = [
     format: 'PDF',
     size: '297.2 KB',
     badge: 'Соревнования',
-    url: createAbsoluteUrl('/uploads/documents/ПоложениеСмартики2026.pdf'),
+    url: createAbsoluteUrl('/uploads/documents/ПоложениеСмартики2026.pdf?v=20260423'),
   },
   {
     title: 'Правила посещения плавательного бассейна',
