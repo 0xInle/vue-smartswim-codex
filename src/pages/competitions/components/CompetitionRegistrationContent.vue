@@ -4,7 +4,7 @@
       <span class="competition-registration__eyebrow">Регистрация этапа</span>
       <h2 class="competition-registration__title">{{ card.title }}</h2>
       <p class="competition-registration__subtitle">
-        {{ card.date }}<span v-if="card.place"> · {{ card.place }}</span>
+        {{ formatCompetitionDateLabel(card.date) }}<span v-if="card.place"> · {{ card.place }}</span>
       </p>
     </div>
 
@@ -83,6 +83,7 @@
 
 <script setup>
 import { RouterLink } from 'vue-router'
+import { formatCompetitionDateLabel } from '@/utils/competitionRegistration'
 
 defineProps({
   card: {
@@ -277,9 +278,9 @@ defineProps({
 }
 
 .competition-registration__action--register {
-  --button-bg: var(--button-orange-bg);
-  --button-hover-bg: var(--button-orange-hover-bg);
-  --button-focus-color: var(--orange);
+  --button-bg: color-mix(in srgb, #2f8f5b 90%, transparent);
+  --button-hover-bg: color-mix(in srgb, #2f8f5b 72%, transparent);
+  --button-focus-color: #2f8f5b;
   --button-text: var(--black);
   background-color: var(--button-current-bg, var(--button-bg));
   color: var(--button-text);

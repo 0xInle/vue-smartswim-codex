@@ -1,10 +1,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-
-const DEFAULT_DATE_FORMAT = new Intl.DateTimeFormat('ru-RU', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-})
+import {
+  formatCompetitionDateLabel,
+  resolveCompetitionRegistrationState,
+} from '@/utils/competitionRegistration'
 
 export function useCompetitionRegistrationPanel(props, emit) {
   const now = ref(Date.now())
@@ -13,31 +11,8 @@ export function useCompetitionRegistrationPanel(props, emit) {
   let previousBodyOverflow = ''
   let escapeListenerAttached = false
 
-  function parseTimestamp(value) {
-    if (!value) {
-      return null
-    }
-
-    const timestamp = Date.parse(value)
-    return Number.isNaN(timestamp) ? null : timestamp
-  }
-
   function pad(value) {
     return String(value).padStart(2, '0')
-  }
-
-  function formatDateLabel(value) {
-    if (!value) {
-      return ''
-    }
-
-    const timestamp = parseTimestamp(value)
-
-    if (!timestamp) {
-      return value
-    }
-
-    return DEFAULT_DATE_FORMAT.format(new Date(timestamp))
   }
 
   function buildCountdown(openAt) {
@@ -55,82 +30,49 @@ export function useCompetitionRegistrationPanel(props, emit) {
     }
   }
 
+  function resolveCompetitionDateLabel(registration) {
+    return registration.competitionDateLabel && registration.competitionDateLabel !== '—'
+      ? registration.competitionDateLabel
+      : props.card?.date || formatCompetitionDateLabel(registration.openAt)
+  }
+
   function resolveRegistration() {
     const cardRegistration = props.card?.registration ?? {}
     const sharedRegistration = props.competitionRegistration ?? {}
-
     const registration = {
       ...sharedRegistration,
       ...cardRegistration,
     }
+    const resolvedRegistration = resolveCompetitionRegistrationState(registration)
 
-    const competitionDateLabel =
-      registration.competitionDateLabel || props.card?.date || formatDateLabel(registration.openAt)
-
-    if (registration.status === 'closed') {
+    if (resolvedRegistration.mode === 'open') {
       return {
-        mode: 'closed',
-        openAt: registration.openAt || '',
-        competitionDateLabel,
-        closedText: registration.closedText || '',
-        closedTitle: registration.closedTitle || 'Регистрация закрыта',
-        openDateLabel: registration.openDateLabel || '',
-        closeNote: registration.closeNote || '',
+        ...resolvedRegistration,
+        competitionDateLabel: resolveCompetitionDateLabel(resolvedRegistration),
       }
     }
 
-    if (registration.status === 'open') {
+    if (resolvedRegistration.mode === 'closed') {
       return {
-        mode: 'open',
-        openAt: registration.openAt || '',
-        competitionDateLabel,
-        closedText: registration.closedText || '',
-        openDateLabel: registration.openDateLabel || formatDateLabel(registration.openAt),
-        closeNote: registration.closeNote || '',
+        ...resolvedRegistration,
+        competitionDateLabel: resolveCompetitionDateLabel(resolvedRegistration),
       }
     }
 
-    const openAt = parseTimestamp(registration.openAt)
-    const closeAt = parseTimestamp(registration.closeAt)
-
-    if (!openAt || now.value >= openAt) {
-      if (closeAt && now.value >= closeAt) {
-        return {
-          mode: 'closed',
-          openAt: registration.openAt || '',
-          competitionDateLabel,
-          closedText: registration.closedText || 'Регистрация завершена.',
-          closedTitle: registration.closedTitle || 'Регистрация закрыта',
-          openDateLabel: registration.openDateLabel || formatDateLabel(registration.openAt),
-          closeNote: registration.closeNote || '',
-        }
-      }
-
-      return {
-        mode: 'open',
-        openAt: registration.openAt || '',
-        competitionDateLabel,
-        closedText: registration.closedText || '',
-        openDateLabel: registration.openDateLabel || formatDateLabel(registration.openAt),
-        closeNote: registration.closeNote || '',
-      }
-    }
+    const openAt = Date.parse(resolvedRegistration.openAt)
 
     return {
-      mode: 'upcoming',
-      openAt: registration.openAt || '',
-      competitionDateLabel,
-      closedText: registration.closedText || '',
-      openDateLabel: registration.openDateLabel || formatDateLabel(registration.openAt),
-      closeNote: registration.closeNote || '',
-      countdown: buildCountdown(openAt),
+      ...resolvedRegistration,
+      competitionDateLabel: resolveCompetitionDateLabel(resolvedRegistration),
+      countdown: buildCountdown(Number.isNaN(openAt) ? now.value : openAt),
     }
   }
 
   const state = computed(() => resolveRegistration())
 
   const countdownParts = computed(() => {
-    const countdown = state.value.countdown || buildCountdown(parseTimestamp(state.value.openAt) || now.value)
+    const countdown =
+      state.value.countdown || buildCountdown(Date.parse(state.value.openAt) || now.value)
 
     return [
       { label: 'Дней', value: pad(countdown.days) },
@@ -141,7 +83,9 @@ export function useCompetitionRegistrationPanel(props, emit) {
   })
 
   const positionUrl = computed(() => props.competitionRegistration?.positionUrl || '')
-  const documentsRoute = computed(() => props.competitionRegistration?.documentsRoute || '/documents')
+  const documentsRoute = computed(
+    () => props.competitionRegistration?.documentsRoute || '/documents',
+  )
   const accordionSections = computed(
     () => props.competitionRegistration?.faqSections || props.competitionFaqSections || [],
   )

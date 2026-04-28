@@ -99,14 +99,19 @@
 
           <AccountCompetitionsPanel
             v-else-if="isAdmin && activeSection === 'competitions'"
-            :rows="filteredCompetitionPayments"
+            :rows="filteredCompetitionStages"
             :is-loading="false"
-            :search="competitionSearch"
             :competition-filter="competitionFilter"
             :competition-options="competitionOptions"
-            :total="filteredCompetitionPaymentsTotal"
-            @update:search="competitionSearch = $event"
+            :total="filteredCompetitionStagesTotal"
+            :open-count="filteredOpenCompetitionRegistrationsCount"
+            :get-stage-distances="getCompetitionStageDescription"
             @update:competition-filter="competitionFilter = $event"
+            @update-stage="handleCompetitionStageUpdate"
+            @update-stage-links="handleCompetitionStageLinksUpdate"
+            @update-stage-distances="handleCompetitionStageDistancesUpdate"
+            @create-stage="handleCompetitionStageCreate"
+            @delete-stage="handleCompetitionStageDelete"
           />
 
           <AccountUsersPanel
@@ -167,7 +172,7 @@ import AccountUsersPanel from '@/pages/account/components/AccountUsersPanel.vue'
 import { useOwnTrainerBookings } from '@/pages/account/composables/useOwnTrainerBookings'
 import { useAccountPasswordChange } from '@/pages/account/composables/useAccountPasswordChange'
 import { useAccountSession } from '@/pages/account/composables/useAccountSession'
-import { useCompetitionPayments } from '@/pages/account/composables/useCompetitionPayments'
+import { useCompetitionStages } from '@/pages/account/composables/useCompetitionStages'
 import { useAccountUsers } from '@/pages/account/composables/useAccountUsers'
 import { useConsultationRequests } from '@/pages/account/composables/useConsultationRequests'
 import { useTrainerBookings } from '@/pages/account/composables/useTrainerBookings'
@@ -265,12 +270,38 @@ const {
 } = useTrainerBookings({ isAdmin })
 
 const {
-  competitionSearch,
   competitionFilter,
   competitionOptions,
-  filteredCompetitionPayments,
-  filteredCompetitionPaymentsTotal,
-} = useCompetitionPayments()
+  filteredCompetitionStages,
+  filteredCompetitionStagesTotal,
+  filteredOpenCompetitionRegistrationsCount,
+  updateCompetitionStage,
+  updateCompetitionStageLinks,
+  updateCompetitionStageDistances,
+  getCompetitionStageDescription,
+  deleteCompetitionStage,
+  createCompetitionStage,
+} = useCompetitionStages()
+
+function handleCompetitionStageUpdate(payload) {
+  updateCompetitionStage(payload.stageId, payload)
+}
+
+function handleCompetitionStageLinksUpdate(payload) {
+  updateCompetitionStageLinks(payload.stageId, payload)
+}
+
+function handleCompetitionStageDistancesUpdate(payload) {
+  updateCompetitionStageDistances(payload.stageId, payload.description)
+}
+
+function handleCompetitionStageCreate(payload) {
+  createCompetitionStage(payload)
+}
+
+function handleCompetitionStageDelete(stageId) {
+  deleteCompetitionStage(stageId)
+}
 
 const {
   users,

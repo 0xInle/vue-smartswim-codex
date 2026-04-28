@@ -1,8 +1,5 @@
 <template>
-  <article
-    class="competition-detail-card"
-    :class="{ 'competition-detail-card--active': active }"
-  >
+  <article class="competition-detail-card" :class="{ 'competition-detail-card--active': active }">
     <div class="competition-detail-card__head">
       <span class="competition-detail-card__title">{{ card.title }}</span>
       <button
@@ -17,10 +14,14 @@
     </div>
 
     <div class="competition-detail-card__body">
-      <div class="competition-detail-card__date">{{ card.date }}</div>
-      <div v-if="card.place" class="competition-detail-card__place">{{ card.place }}</div>
+      <div class="competition-detail-card__date">{{ cardDateLabel }}</div>
+      <div v-if="normalizedPlace" class="competition-detail-card__place">
+        {{ normalizedPlace }}
+      </div>
       <div class="competition-detail-card__text">
-        <div class="competition-detail-card__text-column competition-detail-card__text-column--distance">
+        <div
+          class="competition-detail-card__text-column competition-detail-card__text-column--distance"
+        >
           <span
             v-for="item in descriptionParts"
             :key="`${card.title}-${item.distance}`"
@@ -30,7 +31,9 @@
           </span>
         </div>
 
-        <div class="competition-detail-card__text-column competition-detail-card__text-column--stroke">
+        <div
+          class="competition-detail-card__text-column competition-detail-card__text-column--stroke"
+        >
           <span
             v-for="item in descriptionParts"
             :key="`${card.title}-${item.distance}-${item.label}`"
@@ -50,6 +53,10 @@
 
 <script setup>
 import { computed } from 'vue'
+import {
+  formatCompetitionDateLabel,
+  resolveCompetitionRegistrationState,
+} from '@/utils/competitionRegistration'
 
 const props = defineProps({
   card: {
@@ -63,6 +70,32 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['open-registration'])
+
+const registrationOpenDateLabel = computed(() => {
+  const registration = props.card.registration
+
+  if (!registration) {
+    return ''
+  }
+
+  return resolveCompetitionRegistrationState(registration).openDateLabel || ''
+})
+
+const normalizedPlace = computed(() => {
+  const place = String(props.card.place || '').trim()
+
+  return place === '-' || place === '—' ? '' : place
+})
+
+const cardDateLabel = computed(() => {
+  const dateLabel = formatCompetitionDateLabel(props.card.date)
+
+  if (dateLabel && dateLabel !== '—') {
+    return dateLabel
+  }
+
+  return registrationOpenDateLabel.value || '—'
+})
 
 function formatCardDescription(description = '') {
   return description

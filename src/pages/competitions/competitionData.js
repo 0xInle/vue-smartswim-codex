@@ -1,3 +1,4 @@
+import { reactive } from 'vue'
 import { publicAsset } from '@/utils/publicAsset'
 
 const block = (...lines) => lines.join('\n')
@@ -91,7 +92,7 @@ const sharedRegistrationFaqSections = [
   },
 ]
 
-export const competitionDirections = [
+const competitionDirectionsSource = [
   {
     slug: 'smartswimcup',
     badge: 'Основная серия',
@@ -357,7 +358,7 @@ export const competitionDirections = [
   {
     slug: 'smartiki',
     badge: 'Соревнования по плаванию',
-    title: 'smartiki 2026',
+    title: 'Smartiki 2026',
     subtitle: '2019 г.р. и младше',
     summary: 'Календарь соревнований на 2026 год.',
     description: 'Презентация кубка smartiki',
@@ -611,6 +612,8 @@ export const competitionDirections = [
     ],
   },
 ]
+
+export const competitionDirections = reactive(competitionDirectionsSource)
 
 export function getCompetitionBySlug(slug) {
   return competitionDirections.find((item) => item.slug === slug)

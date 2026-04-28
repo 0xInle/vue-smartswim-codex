@@ -1,8 +1,11 @@
 import { getCrmRoleLabel } from '@/utils/crmRoles'
 import {
-  CONSULTATION_STATUS,
-  TRAINER_BOOKING_STATUS,
-} from '@/pages/account/utils/accountConstants'
+  formatCompetitionDateInputValue,
+  formatCompetitionDateLabel,
+  formatCompetitionDateShortLabel,
+  resolveCompetitionRegistrationState,
+} from '@/utils/competitionRegistration'
+import { CONSULTATION_STATUS, TRAINER_BOOKING_STATUS } from '@/pages/account/utils/accountConstants'
 
 export function getErrorMessage(error, fallback) {
   return error instanceof Error ? error.message : fallback
@@ -212,7 +215,17 @@ export function competitionNameTagType(name) {
 }
 
 export function formatCompetitionName(name) {
-  return name || 'Не указано'
+  if (!name) {
+    return 'Не указано'
+  }
+
+  const normalizedName = String(name).trim()
+
+  if (!normalizedName) {
+    return 'Не указано'
+  }
+
+  return normalizedName.charAt(0).toUpperCase() + normalizedName.slice(1)
 }
 
 export function formatCompetitionPaymentAmount(value) {
@@ -237,4 +250,89 @@ export function formatCompetitionPaymentDate(value) {
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(`${value}T00:00:00`))
+}
+
+export function formatCompetitionStageLabel(stage) {
+  if (!Number.isFinite(Number(stage))) {
+    return 'Этап'
+  }
+
+  return `Этап ${Number(stage)}`
+}
+
+export function formatCompetitionCalendarDate(value) {
+  if (!value) {
+    return 'Не указана'
+  }
+
+  return formatCompetitionDateLabel(value)
+}
+
+export function formatCompetitionCalendarDateShort(value) {
+  if (!value) {
+    return 'Не указана'
+  }
+
+  return formatCompetitionDateShortLabel(value)
+}
+
+export function formatCompetitionDateForInput(value) {
+  if (!value) {
+    return ''
+  }
+
+  return formatCompetitionDateInputValue(value)
+}
+
+export function competitionRegistrationStatusType(registration) {
+  const state =
+    typeof registration === 'string'
+      ? registration
+      : resolveCompetitionRegistrationState(registration).mode
+
+  if (state === 'open') {
+    return 'success'
+  }
+
+  return 'danger'
+}
+
+export function formatCompetitionRegistrationStatus(registration) {
+  const state =
+    typeof registration === 'string'
+      ? registration
+      : resolveCompetitionRegistrationState(registration).mode
+
+  if (state === 'open') {
+    return 'Открыта'
+  }
+
+  return 'Закрыта'
+}
+
+export function formatCompetitionRegistrationWindow(registration) {
+  if (!registration) {
+    return ''
+  }
+
+  const openDate = normalizeEmptyDateLabel(formatCompetitionDateShortLabel(registration.openAt))
+  const closeDate = normalizeEmptyDateLabel(formatCompetitionDateShortLabel(registration.closeAt))
+
+  if (!openDate && !closeDate) {
+    return ''
+  }
+
+  if (!openDate) {
+    return `До ${closeDate}`
+  }
+
+  if (!closeDate) {
+    return `С ${openDate}`
+  }
+
+  return `${openDate} - ${closeDate}`
+}
+
+function normalizeEmptyDateLabel(value) {
+  return value === '—' ? '' : value
 }

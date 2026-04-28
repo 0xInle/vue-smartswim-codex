@@ -259,6 +259,12 @@
   padding-right: 56px;
 }
 
+.account__input--compact {
+  min-height: 38px;
+  padding-inline: 12px;
+  font-size: 13px;
+}
+
 .account__input--toolbar {
   min-height: 38px;
 }
@@ -319,7 +325,7 @@
 
 .account__submit {
   justify-self: start;
-  min-height: 48px;
+  min-height: 47px;
   padding: 12px 20px;
   border-radius: 10px;
   background: var(--button-orange-bg);
@@ -503,7 +509,7 @@
 
 .account__competitions-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(220px, 0.72fr) auto;
+  grid-template-columns: minmax(0, 320px) minmax(160px, 1fr) auto;
   gap: 12px;
   align-items: end;
   margin-bottom: 16px;
@@ -541,16 +547,7 @@
 }
 
 .account__users-toolbar-meta .el-tag,
-.account__consultations-toolbar-meta .el-tag {
-  min-height: 38px;
-  padding-inline: 16px;
-  border-width: 1px;
-  border-style: solid;
-  border-color: #dbe7f4;
-  border-radius: 10px;
-  font-weight: 800;
-}
-
+.account__consultations-toolbar-meta .el-tag,
 .account__competitions-toolbar-meta .el-tag {
   min-height: 38px;
   padding-inline: 16px;
@@ -619,14 +616,170 @@
   color: #2f8f5b;
 }
 
-.account__documents-cell {
-  display: grid;
-  gap: 6px;
-  justify-items: center;
+.account__table-action--protocol {
+  min-height: 38px;
+  background: linear-gradient(180deg, #eaf9ff 0%, #dff3ff 100%);
+  color: #176384;
 }
 
-.account__documents-cell .account__table-secondary {
+.account__table-action--photo {
+  min-height: 38px;
+  background: #f6fbff;
+  color: #4f667d;
+}
+
+.account__table-action--distance {
+  background: #fffaf1;
+  color: #9b5f12;
+}
+
+.account__table-action--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  padding: 0;
+}
+
+.account__table-action--icon .el-icon {
+  font-size: 18px;
+}
+
+.account__table-action--ghost.account__table-action--icon {
+  background: #f6f8fb;
+}
+
+.account__competition-name,
+.account__competition-file,
+.account__competition-registration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   text-align: center;
+}
+
+.account__competition-file {
+  position: relative;
+}
+
+.account__competition-name {
+  justify-content: flex-start;
+}
+
+.account__competition-add,
+.account__dialog-link-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.account__competition-add {
+  width: 100%;
+  min-height: 40px;
+  justify-self: stretch;
+}
+
+.account__dialog-link-toggle {
+  width: fit-content;
+}
+
+.account__field-grid--compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.account__competition-link-form {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 8;
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 38px;
+  gap: 8px;
+  align-items: center;
+  width: max-content;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 20%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.98);
+  box-shadow: 0 16px 34px rgb(15 23 42 / 0.16);
+  transform: translateX(-50%);
+}
+
+.account__distance-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.account__distance-editor-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.45fr) minmax(180px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: rgb(246 251 255 / 0.74);
+}
+
+.account__distance-add {
+  justify-self: start;
+}
+
+.account__competition-stage {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--black);
+}
+
+.account__competition-registration {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.account__competition-registration-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.account__competition-registration-dot--open {
+  background: #2f8f5b;
+  box-shadow: 0 0 0 4px rgb(47 143 91 / 0.16);
+}
+
+.account__competition-registration-dot--closed {
+  background: #d76034;
+  box-shadow: 0 0 0 4px rgb(215 96 52 / 0.16);
+}
+
+.account__competition-registration-window {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.account__competition-actions-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.account__native-table--competitions .account__native-table-cell {
+  vertical-align: middle;
+}
+
+.account__native-table--competitions .account__native-table-cell--center {
+  white-space: nowrap;
 }
 
 .account__pagination-wrap {
@@ -662,12 +815,23 @@
   gap: 8px;
 }
 
+.account__dialog-copy--centered {
+  text-align: center;
+}
+
 .account__dialog-text,
 .account__dialog-hint {
   margin: 0;
 }
 
 .account__dialog-text {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--black);
+}
+
+.account__dialog-title-line {
+  margin: 0;
   font-size: 16px;
   font-weight: 800;
   color: var(--black);
@@ -684,6 +848,11 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 18px;
+}
+
+.account__dialog-actions .account__table-action,
+.account__dialog-actions .account__submit {
+  min-height: 47px;
 }
 
 .account__menu-label {
@@ -1028,7 +1197,9 @@
   max-height: none;
 }
 
-.account__dialog .el-dialog {
+.account__dialog,
+.account-date-picker__confirm-dialog {
+  --el-dialog-border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
   border-radius: 10px;
   background: rgb(255 255 255 / 0.96);
@@ -1037,6 +1208,43 @@
 
 .account__dialog .el-dialog__header {
   padding: 20px 20px 0;
+}
+
+.account__dialog .el-dialog__headerbtn,
+.account-date-picker__confirm-dialog .el-dialog__headerbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  top: 18px;
+  right: 18px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.94);
+  line-height: 1;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.account__dialog .el-dialog__headerbtn:hover,
+.account__dialog .el-dialog__headerbtn:focus-visible,
+.account-date-picker__confirm-dialog .el-dialog__headerbtn:hover,
+.account-date-picker__confirm-dialog .el-dialog__headerbtn:focus-visible {
+  border-color: color-mix(in srgb, var(--cyan) 46%, white);
+  background: color-mix(in srgb, var(--cyan) 10%, white);
+  outline: none;
+}
+
+.account__dialog .el-dialog__close,
+.account-date-picker__confirm-dialog .el-dialog__close {
+  position: static;
+  width: 16px;
+  height: 16px;
+  color: #526072;
 }
 
 .account__dialog .el-dialog__title {
@@ -1048,6 +1256,10 @@
 
 .account__dialog .el-dialog__body {
   padding: 20px;
+}
+
+.account__select-popper--full .el-select-dropdown__item {
+  white-space: nowrap;
 }
 
 .el-descriptions__label,
@@ -1142,6 +1354,7 @@
   }
 
   .account__field-grid,
+  .account__distance-editor-row,
   .account__consultation-status-editor {
     grid-template-columns: 1fr;
   }
