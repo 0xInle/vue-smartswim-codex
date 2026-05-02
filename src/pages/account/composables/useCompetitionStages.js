@@ -154,7 +154,7 @@ export function useCompetitionStages() {
     ).length
   })
 
-  function updateCompetitionStage(
+function updateCompetitionStage(
     stageId,
     { competitionName, date, openAt, closeAt, protocolUrl, photoUrl } = {},
   ) {
@@ -193,7 +193,6 @@ export function useCompetitionStages() {
     const nextRegistration = {
       ...targetStage.registration,
       competitionDateLabel: formatCompetitionDateLabel(targetStage.date),
-      status: undefined,
     }
 
     if (openAt !== undefined) {
@@ -247,7 +246,6 @@ export function useCompetitionStages() {
     const nextCardRegistration = {
       ...direction.cards[directionCardIndex].registration,
       competitionDateLabel: formatCompetitionDateLabel(direction.cards[directionCardIndex].date),
-      status: undefined,
     }
 
     if (openAt !== undefined) {

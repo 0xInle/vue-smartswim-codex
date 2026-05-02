@@ -38,6 +38,15 @@
         <p v-if="state.closeNote" class="competition-registration__badge">
           {{ state.closeNote }}
         </p>
+        <div class="competition-registration__status-footer">
+          <button
+            type="button"
+            class="competition-registration__action competition-registration__action--register btn-reset"
+            @click="emit('register')"
+          >
+            Зарегистрироваться
+          </button>
+        </div>
       </template>
 
       <template v-else>
@@ -70,13 +79,6 @@
         Документы
       </RouterLink>
 
-      <button
-        v-if="state.mode === 'open'"
-        type="button"
-        class="competition-registration__action competition-registration__action--register btn-reset"
-      >
-        Зарегистрироваться
-      </button>
     </div>
   </div>
 </template>
@@ -84,6 +86,8 @@
 <script setup>
 import { RouterLink } from 'vue-router'
 import { formatCompetitionDateLabel } from '@/utils/competitionRegistration'
+
+const emit = defineEmits(['register'])
 
 defineProps({
   card: {
@@ -230,6 +234,13 @@ defineProps({
   text-align: center;
 }
 
+.competition-registration__status-footer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding-top: 6px;
+}
+
 .competition-registration__actions {
   display: flex;
   justify-content: center;
@@ -278,10 +289,11 @@ defineProps({
 }
 
 .competition-registration__action--register {
-  --button-bg: color-mix(in srgb, #2f8f5b 90%, transparent);
-  --button-hover-bg: color-mix(in srgb, #2f8f5b 72%, transparent);
-  --button-focus-color: #2f8f5b;
+  --button-bg: var(--button-orange-bg);
+  --button-hover-bg: var(--button-orange-hover-bg);
+  --button-focus-color: var(--orange);
   --button-text: var(--black);
+  min-width: 240px;
   background-color: var(--button-current-bg, var(--button-bg));
   color: var(--button-text);
 }

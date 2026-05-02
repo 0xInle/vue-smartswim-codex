@@ -170,27 +170,41 @@ export function buildCompetitionRegistrationWindow(stageDate) {
 }
 
 export function resolveCompetitionRegistrationState(registration = {}, now = Date.now()) {
-  const explicitStatus = registration.status
   const openAt = normalizeCompetitionTimestamp(registration.openAt)
   const closeAt = normalizeCompetitionTimestamp(registration.closeAt)
   const openDateLabel = registration.openDateLabel || formatCompetitionDateShortLabel(openAt)
 
-  if (explicitStatus === 'closed') {
-    return {
-      mode: 'closed',
-      openAt: registration.openAt || '',
-      closeAt: registration.closeAt || '',
-      openDateLabel,
-      closeDateLabel: registration.closeDateLabel || formatCompetitionDateShortLabel(closeAt),
-      closedTitle: registration.closedTitle || 'Регистрация закрыта',
-      closedText: registration.closedText || '',
-      closeNote: registration.closeNote || '',
-      competitionDateLabel:
-        registration.competitionDateLabel || formatCompetitionDateLabel(registration.openAt),
+  if (openAt) {
+    if (now < openAt) {
+      return {
+        mode: 'upcoming',
+        openAt: registration.openAt || '',
+        closeAt: registration.closeAt || '',
+        openDateLabel,
+        closeDateLabel: registration.closeDateLabel || formatCompetitionDateShortLabel(closeAt),
+        closedTitle: registration.closedTitle || 'Регистрация закрыта',
+        closedText: registration.closedText || '',
+        closeNote: registration.closeNote || '',
+        competitionDateLabel:
+          registration.competitionDateLabel || formatCompetitionDateLabel(registration.openAt),
+      }
     }
-  }
 
-  if (explicitStatus === 'open') {
+    if (closeAt && now >= closeAt) {
+      return {
+        mode: 'closed',
+        openAt: registration.openAt || '',
+        closeAt: registration.closeAt || '',
+        openDateLabel,
+        closeDateLabel: registration.closeDateLabel || formatCompetitionDateShortLabel(closeAt),
+        closedTitle: registration.closedTitle || 'Регистрация закрыта',
+        closedText: registration.closedText || 'Регистрация завершена.',
+        closeNote: registration.closeNote || '',
+        competitionDateLabel:
+          registration.competitionDateLabel || formatCompetitionDateLabel(registration.openAt),
+      }
+    }
+
     return {
       mode: 'open',
       openAt: registration.openAt || '',
@@ -205,44 +219,14 @@ export function resolveCompetitionRegistrationState(registration = {}, now = Dat
     }
   }
 
-  if (!openAt || now < openAt) {
-    return {
-      mode: 'upcoming',
-      openAt: registration.openAt || '',
-      closeAt: registration.closeAt || '',
-      openDateLabel,
-      closeDateLabel: registration.closeDateLabel || formatCompetitionDateShortLabel(closeAt),
-      closedTitle: registration.closedTitle || 'Регистрация закрыта',
-      closedText: registration.closedText || '',
-      closeNote: registration.closeNote || '',
-      competitionDateLabel:
-        registration.competitionDateLabel || formatCompetitionDateLabel(registration.openAt),
-    }
-  }
-
-  if (closeAt && now >= closeAt) {
-    return {
-      mode: 'closed',
-      openAt: registration.openAt || '',
-      closeAt: registration.closeAt || '',
-      openDateLabel,
-      closeDateLabel: registration.closeDateLabel || formatCompetitionDateShortLabel(closeAt),
-      closedTitle: registration.closedTitle || 'Регистрация закрыта',
-      closedText: registration.closedText || 'Регистрация завершена.',
-      closeNote: registration.closeNote || '',
-      competitionDateLabel:
-        registration.competitionDateLabel || formatCompetitionDateLabel(registration.openAt),
-    }
-  }
-
   return {
-    mode: 'open',
+    mode: 'closed',
     openAt: registration.openAt || '',
     closeAt: registration.closeAt || '',
     openDateLabel,
     closeDateLabel: registration.closeDateLabel || formatCompetitionDateShortLabel(closeAt),
     closedTitle: registration.closedTitle || 'Регистрация закрыта',
-    closedText: registration.closedText || '',
+    closedText: registration.closedText || 'Регистрация завершена.',
     closeNote: registration.closeNote || '',
     competitionDateLabel:
       registration.competitionDateLabel || formatCompetitionDateLabel(registration.openAt),

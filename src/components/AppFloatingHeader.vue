@@ -394,6 +394,7 @@ const registrationStatus = ref('idle')
 const registrationMessage = ref('')
 const registeredUser = ref(null)
 const hasActiveSession = ref(false)
+const authRedirectPath = ref('')
 const authMode = ref('sign-up')
 const hasPasswordRecoveryIntent = ref(false)
 const headerStyle = ref({
@@ -567,7 +568,8 @@ async function handleAuthRedirectIntent(session, event = '') {
   if (authIntent === 'confirm-email') {
     registrationStatus.value = 'success'
     registrationMessage.value = 'Почта подтверждена. Открываем личный кабинет.'
-    await openAccountRoute()
+    await openAccountRoute(authRedirectPath.value || '/account')
+    authRedirectPath.value = ''
   }
 }
 
@@ -901,6 +903,13 @@ function buildAuthRedirectUrl(authAction) {
   return url.toString()
 }
 
+function handleOpenAuthModalEvent(event) {
+  const mode = event?.detail?.mode === 'sign-up' ? 'sign-up' : 'sign-in'
+  authRedirectPath.value = typeof event?.detail?.next === 'string' ? event.detail.next : ''
+
+  openRegistrationModal({ mode })
+}
+
 function resetPasswordVisibility() {
   passwordVisibility.password = false
   passwordVisibility.confirmPassword = false
@@ -991,6 +1000,7 @@ function closeRegistrationModal() {
   unlockViewportZoom()
   resetRegistrationForm()
   hasPasswordRecoveryIntent.value = false
+  authRedirectPath.value = ''
   authMode.value = 'sign-up'
 }
 
@@ -1156,7 +1166,8 @@ async function handlePasswordResetFlow() {
   registrationStatus.value = 'success'
   registrationMessage.value = 'Пароль обновлён. Открываем личный кабинет.'
   showToast('Пароль обновлён')
-  await openAccountRoute()
+  await openAccountRoute(authRedirectPath.value || '/account')
+  authRedirectPath.value = ''
   closeRegistrationModal()
 }
 
@@ -1169,12 +1180,13 @@ async function handleRegistrationSuccessRedirect(session) {
     return
   }
 
-  await openAccountRoute()
+  await openAccountRoute(authRedirectPath.value || '/account')
+  authRedirectPath.value = ''
   closeRegistrationModal()
 }
 
-async function openAccountRoute() {
-  await router.push('/account')
+async function openAccountRoute(path = '/account') {
+  await router.push(path)
 
   if (router.currentRoute.value.path !== '/account') {
     throw new Error('Не удалось открыть личный кабинет. Обновите страницу и попробуйте снова.')
@@ -1347,6 +1359,7 @@ onMounted(() => {
   void syncRegisteredUser().then((session) => {
     void handleAuthRedirectIntent(session)
   })
+  window.addEventListener('smartswim:open-auth-modal', handleOpenAuthModalEvent)
   syncViewportMode()
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('resize', handleResize)
@@ -1403,6 +1416,7 @@ watch([isMobileMenuOpen, isRegistrationModalOpen], ([isMenuOpen, isModalOpen]) =
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('smartswim:open-auth-modal', handleOpenAuthModalEvent)
   window.removeEventListener('scroll', handleScroll)
   window.removeEventListener('resize', handleResize)
   window.removeEventListener('keydown', handleKeydown)

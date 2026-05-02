@@ -29,8 +29,7 @@
   gap: 8px;
 }
 
-.account__sidebar-eyebrow,
-.account__panel-eyebrow {
+.account__sidebar-eyebrow {
   margin: 0;
   font-size: 12px;
   font-weight: 900;
@@ -138,6 +137,11 @@
 .account__password-form {
   display: grid;
   gap: 14px;
+}
+
+.account__profile-stack {
+  display: grid;
+  gap: 16px;
 }
 
 .account__placeholder {
@@ -325,13 +329,14 @@
 
 .account__submit {
   justify-self: start;
-  min-height: 47px;
-  padding: 12px 20px;
+  min-height: 38px;
+  padding: 8px 14px;
   border-radius: 10px;
   background: var(--button-orange-bg);
-  font-size: 14px;
+  font-family: inherit;
+  font-size: 12px;
   font-weight: 900;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--black);
 }
@@ -846,13 +851,14 @@
 .account__dialog-actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 18px;
 }
 
 .account__dialog-actions .account__table-action,
 .account__dialog-actions .account__submit {
-  min-height: 47px;
+  min-height: 38px;
 }
 
 .account__menu-label {

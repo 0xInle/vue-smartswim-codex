@@ -59,7 +59,34 @@
             @select-section="handleSectionSelect"
           />
 
-          <AccountUserPlaceholderPanel v-else-if="!isAdmin && activeSection === 'dashboard'" />
+          <AccountUserDashboardPanel v-else-if="!isAdmin && activeSection === 'dashboard'" />
+
+          <AccountProfilePanel v-else-if="!isAdmin && activeSection === 'profile'" :current-user="currentUser" />
+
+          <AccountAthletesPanel
+            v-else-if="!isAdmin && activeSection === 'athletes'"
+            :current-user="currentUser"
+          />
+
+          <AccountCompetitionRegistrationsPanel
+            v-else-if="!isAdmin && activeSection === 'competitions'"
+            :current-user="currentUser"
+            :initial-target="competitionRegistrationTarget"
+            @consume-target="handleCompetitionTargetConsumed"
+          />
+
+          <AccountSettingsPanel
+            v-else-if="!isAdmin && activeSection === 'settings'"
+            :form="passwordChangeForm"
+            :errors="passwordChangeErrors"
+            :visibility="passwordVisibility"
+            :status="passwordChangeStatus"
+            :message="passwordChangeMessage"
+            :min-password-length="minPasswordLength"
+            :password-field-type="passwordFieldType"
+            @submit="handlePasswordChange"
+            @toggle-visibility="togglePasswordVisibility"
+          />
 
           <AccountConsultationsPanel
             v-else-if="isAdmin && activeSection === 'consultations'"
@@ -159,15 +186,18 @@
 import { Calendar, Monitor, Setting, Trophy, User } from '@element-plus/icons-vue'
 import { ElAlert, ElContainer, ElMain } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import AccountCompetitionRegistrationsPanel from '@/pages/account/components/AccountCompetitionRegistrationsPanel.vue'
 import AccountCompetitionsPanel from '@/pages/account/components/AccountCompetitionsPanel.vue'
 import AccountConsultationsPanel from '@/pages/account/components/AccountConsultationsPanel.vue'
 import AccountDashboardPanel from '@/pages/account/components/AccountDashboardPanel.vue'
+import AccountAthletesPanel from '@/pages/account/components/AccountAthletesPanel.vue'
 import AccountHeaderBar from '@/pages/account/components/AccountHeaderBar.vue'
+import AccountProfilePanel from '@/pages/account/components/AccountProfilePanel.vue'
+import AccountUserDashboardPanel from '@/pages/account/components/AccountUserDashboardPanel.vue'
 import AccountSettingsPanel from '@/pages/account/components/AccountSettingsPanel.vue'
 import AccountSidebar from '@/pages/account/components/AccountSidebar.vue'
 import AccountTrainerBookingsPanel from '@/pages/account/components/AccountTrainerBookingsPanel.vue'
-import AccountUserPlaceholderPanel from '@/pages/account/components/AccountUserPlaceholderPanel.vue'
 import AccountUsersPanel from '@/pages/account/components/AccountUsersPanel.vue'
 import { useOwnTrainerBookings } from '@/pages/account/composables/useOwnTrainerBookings'
 import { useAccountPasswordChange } from '@/pages/account/composables/useAccountPasswordChange'
@@ -198,7 +228,9 @@ import 'element-plus/es/components/tag/style/css'
 import '@/pages/account/account.css'
 
 const router = useRouter()
+const route = useRoute()
 const activeSection = ref('dashboard')
+const competitionRegistrationTarget = ref(null)
 let authSubscription = null
 let accountSyncPromise = null
 let lastAccountSyncAt = 0
@@ -206,7 +238,6 @@ let lastAccountSyncAt = 0
 const {
   currentUser,
   currentRole,
-  // currentRoleLabel,
   isAdmin,
   isProfileLoading,
   profileLoadError,
@@ -303,6 +334,20 @@ function handleCompetitionStageDelete(stageId) {
   deleteCompetitionStage(stageId)
 }
 
+function handleCompetitionTargetConsumed() {
+  competitionRegistrationTarget.value = null
+
+  const nextQuery = { ...route.query }
+  delete nextQuery.section
+  delete nextQuery.competitionSlug
+  delete nextQuery.stageId
+
+  void router.replace({
+    path: '/account',
+    query: nextQuery,
+  })
+}
+
 const {
   users,
   usersPage,
@@ -384,7 +429,13 @@ const navigationItems = computed(() => {
     ]
   }
 
-  return [{ id: 'dashboard', label: 'Личный кабинет', icon: Monitor }]
+  return [
+    { id: 'dashboard', label: 'Дашборд', icon: Monitor },
+    { id: 'profile', label: 'Личная информация', icon: User },
+    { id: 'athletes', label: 'Спортсмены', icon: Trophy },
+    { id: 'competitions', label: 'Соревнования', icon: Trophy },
+    { id: 'settings', label: 'Настройки', icon: Setting },
+  ]
 })
 
 const sectionContent = computed(() => {
@@ -401,12 +452,20 @@ const sectionContent = computed(() => {
 
   if (currentRole.value === CRM_ROLE.TRAINER) {
     return {
-      dashboard: { title: 'Кабинет тренера' },
+      dashboard: { title: 'Дашборд' },
+      profile: { title: 'Личная информация' },
+      athletes: { title: 'Спортсмены' },
+      competitions: { title: 'Соревнования' },
+      settings: { title: 'Настройки' },
     }
   }
 
   return {
-    dashboard: { title: 'Личный кабинет' },
+    dashboard: { title: 'Дашборд' },
+    profile: { title: 'Личная информация' },
+    athletes: { title: 'Спортсмены' },
+    competitions: { title: 'Соревнования' },
+    settings: { title: 'Настройки' },
   }
 })
 
@@ -429,6 +488,28 @@ watch(activeSection, (value) => {
     resetUsersPage()
   }
 })
+
+watch(
+  () => [route.query.section, route.query.competitionSlug, route.query.stageId],
+  () => {
+    const section = typeof route.query.section === 'string' ? route.query.section : ''
+    const competitionSlug =
+      typeof route.query.competitionSlug === 'string' ? route.query.competitionSlug : ''
+    const stageId = typeof route.query.stageId === 'string' ? route.query.stageId : ''
+
+    if (section === 'competitions') {
+      activeSection.value = 'competitions'
+      competitionRegistrationTarget.value =
+        competitionSlug || stageId ? { competitionSlug, stageId } : null
+      return
+    }
+
+    if (competitionRegistrationTarget.value) {
+      competitionRegistrationTarget.value = null
+    }
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   void syncAccountData({ force: true })

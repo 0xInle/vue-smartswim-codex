@@ -31,6 +31,7 @@
               :countdown-parts="countdownParts"
               :position-url="positionUrl"
               :documents-route="documentsRoute"
+              @register="emit('register')"
             />
 
             <div v-if="accordionSections.length" class="competition-registration__faq">
@@ -67,7 +68,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'register'])
 const {
   accordionSections,
   countdownParts,

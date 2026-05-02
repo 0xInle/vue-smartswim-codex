@@ -1,7 +1,126 @@
-import { reactive } from 'vue'
+import { reactive, toRaw, watch } from 'vue'
 import { publicAsset } from '@/utils/publicAsset'
 
+const COMPETITION_CATALOG_STORAGE_KEY = 'smartswim:competition-catalog:v1'
+
 const block = (...lines) => lines.join('\n')
+
+function cloneCompetitionDirections(value) {
+  return JSON.parse(JSON.stringify(value))
+}
+
+function mergeCompetitionRegistration(source = {}, persisted = {}) {
+  const sourceOptions = Array.isArray(source.options) ? source.options : []
+  const persistedOptions = Array.isArray(persisted.options) ? persisted.options : []
+  const persistedOptionsById = new Map(persistedOptions.map((option) => [option.id, option]))
+
+  return {
+    ...source,
+    ...persisted,
+    options: sourceOptions.map((option) => ({
+      ...option,
+      ...(persistedOptionsById.get(option.id) || {}),
+    })),
+    faqSections: persisted.faqSections || source.faqSections || [],
+  }
+}
+
+function mergeCompetitionCardRegistration(sourceCard = {}, persistedCard = {}) {
+  return {
+    ...sourceCard,
+    ...persistedCard,
+    registration: mergeCompetitionRegistration(sourceCard.registration, persistedCard.registration),
+  }
+}
+
+function mergeCompetitionDirection(source = {}, persisted = {}) {
+  const sourceCards = Array.isArray(source.cards) ? source.cards : []
+  const persistedCards = Array.isArray(persisted.cards) ? persisted.cards : []
+  const persistedCardsByKey = new Map(
+    persistedCards.map((card) => [`${card.title}-${card.date}`, card]),
+  )
+
+  return {
+    ...source,
+    ...persisted,
+    registration: mergeCompetitionRegistration(source.registration, persisted.registration),
+    cards: sourceCards.map((card) => {
+      const persistedCard = persistedCardsByKey.get(`${card.title}-${card.date}`)
+
+      if (!persistedCard) {
+        return cloneCompetitionDirections(card)
+      }
+
+      return mergeCompetitionCardRegistration(card, persistedCard)
+    }),
+  }
+}
+
+function mergeCompetitionDirectionsState(sourceState, persistedState) {
+  if (!Array.isArray(sourceState)) {
+    return []
+  }
+
+  if (!Array.isArray(persistedState)) {
+    return cloneCompetitionDirections(sourceState)
+  }
+
+  const persistedBySlug = new Map(persistedState.map((item) => [item.slug, item]))
+
+  return sourceState.map((item) => {
+    const persistedItem = persistedBySlug.get(item.slug)
+
+    if (!persistedItem) {
+      return cloneCompetitionDirections(item)
+    }
+
+    return mergeCompetitionDirection(item, persistedItem)
+  })
+}
+
+function loadCompetitionDirectionsState() {
+  const baseState = cloneCompetitionDirections(competitionDirectionsSource)
+
+  if (typeof window === 'undefined') {
+    return baseState
+  }
+
+  try {
+    const serializedState = window.localStorage.getItem(COMPETITION_CATALOG_STORAGE_KEY)
+
+    if (!serializedState) {
+      return baseState
+    }
+
+    const parsedState = JSON.parse(serializedState)
+
+    if (!Array.isArray(parsedState)) {
+      return baseState
+    }
+
+    return mergeCompetitionDirectionsState(baseState, parsedState)
+  } catch {
+    return baseState
+  }
+}
+
+function persistCompetitionDirectionsState(state) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.localStorage.setItem(COMPETITION_CATALOG_STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // Ignore storage quota and serialization errors.
+  }
+}
+
+function replaceCompetitionDirectionsState(nextState) {
+  const normalizedState = cloneCompetitionDirections(nextState)
+
+  competitionDirections.splice(0, competitionDirections.length, ...normalizedState)
+}
 
 const sharedRegistrationFaqSections = [
   {
@@ -92,6 +211,23 @@ const sharedRegistrationFaqSections = [
   },
 ]
 
+const sharedRegistrationOptions = [
+  {
+    id: 'distances-1-2',
+    title: 'Регистрация участника на 1-2 дистанции',
+    dateLabel: '24 мая',
+    priceLabel: '2000 р.',
+    actionLabel: 'Регистрация',
+  },
+  {
+    id: 'distances-3',
+    title: 'Регистрация участника на 3 дистанции',
+    dateLabel: '24 мая',
+    priceLabel: '2600 р.',
+    actionLabel: 'Регистрация',
+  },
+]
+
 const competitionDirectionsSource = [
   {
     slug: 'smartswimcup',
@@ -107,6 +243,7 @@ const competitionDirectionsSource = [
     registration: {
       positionUrl: publicAsset('/uploads/competitions/SmartSwim2026.pdf'),
       documentsRoute: '/documents',
+      options: sharedRegistrationOptions,
       faqSections: sharedRegistrationFaqSections,
     },
     image: publicAsset('/images/04-img.webp'),
@@ -370,6 +507,7 @@ const competitionDirectionsSource = [
       closedText: 'Регистрация на этот этап еще не опубликована.',
       positionUrl: publicAsset('/uploads/competitions/ПоложениеСмартики2026.pdf?v=20260423'),
       documentsRoute: '/documents',
+      options: sharedRegistrationOptions,
       faqSections: sharedRegistrationFaqSections,
     },
     image: publicAsset('/images/05-img.webp'),
@@ -613,7 +751,39 @@ const competitionDirectionsSource = [
   },
 ]
 
-export const competitionDirections = reactive(competitionDirectionsSource)
+export const competitionDirections = reactive(loadCompetitionDirectionsState())
+
+watch(
+  competitionDirections,
+  () => {
+    persistCompetitionDirectionsState(toRaw(competitionDirections))
+  },
+  { deep: true, immediate: true },
+)
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== COMPETITION_CATALOG_STORAGE_KEY) {
+      return
+    }
+
+    if (!event.newValue) {
+      return
+    }
+
+    try {
+      const nextState = JSON.parse(event.newValue)
+
+      if (!Array.isArray(nextState)) {
+        return
+      }
+
+      replaceCompetitionDirectionsState(nextState)
+    } catch {
+      // Ignore malformed external updates.
+    }
+  })
+}
 
 export function getCompetitionBySlug(slug) {
   return competitionDirections.find((item) => item.slug === slug)

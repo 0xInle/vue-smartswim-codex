@@ -3,7 +3,6 @@
     <template #header>
       <div class="account__panel-head">
         <div>
-          <p class="account__panel-eyebrow">Безопасность</p>
           <h3 class="account__panel-title">Смена пароля</h3>
         </div>
       </div>

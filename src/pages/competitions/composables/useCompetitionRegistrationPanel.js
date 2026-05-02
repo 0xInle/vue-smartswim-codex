@@ -121,6 +121,7 @@ export function useCompetitionRegistrationPanel(props, emit) {
         window.requestAnimationFrame(() => {
           dialogRef.value?.focus?.()
         })
+        return
       }
     },
     { immediate: true },

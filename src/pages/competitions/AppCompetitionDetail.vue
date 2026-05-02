@@ -38,6 +38,7 @@
       :card="selectedCard"
       :competition-registration="competition.registration"
       :competition-faq-sections="competition.faqSections"
+      @register="handleCompetitionRegistration"
       @close="closeRegistrationModal"
     />
   </section>
@@ -46,6 +47,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import HomeFooterSection from '@/pages/home/components/HomeFooterSection.vue'
 import { getCompetitionBySlug } from './competitionData'
 import { publicAsset } from '@/utils/publicAsset'
@@ -54,8 +56,12 @@ import CompetitionStageCard from './components/CompetitionStageCard.vue'
 import CompetitionFaqAccordion from './components/CompetitionFaqAccordion.vue'
 import CompetitionFooterImage from './components/CompetitionFooterImage.vue'
 import CompetitionRegistrationPanel from './components/CompetitionRegistrationPanel.vue'
+import { buildCompetitionAccountRoute, resolveCompetitionStageId } from '@/pages/account/utils/accountCompetitionRegistrations'
+import { resolveCompetitionRegistrationState } from '@/utils/competitionRegistration'
+import { getCurrentSession } from '@/utils/supabaseAuth'
 
 const route = useRoute()
+const router = useRouter()
 
 const competition = computed(() => getCompetitionBySlug(route.params.slug))
 const selectedCardKey = ref('')
@@ -67,9 +73,26 @@ function getCardKey(card) {
   return `${card.title}-${card.date}`
 }
 
+function getCompetitionRegistrationRoute(card) {
+  const stageId = resolveCompetitionStageId(competition.value?.slug || '', card)
+
+  if (!stageId) {
+    return '/account?section=competitions'
+  }
+
+  return buildCompetitionAccountRoute({
+    competitionSlug: competition.value?.slug || '',
+    stageId,
+  })
+}
+
 function getDefaultCardKey(cards) {
-  const upcomingCard = cards.find((card) => card.registration?.status === 'upcoming')
-  const openCard = cards.find((card) => card.registration?.status === 'open')
+  const upcomingCard = cards.find(
+    (card) => resolveCompetitionRegistrationState(card.registration).mode === 'upcoming',
+  )
+  const openCard = cards.find(
+    (card) => resolveCompetitionRegistrationState(card.registration).mode === 'open',
+  )
 
   return getCardKey(upcomingCard || openCard || cards[0])
 }
@@ -95,6 +118,27 @@ function openRegistrationCard(card) {
 
 function closeRegistrationModal() {
   isRegistrationModalOpen.value = false
+}
+
+async function handleCompetitionRegistration() {
+  const registrationRoute = getCompetitionRegistrationRoute(selectedCard.value)
+  const session = await getCurrentSession().catch(() => null)
+
+  closeRegistrationModal()
+
+  if (session) {
+    await router.push(registrationRoute)
+    return
+  }
+
+  window.dispatchEvent(
+    new CustomEvent('smartswim:open-auth-modal', {
+      detail: {
+        mode: 'sign-in',
+        next: registrationRoute,
+      },
+    }),
+  )
 }
 
 watch(
