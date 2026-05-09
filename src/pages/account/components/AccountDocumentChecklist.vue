@@ -43,33 +43,60 @@
         v-for="document in documents"
         :key="document.type"
         class="account-documents__item"
-        :class="`account-documents__item--${document.status}`"
+        :class="`account-documents__item--${statusState(document)}`"
         role="listitem"
       >
         <button
           v-if="isEditable"
           type="button"
           class="account-documents__icon-button btn-reset"
-          :aria-label="document.fileName ? 'Заменить документ' : 'Загрузить документ'"
-          :title="document.fileName ? 'Заменить документ' : 'Загрузить документ'"
-          @click="$emit('upload', document.type)"
+          :class="{ 'account-documents__icon-button--locked': isDocumentLoaded(document) }"
+          :aria-label="isDocumentLoaded(document) ? 'Документ загружен' : 'Загрузить документ'"
+          :aria-disabled="isDocumentLoaded(document)"
+          :title="isDocumentLoaded(document) ? 'Документ загружен' : 'Загрузить документ'"
+          @click="!isDocumentLoaded(document) && $emit('upload', document.type)"
         >
           <ElIcon class="account-documents__action-icon">
-            <Upload />
+            <component :is="isDocumentLoaded(document) ? DocumentChecked : Upload" />
           </ElIcon>
         </button>
 
         <div v-else class="account-documents__icon-box" aria-hidden="true">
           <ElIcon class="account-documents__action-icon">
-            <Upload />
+            <component :is="isDocumentLoaded(document) ? DocumentChecked : Upload" />
           </ElIcon>
         </div>
 
         <div class="account-documents__item-copy">
           <p class="account-documents__label">{{ document.label }}</p>
+          <p class="account-documents__hint">{{ document.hint }}</p>
+          <div class="account-documents__meta">
+            <span v-if="document.expiresAt">Действует до: {{ formatAccountDocumentDate(document.expiresAt) }}</span>
+            <span v-if="document.verifiedAt">Проверен: {{ formatCompactDateTime(document.verifiedAt) }}</span>
+            <span v-if="document.rejectionReason && document.status !== 'verified'">
+              Причина: {{ document.rejectionReason }}
+            </span>
+          </div>
         </div>
 
+        <span class="account-documents__status-text" :class="statusClass(document)">
+          {{ statusText(document) }}
+        </span>
+
         <div class="account-documents__item-actions">
+          <button
+            v-if="isEditable && document.status !== 'missing'"
+            type="button"
+            class="account-documents__edit-button btn-reset"
+            :aria-label="`Редактировать документ: ${document.label}`"
+            :title="`Редактировать документ: ${document.label}`"
+            @click="$emit('upload', document.type)"
+          >
+            <ElIcon class="account-documents__edit-icon">
+              <EditPen />
+            </ElIcon>
+          </button>
+
           <button
             v-if="isEditable && document.status !== 'missing'"
             type="button"
@@ -82,15 +109,6 @@
               <Delete />
             </ElIcon>
           </button>
-
-          <ElTag
-            class="account-documents__status-tag"
-            :type="statusTag(document.status)"
-            effect="light"
-            round
-          >
-            {{ statusText(document.status) }}
-          </ElTag>
         </div>
       </article>
     </div>
@@ -98,9 +116,14 @@
 </template>
 
 <script setup>
-import { Delete, Upload } from '@element-plus/icons-vue'
-import { ElIcon, ElTag } from 'element-plus'
+import { Delete, DocumentChecked, EditPen, Upload } from '@element-plus/icons-vue'
+import { ElIcon } from 'element-plus'
 import { computed } from 'vue'
+import {
+  formatAccountDocumentDate,
+  formatCompactDateTime,
+  getAccountDocumentDisplayStatus,
+} from '@/pages/account/utils/accountFormatters'
 
 const props = defineProps({
   title: {
@@ -149,26 +172,20 @@ const loadedDocuments = computed(() =>
   props.documents.filter((document) => document.status !== 'missing'),
 )
 
-const statusToTag = {
-  missing: 'info',
-  uploaded: 'warning',
-  verified: 'success',
-  rejected: 'danger',
+function statusText(document) {
+  return getAccountDocumentDisplayStatus(document).label
 }
 
-const statusToText = {
-  missing: 'Не загружен',
-  uploaded: 'На проверке',
-  verified: 'Проверен',
-  rejected: 'Отклонён',
+function statusState(document) {
+  return getAccountDocumentDisplayStatus(document).status
 }
 
-function statusTag(status) {
-  return statusToTag[status] || 'info'
+function statusClass(document) {
+  return `account-documents__status-text--${statusState(document)}`
 }
 
-function statusText(status) {
-  return statusToText[status] || 'Неизвестно'
+function isDocumentLoaded(document) {
+  return statusState(document) !== 'missing'
 }
 </script>
 
@@ -273,7 +290,7 @@ function statusText(status) {
 
 .account-documents__item {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 12px;
   padding: 14px;
@@ -291,6 +308,11 @@ function statusText(status) {
   border-color: color-mix(in srgb, var(--orange) 32%, white);
 }
 
+.account-documents__item--needs_reupload,
+.account-documents__item--expired {
+  border-color: color-mix(in srgb, var(--orange) 32%, white);
+}
+
 .account-documents__item-copy {
   display: grid;
   gap: 3px;
@@ -303,6 +325,8 @@ function statusText(status) {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  width: max-content;
+  min-width: max-content;
   justify-self: end;
 }
 
@@ -314,14 +338,28 @@ function statusText(status) {
   color: var(--black);
 }
 
+.account-documents__hint,
+.account-documents__meta {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.account-documents__meta {
+  display: grid;
+  gap: 2px;
+}
+
 .account-documents__icon-button,
-.account-documents__icon-box {
+.account-documents__icon-box,
+.account-documents__edit-button,
+.account-documents__remove-button {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
   border: 1px solid color-mix(in srgb, var(--cyan) 18%, white);
   border-radius: 12px;
   background: color-mix(in srgb, var(--aqua) 10%, white);
@@ -329,11 +367,21 @@ function statusText(status) {
 }
 
 .account-documents__icon-button {
+  width: 40px;
+  height: 40px;
   cursor: pointer;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
     background-color 0.2s ease;
+}
+
+.account-documents__icon-button:disabled,
+.account-documents__icon-button--locked {
+  cursor: default;
+  opacity: 0.72;
+  box-shadow: none;
+  pointer-events: none;
 }
 
 .account-documents__icon-button:hover {
@@ -346,10 +394,30 @@ function statusText(status) {
   height: 18px;
 }
 
+.account-documents__edit-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.account-documents__edit-button {
+  width: 34px;
+  height: 34px;
+  border-color: color-mix(in srgb, var(--cyan) 16%, white);
+  background: color-mix(in srgb, var(--aqua) 8%, white);
+  color: #176384;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.account-documents__edit-button:hover {
+  border-color: color-mix(in srgb, var(--cyan) 40%, white);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 10%, transparent);
+}
+
 .account-documents__remove-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 34px;
   height: 34px;
   border: 1px solid color-mix(in srgb, var(--orange) 18%, white);
@@ -373,10 +441,46 @@ function statusText(status) {
   height: 16px;
 }
 
+.account-documents__status-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.account-documents__status-text--verified,
+.account-documents__status-text--admitted {
+  color: #2f8f5b;
+}
+
+.account-documents__status-text--uploaded,
+.account-documents__status-text--pending {
+  color: #176384;
+}
+
+.account-documents__status-text--rejected,
+.account-documents__status-text--needs_reupload,
+.account-documents__status-text--expired,
+.account-documents__status-text--attention {
+  color: #d76034;
+}
+
+.account-documents__status-text--missing {
+  color: #64748b;
+}
+
 @media (max-width: 640px) {
   .account-documents__item {
-    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-columns: 40px minmax(0, 1fr) auto auto;
     align-items: center;
+  }
+
+  .account-documents__status-text {
+    text-align: left;
+    white-space: normal;
   }
 }
 </style>

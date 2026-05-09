@@ -7,13 +7,13 @@
     align-center
     class="account__dialog account-competition-registration"
     title="Регистрация на соревнования"
+    :close-icon="Close"
     @closed="$emit('close')"
     @update:model-value="!$event && $emit('close')"
   >
     <form class="account__dialog-form account-competition-registration__form" @submit.prevent="$emit('submit')">
       <div class="account-competition-registration__hero">
-        <div>
-          <p class="account__panel-eyebrow">Выбранный этап</p>
+        <div class="account-competition-registration__hero-copy">
           <h3 class="account-competition-registration__title">
             {{ stage?.competitionName || 'Соревнование' }}
           </h3>
@@ -22,33 +22,17 @@
             <span v-if="stage?.competitionDateLabel"> · {{ stage.competitionDateLabel }}</span>
           </p>
         </div>
-
-        <div class="account-competition-registration__meta">
-          <ElTag :type="stageStatusTagType" effect="light" round>
-            {{ stageStatusLabel }}
-          </ElTag>
-          <span class="account-competition-registration__window">
-            {{ stage?.competitionWindowLabel || 'Окно регистрации уточняется' }}
-          </span>
-        </div>
       </div>
 
       <div class="account-competition-registration__grid">
         <label class="account__field">
-          <span class="account__field-label">Кого регистрируем</span>
-          <ElSelect v-model="form.participantKind" class="account__select" popper-class="account__select-popper">
-            <ElOption label="Владелец кабинета" value="owner" />
-            <ElOption label="Спортсмен" value="athlete" />
-          </ElSelect>
-        </label>
-
-        <label class="account__field">
           <span class="account__field-label">Участник</span>
           <ElSelect
-            v-model="form.participantId"
+            :model-value="form.participantId"
             class="account__select"
             popper-class="account__select-popper"
             placeholder="Выберите участника"
+            @update:model-value="updateFormField('participantId', $event)"
           >
             <ElOption
               v-for="participant in participantOptions"
@@ -58,71 +42,43 @@
             />
           </ElSelect>
           <span v-if="errors.participantId" class="account__field-error">{{ errors.participantId }}</span>
-          <span v-else class="account__field-hint">
-            В списке доступен владелец кабинета и прикрепленные спортсмены.
-          </span>
         </label>
-      </div>
-
-      <div class="account-competition-registration__profile">
-        <div class="account-competition-registration__profile-card">
-          <span class="account-competition-registration__profile-label">Владелец кабинета</span>
-          <strong class="account-competition-registration__profile-value">
-            {{ ownerSnapshot?.fullName || 'Не заполнено' }}
-          </strong>
-          <span class="account-competition-registration__profile-meta">
-            {{ ownerSnapshot?.email || 'Почта не указана' }}
-          </span>
-        </div>
-
-        <div class="account-competition-registration__profile-card">
-          <span class="account-competition-registration__profile-label">Контакты</span>
-          <strong class="account-competition-registration__profile-value">
-            {{ ownerSnapshot?.phone || 'Телефон не указан' }}
-          </strong>
-          <span class="account-competition-registration__profile-meta">
-            {{ ownerSnapshot?.club || 'Клуб не указан' }}
-          </span>
-        </div>
       </div>
 
       <div class="account__field-grid">
         <label class="account__field">
           <span class="account__field-label">Тип заявки</span>
-          <ElSelect v-model="form.registrationKind" class="account__select" popper-class="account__select-popper">
+          <ElSelect
+            :model-value="form.registrationKind"
+            class="account__select"
+            popper-class="account__select-popper"
+            @update:model-value="updateFormField('registrationKind', $event)"
+          >
             <ElOption label="Обычная регистрация" value="individual" />
             <ElOption label="Эстафета" value="relay" />
             <ElOption label="Длинная дистанция" value="long-distance" />
           </ElSelect>
         </label>
 
-        <label class="account__field">
-          <span class="account__field-label">Вариант оплаты</span>
-          <ElSelect
-            v-model="form.paymentOptionId"
-            class="account__select"
-            popper-class="account__select-popper"
-            placeholder="Выберите оплату"
+        <div class="account-competition-registration__payment">
+          <button
+            type="button"
+            class="account__table-action account__table-action--success btn-reset account-competition-registration__payment-button"
           >
-            <ElOption
-              v-for="option in paymentOptions"
-              :key="option.id"
-              :label="option.title"
-              :value="option.id"
-            />
-          </ElSelect>
-          <span v-if="errors.paymentOptionId" class="account__field-error">{{ errors.paymentOptionId }}</span>
-        </label>
+            Оплатить
+          </button>
+        </div>
       </div>
 
       <div v-if="form.registrationKind === 'relay'" class="account__field-grid">
         <label class="account__field account-competition-registration__field--wide">
           <span class="account__field-label">Название команды</span>
           <input
-            v-model.trim="form.teamName"
+            :value="form.teamName"
             class="account__input"
             type="text"
             placeholder="Например, Смарт Свим"
+            @input="updateFormField('teamName', $event.target.value.trim())"
           />
           <span v-if="errors.teamName" class="account__field-error">{{ errors.teamName }}</span>
         </label>
@@ -132,10 +88,11 @@
         <label class="account__field account-competition-registration__field--wide">
           <span class="account__field-label">Ориентировочное время / комментарий</span>
           <input
-            v-model.trim="form.seedTime"
+            :value="form.seedTime"
             class="account__input"
             type="text"
             placeholder="Например, 01:12.50"
+            @input="updateFormField('seedTime', $event.target.value.trim())"
           />
           <span v-if="errors.seedTime" class="account__field-error">{{ errors.seedTime }}</span>
         </label>
@@ -144,18 +101,13 @@
       <label class="account__field">
         <span class="account__field-label">Комментарий</span>
         <textarea
-          v-model.trim="form.comment"
+          :value="form.comment"
           class="account__textarea"
           rows="4"
           placeholder="Дополнительная информация для секретаря"
+          @input="updateFormField('comment', $event.target.value.trim())"
         ></textarea>
       </label>
-
-      <div class="account-competition-registration__note">
-        <p class="account-competition-registration__note-copy">
-          Это моковая регистрация: данные сохраняются локально и сразу появляются в истории.
-        </p>
-      </div>
 
       <div class="account__dialog-actions">
         <button
@@ -174,8 +126,9 @@
 </template>
 
 <script setup>
-import { ElDialog, ElOption, ElSelect, ElTag } from 'element-plus'
-import { computed, watch } from 'vue'
+import { Close } from '@element-plus/icons-vue'
+import { ElDialog, ElOption, ElSelect } from 'element-plus'
+import { watch } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -186,15 +139,7 @@ const props = defineProps({
     type: Object,
     default: null,
   },
-  ownerSnapshot: {
-    type: Object,
-    default: null,
-  },
   participantOptions: {
-    type: Array,
-    default: () => [],
-  },
-  paymentOptions: {
     type: Array,
     default: () => [],
   },
@@ -212,51 +157,23 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'submit', 'update-form-field'])
 
-const stageStatusLabel = computed(() => {
-  if (!props.stage?.registrationState) {
-    return 'Регистрация'
-  }
-
-  if (props.stage.registrationState.mode === 'open') {
-    return 'Регистрация открыта'
-  }
-
-  if (props.stage.registrationState.mode === 'upcoming') {
-    return 'Скоро откроется'
-  }
-
-  return 'Регистрация закрыта'
-})
-
-const stageStatusTagType = computed(() => {
-  if (!props.stage?.registrationState) {
-    return 'info'
-  }
-
-  if (props.stage.registrationState.mode === 'open') {
-    return 'success'
-  }
-
-  if (props.stage.registrationState.mode === 'upcoming') {
-    return 'warning'
-  }
-
-  return 'info'
-})
+function updateFormField(field, value) {
+  emit('update-form-field', { field, value })
+}
 
 watch(
   () => props.form.participantKind,
   (nextValue) => {
     if (nextValue === 'owner') {
-      props.form.participantId = 'owner'
+      updateFormField('participantId', 'owner')
       return
     }
 
     if (nextValue === 'athlete' && props.form.participantId === 'owner') {
       const nextParticipant = props.participantOptions.find((participant) => participant.value !== 'owner')
-      props.form.participantId = nextParticipant?.value || ''
+      updateFormField('participantId', nextParticipant?.value || '')
     }
   },
   { immediate: true },
@@ -266,11 +183,11 @@ watch(
   () => props.form.participantId,
   (nextValue) => {
     if (!nextValue || nextValue === 'owner') {
-      props.form.participantKind = 'owner'
+      updateFormField('participantKind', 'owner')
       return
     }
 
-    props.form.participantKind = 'athlete'
+    updateFormField('participantKind', 'athlete')
   },
 )
 </script>
@@ -282,14 +199,18 @@ watch(
 }
 
 .account-competition-registration__hero {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 18px 0;
+  display: grid;
+  gap: 8px;
+  padding: 18px 0 0;
+}
+
+.account-competition-registration__hero-copy {
+  display: grid;
+  gap: 8px;
 }
 
 .account-competition-registration__title {
-  margin: 4px 0 4px;
+  margin: 0;
   font-family: Oswald;
   font-size: clamp(28px, 4vw, 38px);
   line-height: 0.96;
@@ -302,71 +223,26 @@ watch(
   font-weight: 700;
 }
 
-.account-competition-registration__meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  text-align: right;
-}
-
-.account-competition-registration__window {
-  font-size: 13px;
-  font-weight: 700;
-  color: #526072;
-}
-
 .account-competition-registration__grid,
-.account-competition-registration__profile,
-.account-competition-registration__note {
+.account-competition-registration__payment {
   display: grid;
   gap: 12px;
-  padding-inline: 18px;
-}
-
-.account-competition-registration__profile {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.account-competition-registration__profile-card {
-  display: grid;
-  gap: 6px;
-  padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, var(--cyan) 18%, var(--white));
-  border-radius: 10px;
-  background: rgb(from var(--white) r g b / 72%);
-}
-
-.account-competition-registration__profile-label {
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #526072;
-}
-
-.account-competition-registration__profile-value {
-  font-size: 15px;
-  line-height: 1.4;
-}
-
-.account-competition-registration__profile-meta,
-.account-competition-registration__note-copy {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #526072;
-}
-
-.account__field-hint {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.4;
-  color: #64748b;
+  align-self: start;
+  padding-top: 26px;
 }
 
 .account-competition-registration__field--wide {
   width: 100%;
+}
+
+.account-competition-registration__payment-button {
+  justify-content: center;
+  min-height: 38px;
+  width: 100%;
+}
+
+.account__panel-eyebrow {
+  margin-top: 0;
 }
 
 .account__textarea {
@@ -377,19 +253,21 @@ watch(
   border-radius: 10px;
   background: rgb(from var(--white) r g b / 86%);
   font: inherit;
-  resize: vertical;
+  resize: none;
 }
 
 @media (max-width: 640px) {
-  .account-competition-registration__hero,
-  .account-competition-registration__profile {
-    grid-template-columns: 1fr;
-    flex-direction: column;
+  .account-competition-registration__hero {
+    padding-inline: 0;
   }
 
-  .account-competition-registration__meta {
-    align-items: flex-start;
-    text-align: left;
+  .account-competition-registration__grid,
+  .account-competition-registration__payment {
+    padding-inline: 0;
+  }
+
+  .account-competition-registration__payment {
+    padding-top: 0;
   }
 }
 </style>

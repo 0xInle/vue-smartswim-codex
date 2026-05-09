@@ -1264,6 +1264,103 @@
   padding: 20px;
 }
 
+.account__dialog--confirm .account__dialog-form {
+  gap: 12px;
+}
+
+.account__dialog--confirm .account__dialog-copy {
+  gap: 6px;
+}
+
+.account__dialog--confirm .account__dialog-actions {
+  margin-top: 12px;
+}
+
+.account__confirm-messagebox {
+  --el-messagebox-border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.96);
+  box-shadow: 0 24px 60px rgb(15 23 42 / 0.16);
+}
+
+.account__confirm-messagebox .el-message-box__header {
+  padding: 20px 20px 0;
+}
+
+.account__confirm-messagebox .el-message-box__title {
+  font-family: Oswald, sans-serif;
+  font-size: 24px;
+  text-transform: uppercase;
+  color: var(--black);
+}
+
+.account__confirm-messagebox .el-message-box__headerbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  top: 18px;
+  right: 18px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.94);
+  line-height: 1;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.account__confirm-messagebox .el-message-box__headerbtn:hover,
+.account__confirm-messagebox .el-message-box__headerbtn:focus-visible {
+  border-color: color-mix(in srgb, var(--cyan) 46%, white);
+  background: color-mix(in srgb, var(--cyan) 10%, white);
+  outline: none;
+}
+
+.account__confirm-messagebox .el-message-box__close {
+  width: 16px;
+  height: 16px;
+  color: #526072;
+}
+
+.account__confirm-messagebox .el-message-box__status {
+  display: none;
+}
+
+.account__confirm-messagebox .el-message-box__content {
+  padding: 20px;
+}
+
+.account__confirm-messagebox .el-message-box__container {
+  padding-left: 0;
+}
+
+.account__confirm-messagebox .el-message-box__message {
+  padding-left: 0;
+  color: #526072;
+}
+
+.account__confirm-messagebox .el-message-box__btns {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 20px 20px;
+}
+
+.account__confirm-messagebox .el-message-box__btns .el-button {
+  min-height: 38px;
+  margin: 0;
+}
+
+.account__confirm-messagebox .el-message-box__btns .account__table-action--ghost {
+  --button-current-bg: transparent;
+}
+
 .account__select-popper--full .el-select-dropdown__item {
   white-space: nowrap;
 }

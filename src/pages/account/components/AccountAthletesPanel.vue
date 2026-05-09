@@ -52,16 +52,12 @@
         :coach-placeholder="coachPlaceholder"
         :editing-athlete-id="editingAthleteId"
         :fetch-coach-suggestions="fetchCoachSuggestions"
-        :documents-status-label="documentsStatusLabel"
-        :documents-status-tag-type="documentsStatusTagType"
         :document-upload-state="documentUploadState"
         :open-document-upload-dialog="openDocumentUploadDialog"
         :close-document-upload-dialog="closeDocumentUploadDialog"
         :handle-document-upload-submit="handleDocumentUploadSubmit"
         :handle-document-remove="handleDocumentRemove"
         @submit="handleFormSubmit"
-        @reset="resetForm"
-        @cancel="handleDialogClosed"
         @coach-select="handleCoachSelect"
       />
     </ElDialog>
@@ -90,8 +86,6 @@ const {
   errors,
   genderOptions,
   coachPlaceholder,
-  documentsStatusLabel,
-  documentsStatusTagType,
   documentUploadState,
   startEdit,
   cancelEdit,

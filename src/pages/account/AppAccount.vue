@@ -59,9 +59,16 @@
             @select-section="handleSectionSelect"
           />
 
-          <AccountUserDashboardPanel v-else-if="!isAdmin && activeSection === 'dashboard'" />
+          <AccountUserDashboardPanel
+            v-else-if="!isAdmin && activeSection === 'dashboard'"
+            :current-user="currentUser"
+            :open-competitions-count="openCompetitionRegistrationsCount"
+          />
 
-          <AccountProfilePanel v-else-if="!isAdmin && activeSection === 'profile'" :current-user="currentUser" />
+          <AccountProfilePanel
+            v-else-if="!isAdmin && activeSection === 'profile'"
+            :current-user="currentUser"
+          />
 
           <AccountAthletesPanel
             v-else-if="!isAdmin && activeSection === 'athletes'"
@@ -124,6 +131,15 @@
             @update:status-filter="trainerBookingsStatusFilter = $event"
           />
 
+          <AccountDocumentReviewsPanel
+            v-else-if="isAdmin && activeSection === 'documents'"
+            :current-user="currentUser"
+          />
+
+          <AccountCompetitionRegistrationsAdminPanel
+            v-else-if="isAdmin && activeSection === 'registrations'"
+          />
+
           <AccountCompetitionsPanel
             v-else-if="isAdmin && activeSection === 'competitions'"
             :rows="filteredCompetitionStages"
@@ -153,6 +169,7 @@
             :is-delete-dialog-open="isUserDeleteDialogOpen"
             :edit-form="userEditForm"
             :pending-delete-user="userPendingDelete"
+            :document-upload-state="documentUploadState"
             @update:search="usersSearch = $event"
             @update:role-filter="usersRoleFilter = $event"
             @page-change="handleUsersPageChange"
@@ -162,6 +179,10 @@
             @submit-edit="handleUserEditSubmit"
             @close-delete="handleCloseUserDelete"
             @confirm-delete="handleConfirmUserDelete"
+            @open-document-upload="openDocumentUploadDialog"
+            @close-document-upload="closeDocumentUploadDialog"
+            @submit-document-upload="handleDocumentUploadSubmit"
+            @remove-document="handleDocumentRemove"
           />
 
           <AccountSettingsPanel
@@ -183,12 +204,14 @@
 </template>
 
 <script setup>
-import { Calendar, Monitor, Setting, Trophy, User } from '@element-plus/icons-vue'
+import { Calendar, Document, Monitor, Setting, Trophy, User } from '@element-plus/icons-vue'
 import { ElAlert, ElContainer, ElMain } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AccountCompetitionRegistrationsPanel from '@/pages/account/components/AccountCompetitionRegistrationsPanel.vue'
+import AccountCompetitionRegistrationsAdminPanel from '@/pages/account/components/AccountCompetitionRegistrationsAdminPanel.vue'
 import AccountCompetitionsPanel from '@/pages/account/components/AccountCompetitionsPanel.vue'
+import AccountDocumentReviewsPanel from '@/pages/account/components/AccountDocumentReviewsPanel.vue'
 import AccountConsultationsPanel from '@/pages/account/components/AccountConsultationsPanel.vue'
 import AccountDashboardPanel from '@/pages/account/components/AccountDashboardPanel.vue'
 import AccountAthletesPanel from '@/pages/account/components/AccountAthletesPanel.vue'
@@ -306,6 +329,7 @@ const {
   filteredCompetitionStages,
   filteredCompetitionStagesTotal,
   filteredOpenCompetitionRegistrationsCount,
+  openCompetitionRegistrationsCount,
   updateCompetitionStage,
   updateCompetitionStageLinks,
   updateCompetitionStageDistances,
@@ -360,6 +384,7 @@ const {
   isUserDeleteDialogOpen,
   userPendingDelete,
   userEditForm,
+  documentUploadState,
   handleUsersPageChange,
   resetUsersPage,
   handleOpenUserEdit,
@@ -368,6 +393,10 @@ const {
   handleOpenUserDelete,
   handleCloseUserDelete,
   handleConfirmUserDelete,
+  openDocumentUploadDialog,
+  closeDocumentUploadDialog,
+  handleDocumentUploadSubmit,
+  handleDocumentRemove,
 } = useAccountUsers()
 
 async function syncAccountData({ force = false } = {}) {
@@ -423,6 +452,8 @@ const navigationItems = computed(() => {
       { id: 'dashboard', label: 'Дашборд', icon: Monitor },
       { id: 'consultations', label: 'Консультации', icon: Calendar },
       { id: 'trainer-bookings', label: 'Записи к тренерам', icon: Calendar },
+      { id: 'documents', label: 'Документы', icon: Document },
+      { id: 'registrations', label: 'Заявки', icon: Trophy },
       { id: 'competitions', label: 'Соревнования', icon: Trophy },
       { id: 'users', label: 'Пользователи', icon: User },
       { id: 'settings', label: 'Настройки', icon: Setting },
@@ -444,6 +475,8 @@ const sectionContent = computed(() => {
       dashboard: { title: 'Дашборд' },
       consultations: { title: 'Консультации' },
       'trainer-bookings': { title: 'Записи к тренерам' },
+      documents: { title: 'Проверка документов' },
+      registrations: { title: 'Заявки на соревнования' },
       competitions: { title: 'Соревнования' },
       users: { title: 'Пользователи' },
       settings: { title: 'Настройки' },

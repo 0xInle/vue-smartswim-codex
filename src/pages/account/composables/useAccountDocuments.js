@@ -1,12 +1,22 @@
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import {
   ACCOUNT_DOCUMENT_TYPES,
+  ACCOUNT_DOCUMENT_STATUS,
   createAccountDocumentState,
   normalizeAccountDocumentState,
-  getAccountDocumentsStatusMeta,
 } from '@/pages/account/utils/accountDocumentTypes'
+import { showToast } from '@/utils/toast'
+import {
+  mergeDocumentsWithReviewRecords,
+  seedAccountDocumentReviewRecords,
+  syncAccountDocumentReviewRecords,
+} from '@/pages/account/utils/accountDocumentRegistry'
+import { getAccountDocumentsAdmissionStatus } from '@/pages/account/utils/accountFormatters'
+import { readAccountProfileSnapshot } from '@/pages/account/utils/accountLocalStorage'
 
 const ACCOUNT_DOCUMENT_STORAGE_PREFIX = 'smartswim:account-documents:v1'
+const ACCOUNT_DOCUMENT_SHARED_STORAGE_PREFIX = 'smartswim:account-documents:shared:v1'
 
 function getCurrentUserKey(currentUser) {
   return currentUser?.id || currentUser?.email || 'anonymous'
@@ -14,6 +24,20 @@ function getCurrentUserKey(currentUser) {
 
 function createStorageKey({ currentUserKey, scope, scopeId }) {
   return [ACCOUNT_DOCUMENT_STORAGE_PREFIX, scope, currentUserKey, scopeId || 'general'].join(':')
+}
+
+function createSharedStorageKey({ scope, scopeId }) {
+  return [ACCOUNT_DOCUMENT_SHARED_STORAGE_PREFIX, scope, scopeId || 'general'].join(':')
+}
+
+function readSerializedDocuments(storageKey) {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const serialized = window.localStorage.getItem(storageKey)
+
+  return serialized || null
 }
 
 export function useAccountDocuments({ currentUser, scope, scopeId }) {
@@ -32,6 +56,12 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
   const storageKey = computed(() =>
     createStorageKey({
       currentUserKey: currentUserKey.value,
+      scope: resolvedScope.value,
+      scopeId: resolvedScopeId.value,
+    }),
+  )
+  const sharedStorageKey = computed(() =>
+    createSharedStorageKey({
       scope: resolvedScope.value,
       scopeId: resolvedScopeId.value,
     }),
@@ -61,6 +91,40 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
     return ACCOUNT_DOCUMENT_TYPES.map((definition) => createAccountDocumentState(definition))
   }
 
+  function normalizeDocumentList(documentsSource) {
+    const nextDocuments = Array.isArray(documentsSource) ? documentsSource : []
+
+    return ACCOUNT_DOCUMENT_TYPES.map((definition) => {
+      const existing = nextDocuments.find((document) => document?.type === definition.type)
+      return normalizeAccountDocumentState(existing, definition)
+    })
+  }
+
+  function getLoadedDocumentCount(documentsSource) {
+    return documentsSource.filter((document) => document.status !== 'missing').length
+  }
+
+  function hydrateDocuments(documentsSource) {
+    const normalizedDocuments = Array.isArray(documentsSource) ? documentsSource : createInitialDocuments()
+
+    seedAccountDocumentReviewRecords({
+      currentUser,
+      ownerName: currentUser?.value?.name || currentUser?.name || '',
+      ownerEmail: currentUser?.value?.email || currentUser?.email || '',
+      ownerPhone: currentUser?.value?.phone || currentUser?.phone || '',
+      scope: resolvedScope.value,
+      scopeId: resolvedScopeId.value,
+      documents: normalizedDocuments,
+    })
+
+    return mergeDocumentsWithReviewRecords({
+      currentUser,
+      scope: resolvedScope.value,
+      scopeId: resolvedScopeId.value,
+      documents: normalizedDocuments,
+    })
+  }
+
   function loadDocuments() {
     if (typeof window === 'undefined') {
       documents.value = createInitialDocuments()
@@ -68,23 +132,46 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
     }
 
     try {
-      const serialized = window.localStorage.getItem(storageKey.value)
+      const fallbackStorageKey = createStorageKey({
+        currentUserKey: 'anonymous',
+        scope: resolvedScope.value,
+        scopeId: resolvedScopeId.value,
+      })
 
-      if (!serialized) {
-        documents.value = createInitialDocuments()
-        return
+      const serialized = readSerializedDocuments(storageKey.value)
+      const sharedSerialized = readSerializedDocuments(sharedStorageKey.value)
+      const fallbackSerialized =
+        storageKey.value === fallbackStorageKey ? null : readSerializedDocuments(fallbackStorageKey)
+      const nextSerialized = serialized || sharedSerialized || fallbackSerialized
+      const profileSnapshot = readAccountProfileSnapshot(currentUser)
+      const profileDocuments = normalizeDocumentList(profileSnapshot.documents || [])
+
+      let normalizedDocuments = createInitialDocuments()
+
+      if (nextSerialized) {
+        const parsed = JSON.parse(nextSerialized)
+        const nextDocuments = Array.isArray(parsed) ? parsed : []
+        normalizedDocuments = normalizeDocumentList(nextDocuments)
       }
 
-      const parsed = JSON.parse(serialized)
-      const nextDocuments = Array.isArray(parsed) ? parsed : []
+      if (getLoadedDocumentCount(profileDocuments) > getLoadedDocumentCount(normalizedDocuments)) {
+        normalizedDocuments = profileDocuments
+      }
 
-      documents.value = ACCOUNT_DOCUMENT_TYPES.map((definition) => {
-        const existing = nextDocuments.find((document) => document?.type === definition.type)
-        return normalizeAccountDocumentState(existing, definition)
-      })
+      documents.value = hydrateDocuments(normalizedDocuments)
+
+      if (!serialized) {
+        persistDocuments()
+      }
+      return
     } catch {
-      documents.value = createInitialDocuments()
+      // Fall through to the profile snapshot when the dedicated document storage is unavailable.
     }
+    const profileSnapshot = readAccountProfileSnapshot(currentUser)
+    const profileDocuments = normalizeDocumentList(profileSnapshot.documents || [])
+
+    documents.value = hydrateDocuments(profileDocuments)
+    persistDocuments()
   }
 
   function persistDocuments() {
@@ -92,7 +179,12 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
       return
     }
 
-    window.localStorage.setItem(storageKey.value, JSON.stringify(documents.value))
+    try {
+      window.localStorage.setItem(storageKey.value, JSON.stringify(documents.value))
+      window.localStorage.setItem(sharedStorageKey.value, JSON.stringify(documents.value))
+    } catch {
+      // Ignore storage quota and serialization failures; keep the in-memory state updated.
+    }
   }
 
   function openUploadDialog(documentType) {
@@ -130,44 +222,111 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
     }
   }
 
-  function handleUploadSubmit({ file, expiresAt }) {
+  function handleUploadSubmit({ file, fileDataUrl = '', fileType = '', expiresAt }) {
     if (!uploadDialogState.documentType || !file) {
       return
     }
 
-    upsertDocument(uploadDialogState.documentType, {
-      status: 'uploaded',
-      fileName: file.name,
-      fileSize: file.size,
-      uploadedAt: new Date().toISOString(),
-      expiresAt: expiresAt || '',
-      verifiedAt: '',
-      verifiedBy: '',
-    })
+    try {
+      upsertDocument(uploadDialogState.documentType, {
+        status: 'uploaded',
+        fileName: file.name,
+        fileSize: file.size,
+        fileDataUrl,
+        fileType,
+        uploadedAt: new Date().toISOString(),
+        expiresAt: expiresAt || '',
+        verifiedAt: '',
+        verifiedBy: '',
+        rejectionReason: '',
+      })
 
-    persistDocuments()
-    closeUploadDialog()
+      syncAccountDocumentReviewRecords({
+        currentUser,
+        ownerName: currentUser?.value?.name || currentUser?.name || '',
+        ownerEmail: currentUser?.value?.email || currentUser?.email || '',
+        ownerPhone: currentUser?.value?.phone || currentUser?.phone || '',
+        scope: resolvedScope.value,
+        scopeId: resolvedScopeId.value,
+        documents: documents.value,
+      })
+
+      persistDocuments()
+      showToast('Документ загружен и отправлен на проверку')
+    } catch {
+      showToast('Не удалось сохранить документ', { type: 'error' })
+    } finally {
+      closeUploadDialog()
+    }
   }
 
   function handleDocumentRemove(documentType) {
-    upsertDocument(documentType, {
-      status: 'missing',
-      fileName: '',
-      fileSize: 0,
-      uploadedAt: '',
-      expiresAt: '',
-      verifiedAt: '',
-      verifiedBy: '',
-    })
+    const targetDocument = documents.value.find((document) => document.type === documentType)
 
-    persistDocuments()
+    if (!targetDocument) {
+      return
+    }
+
+    void ElMessageBox.confirm(
+      `Удалить документ «${targetDocument.label}»?`,
+      'Подтверждение удаления',
+      {
+        customClass: 'account__confirm-messagebox',
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        confirmButtonClass: 'account__submit btn-reset',
+        cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
+        type: 'warning',
+        autofocus: false,
+        closeOnClickModal: false,
+        closeOnPressEscape: true,
+      },
+    )
+      .then(() => {
+        upsertDocument(documentType, {
+          status: 'missing',
+          fileName: '',
+          fileSize: 0,
+          fileDataUrl: '',
+          fileType: '',
+          uploadedAt: '',
+          expiresAt: '',
+          verifiedAt: '',
+          verifiedBy: '',
+          rejectionReason: '',
+        })
+
+        syncAccountDocumentReviewRecords({
+          currentUser,
+          ownerName: currentUser?.value?.name || currentUser?.name || '',
+          ownerEmail: currentUser?.value?.email || currentUser?.email || '',
+          ownerPhone: currentUser?.value?.phone || currentUser?.phone || '',
+          scope: resolvedScope.value,
+          scopeId: resolvedScopeId.value,
+          documents: documents.value,
+        })
+
+        persistDocuments()
+      })
+      .catch(() => {})
   }
 
   function markDocumentVerified(documentType, verifier = 'Секретарь') {
     upsertDocument(documentType, {
-      status: 'verified',
+      status: ACCOUNT_DOCUMENT_STATUS.VERIFIED,
       verifiedAt: new Date().toISOString(),
       verifiedBy: verifier,
+    })
+
+    syncAccountDocumentReviewRecords({
+      currentUser,
+      ownerName: currentUser?.value?.name || currentUser?.name || '',
+      ownerEmail: currentUser?.value?.email || currentUser?.email || '',
+      ownerPhone: currentUser?.value?.phone || currentUser?.phone || '',
+      scope: resolvedScope.value,
+      scopeId: resolvedScopeId.value,
+      documents: documents.value,
+      reviewerName: verifier,
     })
 
     persistDocuments()
@@ -183,7 +342,21 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
   }
 
   function getDocumentsStatusLabel() {
-    return getAccountDocumentsStatusMeta(documents.value).label
+    return getAccountDocumentsAdmissionStatus(documents.value).label
+  }
+
+  function handleStorageChange(event) {
+    const storageKeyValue = String(event?.key || '')
+
+    if (
+      !storageKeyValue.includes(ACCOUNT_DOCUMENT_STORAGE_PREFIX) &&
+      !storageKeyValue.includes(ACCOUNT_DOCUMENT_SHARED_STORAGE_PREFIX) &&
+      !storageKeyValue.includes('account-document-reviews')
+    ) {
+      return
+    }
+
+    loadDocuments()
   }
 
   watch(storageKey, loadDocuments, { immediate: true })
@@ -195,6 +368,22 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
     },
     { deep: true },
   )
+
+  onMounted(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+  })
+
+  onBeforeUnmount(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.removeEventListener('storage', handleStorageChange)
+  })
 
   return {
     documents,

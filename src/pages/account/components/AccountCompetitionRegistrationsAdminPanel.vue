@@ -1,0 +1,214 @@
+<template>
+  <ElCard class="account__panel account-competition-registrations-admin" shadow="never">
+    <div class="account-competition-registrations-admin__header">
+      <div class="account__panel-head">
+        <div>
+          <h3 class="account__panel-title">Заявки на соревнования</h3>
+          <p class="account-competition-registrations-admin__subtitle">
+            Показываем только ФИО, соревнование и статус. Все детали и управление находятся в модалке.
+          </p>
+        </div>
+
+        <div class="account__panel-actions">
+          <ElTag type="primary" effect="light" round>{{ summary.total }} заявок</ElTag>
+          <ElTag type="success" effect="light" round>{{ summary.active }} активных</ElTag>
+          <ElTag type="danger" effect="light" round>{{ summary.withdrawn }} снятых</ElTag>
+        </div>
+      </div>
+
+      <div class="account-competition-registrations-admin__filters">
+        <label class="account__field account__field--search">
+          <span class="account__field-label">Поиск</span>
+          <input
+            v-model.trim="search"
+            class="account__input account__input--toolbar"
+            type="search"
+            name="competition-registrations-search"
+            placeholder="ФИО, соревнование, владелец"
+          />
+        </label>
+
+        <label class="account__field account__field--filter">
+          <span class="account__field-label">Статус</span>
+          <ElSelect
+            v-model="statusFilter"
+            class="account__select"
+            popper-class="account__select-popper"
+            placeholder="Все статусы"
+          >
+            <ElOption label="Все статусы" value="all" />
+            <ElOption
+              v-for="option in registrationStatusOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </ElSelect>
+        </label>
+      </div>
+    </div>
+
+    <div v-if="filteredRegistrations.length" class="account__native-table-wrap">
+      <table class="account__native-table account__native-table--competition-admin-registrations">
+        <thead class="account__native-table-head">
+          <tr>
+            <th>ФИО</th>
+            <th>Соревнование</th>
+            <th>Статус</th>
+            <th>Действие</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr
+            v-for="registration in filteredRegistrations"
+            :key="registration.id"
+            class="account__native-table-row"
+            :class="`account-competition-registrations-admin__row--${registration.status}`"
+          >
+            <td class="account__native-table-cell">
+              <span class="account__table-primary account-competition-registrations-admin__nowrap">
+                {{ registration.participantName || 'Без имени' }}
+              </span>
+            </td>
+            <td class="account__native-table-cell">
+              <span class="account__table-primary account-competition-registrations-admin__nowrap">
+                {{ registration.competitionName || 'Соревнование не указано' }}
+              </span>
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <ElTag :type="competitionRegistrationRecordStatusType(registration.status)" effect="light" round>
+                {{ formatCompetitionRegistrationRecordStatus(registration.status) }}
+              </ElTag>
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <button
+                type="button"
+                class="account__table-action account__table-action--edit btn-reset"
+                @click="openDetailsDialog(registration)"
+              >
+                Подробнее
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ElEmpty v-else description="Заявки не найдены." />
+
+    <AccountCompetitionRegistrationDetailsDialog
+      :model-value="isDetailsDialogOpen"
+      :registration="selectedRegistration"
+      :stage-options="stageOptions"
+      :status-tag-type="
+        selectedRegistration
+          ? competitionRegistrationRecordStatusType(selectedRegistration.status)
+          : 'info'
+      "
+      :status-label="
+        selectedRegistration ? formatCompetitionRegistrationRecordStatus(selectedRegistration.status) : ''
+      "
+      @close="closeDetailsDialog"
+      @save="handleStageSave"
+      @withdraw="handleWithdrawSelectedRegistration"
+    />
+  </ElCard>
+</template>
+
+<script setup>
+import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
+import { COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS } from '@/pages/account/utils/accountConstants'
+import { useAccountCompetitionRegistrationsAdmin } from '@/pages/account/composables/useAccountCompetitionRegistrationsAdmin'
+import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/AccountCompetitionRegistrationDetailsDialog.vue'
+
+const {
+  search,
+  statusFilter,
+  filteredRegistrations,
+  summary,
+  stageOptions,
+  selectedRegistration,
+  isDetailsDialogOpen,
+  openDetailsDialog,
+  closeDetailsDialog,
+  handleStageSave,
+  handleWithdrawSelectedRegistration,
+  competitionRegistrationRecordStatusType,
+  formatCompetitionRegistrationRecordStatus,
+} = useAccountCompetitionRegistrationsAdmin()
+
+const registrationStatusOptions = COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS
+</script>
+
+<style scoped>
+.account-competition-registrations-admin__header {
+  display: grid;
+  gap: 18px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--aqua) 14%, transparent);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 250, 255, 0.72));
+}
+
+.account-competition-registrations-admin__subtitle {
+  margin: 8px 0 0;
+  max-width: 760px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #526072;
+}
+
+.account-competition-registrations-admin__filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  align-items: end;
+}
+
+.account-competition-registrations-admin__filters .account__field {
+  min-width: 0;
+}
+
+.account-competition-registrations-admin__row--withdrawn {
+  background: linear-gradient(180deg, rgb(255 245 242 / 0.78) 0%, rgb(255 255 255 / 0.72) 100%);
+}
+
+.account-competition-registrations-admin__row--withdrawn .account__native-table-cell {
+  color: #8b4d38;
+}
+
+.account-competition-registrations-admin__nowrap {
+  white-space: nowrap;
+}
+
+.account__native-table--competition-admin-registrations {
+  table-layout: fixed;
+  min-width: 980px;
+}
+
+.account__native-table--competition-admin-registrations th:nth-child(1),
+.account__native-table--competition-admin-registrations td:nth-child(1) {
+  width: 22%;
+}
+
+.account__native-table--competition-admin-registrations th:nth-child(2),
+.account__native-table--competition-admin-registrations td:nth-child(2) {
+  width: 44%;
+}
+
+.account__native-table--competition-admin-registrations th:nth-child(3),
+.account__native-table--competition-admin-registrations td:nth-child(3) {
+  width: 18%;
+}
+
+.account__native-table--competition-admin-registrations th:nth-child(4),
+.account__native-table--competition-admin-registrations td:nth-child(4) {
+  width: 16%;
+}
+
+@media (max-width: 1180px) {
+  .account-competition-registrations-admin__filters {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

@@ -1,5 +1,6 @@
 import { CRM_ROLE } from '@/utils/crmRoles'
 import { SUPABASE_MIN_PASSWORD_LENGTH } from '@/utils/supabaseAuth'
+import { createAccountDocumentsState } from '@/pages/account/utils/accountDocumentTypes'
 
 export const ACCOUNT_SYNC_COOLDOWN_MS = 1200
 export const USERS_PAGE_SIZE = 20
@@ -41,6 +42,16 @@ export const TRAINER_BOOKING_STATUS_OPTIONS = [
   { value: TRAINER_BOOKING_STATUS.COMPLETED, label: 'Завершена' },
 ]
 
+export const COMPETITION_REGISTRATION_RECORD_STATUS = Object.freeze({
+  SUBMITTED: 'submitted',
+  WITHDRAWN: 'withdrawn',
+})
+
+export const COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS = [
+  { value: COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED, label: 'Подана' },
+  { value: COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN, label: 'Снята' },
+]
+
 export const USER_STATUS_OPTIONS = [
   { value: 'paid', label: 'Оплачено' },
   { value: 'unpaid', label: 'Не оплачено' },
@@ -56,6 +67,21 @@ export const COMPETITION_NAME_OPTIONS = [
   { value: 'all', label: 'Все соревнования' },
   { value: 'SmartSwimCup', label: 'SmartSwimCup' },
   { value: 'smartiki', label: 'smartiki' },
+]
+
+export const DOCUMENT_REVIEW_STATUS_OPTIONS = [
+  { value: 'all', label: 'Все статусы' },
+  { value: 'uploaded', label: 'На проверке' },
+  { value: 'verified', label: 'Проверено' },
+  { value: 'rejected', label: 'Отклонено' },
+  { value: 'needs_reupload', label: 'Нужна доработка' },
+  { value: 'missing', label: 'Не загружен' },
+]
+
+export const DOCUMENT_SCOPE_OPTIONS = [
+  { value: 'all', label: 'Все разделы' },
+  { value: 'profile', label: 'Профиль' },
+  { value: 'athlete', label: 'Спортсмены' },
 ]
 
 export function createDefaultPasswordChangeForm() {
@@ -92,5 +118,6 @@ export function createDefaultUserEditForm() {
     phone: '',
     role: CRM_ROLE.USER,
     status: 'paid',
+    documents: createAccountDocumentsState(),
   }
 }

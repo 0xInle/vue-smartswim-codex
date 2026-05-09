@@ -1,11 +1,16 @@
 import { getCrmRoleLabel } from '@/utils/crmRoles'
 import {
+  ACCOUNT_DOCUMENT_STATUS,
+  getAccountDocumentStatusMeta,
+} from '@/pages/account/utils/accountDocumentTypes'
+import {
   formatCompetitionDateInputValue,
   formatCompetitionDateLabel,
   formatCompetitionDateShortLabel,
   resolveCompetitionRegistrationState,
 } from '@/utils/competitionRegistration'
 import { CONSULTATION_STATUS, TRAINER_BOOKING_STATUS } from '@/pages/account/utils/accountConstants'
+import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
 
 export function getErrorMessage(error, fallback) {
   return error instanceof Error ? error.message : fallback
@@ -260,6 +265,133 @@ export function formatCompetitionStageLabel(stage) {
   return `Этап ${Number(stage)}`
 }
 
+function parseAccountDocumentDate(value) {
+  const normalizedValue = String(value || '').trim()
+
+  if (!normalizedValue) {
+    return null
+  }
+
+  const isoMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+
+  if (isoMatch) {
+    return new Date(`${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}T23:59:59`)
+  }
+
+  const ruMatch = normalizedValue.match(/^(\d{2})\.(\d{2})\.(\d{4})$/)
+
+  if (ruMatch) {
+    return new Date(`${ruMatch[3]}-${ruMatch[2]}-${ruMatch[1]}T23:59:59`)
+  }
+
+  const parsed = new Date(normalizedValue)
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+export function formatAccountDocumentDate(value) {
+  if (!value) {
+    return 'Не указана'
+  }
+
+  return String(value)
+}
+
+export function isAccountDocumentExpired(document, now = Date.now()) {
+  const deadline = parseAccountDocumentDate(document?.expiresAt)
+
+  if (!deadline) {
+    return false
+  }
+
+  return deadline.getTime() < now
+}
+
+export function getAccountDocumentDisplayStatus(document, now = Date.now()) {
+  if (!document) {
+    return {
+      status: ACCOUNT_DOCUMENT_STATUS.MISSING,
+      label: 'Не загружен',
+      tagType: 'info',
+    }
+  }
+
+  if (document.status === ACCOUNT_DOCUMENT_STATUS.VERIFIED && isAccountDocumentExpired(document, now)) {
+    return {
+      status: 'expired',
+      label: 'Просрочен',
+      tagType: 'danger',
+    }
+  }
+
+  const meta = getAccountDocumentStatusMeta(document.status)
+
+  return {
+    status: document.status,
+    label: meta.label,
+    tagType: meta.tagType,
+  }
+}
+
+export function getAccountDocumentsAdmissionStatus(documents = [], now = Date.now()) {
+  const normalizedDocuments = Array.isArray(documents) ? documents : []
+  const isMissing = normalizedDocuments.some(
+    (document) => document.status === ACCOUNT_DOCUMENT_STATUS.MISSING,
+  )
+  const hasPending = normalizedDocuments.some(
+    (document) => document.status === ACCOUNT_DOCUMENT_STATUS.UPLOADED,
+  )
+  const hasRejected = normalizedDocuments.some(
+    (document) =>
+      document.status === ACCOUNT_DOCUMENT_STATUS.REJECTED ||
+      document.status === ACCOUNT_DOCUMENT_STATUS.NEEDS_REUPLOAD,
+  )
+  const hasExpired = normalizedDocuments.some((document) => isAccountDocumentExpired(document, now))
+
+  if (hasRejected) {
+    return {
+      status: 'attention',
+      label: 'Требует доработки',
+      description: 'Есть отклонённые или требующие повторной загрузки документы.',
+      tagType: 'danger',
+    }
+  }
+
+  if (hasExpired) {
+    return {
+      status: 'attention',
+      label: 'Есть просроченные документы',
+      description: 'Нужно обновить срок действия одного или нескольких документов.',
+      tagType: 'danger',
+    }
+  }
+
+  if (hasPending) {
+    return {
+      status: 'pending',
+      label: 'На проверке',
+      description: 'Документы загружены и ожидают подтверждения администратора.',
+      tagType: 'warning',
+    }
+  }
+
+  if (isMissing) {
+    return {
+      status: 'missing',
+      label: 'Документы не загружены',
+      description: 'Нужно загрузить обязательные документы для допуска.',
+      tagType: 'info',
+    }
+  }
+
+  return {
+    status: 'admitted',
+    label: 'Допущен',
+    description: 'Все обязательные документы подтверждены и действительны.',
+    tagType: 'success',
+  }
+}
+
 export function formatCompetitionCalendarDate(value) {
   if (!value) {
     return 'Не указана'
@@ -331,6 +463,34 @@ export function formatCompetitionRegistrationWindow(registration) {
   }
 
   return `${openDate} - ${closeDate}`
+}
+
+export function competitionRegistrationRecordStatusType(status) {
+  const normalizedStatus = String(status || '')
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
+    return 'danger'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED) {
+    return 'success'
+  }
+
+  return 'info'
+}
+
+export function formatCompetitionRegistrationRecordStatus(status) {
+  const normalizedStatus = String(status || '')
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
+    return 'Снята'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED) {
+    return 'Подана'
+  }
+
+  return 'Неизвестно'
 }
 
 function normalizeEmptyDateLabel(value) {

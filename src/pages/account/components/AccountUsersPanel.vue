@@ -115,6 +115,7 @@
       destroy-on-close
       class="account__dialog"
       title="Редактирование пользователя"
+      :close-icon="Close"
       @closed="$emit('close-edit')"
       @update:model-value="!$event && $emit('close-edit')"
     >
@@ -190,6 +191,14 @@
           </label>
         </div>
 
+        <AccountDocumentChecklist
+          :documents="editForm.documents"
+          :show-header="false"
+          embedded
+          @upload="$emit('open-document-upload', $event)"
+          @remove="$emit('remove-document', $event)"
+        />
+
         <div class="account__dialog-actions">
           <button
             type="button"
@@ -203,12 +212,20 @@
       </form>
     </ElDialog>
 
+    <AccountDocumentUploadDialog
+      :model-value="documentUploadState.isOpen"
+      :document-type="documentUploadState.documentType"
+      @close="$emit('close-document-upload')"
+      @submit="$emit('submit-document-upload', $event)"
+    />
+
     <ElDialog
       :model-value="isDeleteDialogOpen"
-      width="420px"
+      width="480px"
       destroy-on-close
-      class="account__dialog"
+      class="account__dialog account__dialog--confirm"
       title="Удалить пользователя"
+      :close-icon="Close"
       @closed="$emit('close-delete')"
       @update:model-value="!$event && $emit('close-delete')"
     >
@@ -243,6 +260,7 @@
 </template>
 
 <script setup>
+import { Close } from '@element-plus/icons-vue'
 import {
   ElCard,
   ElEmpty,
@@ -252,6 +270,8 @@ import {
   ElSelect,
   ElTag,
 } from 'element-plus'
+import AccountDocumentChecklist from '@/pages/account/components/AccountDocumentChecklist.vue'
+import AccountDocumentUploadDialog from '@/pages/account/components/AccountDocumentUploadDialog.vue'
 import {
   USER_ROLE_OPTIONS,
   USERS_PAGE_SIZE,
@@ -305,6 +325,10 @@ defineProps({
     type: Object,
     default: null,
   },
+  documentUploadState: {
+    type: Object,
+    required: true,
+  },
 })
 
 defineEmits([
@@ -317,6 +341,10 @@ defineEmits([
   'submit-edit',
   'close-delete',
   'confirm-delete',
+  'open-document-upload',
+  'close-document-upload',
+  'submit-document-upload',
+  'remove-document',
 ])
 
 const userRoleOptions = USER_ROLE_OPTIONS

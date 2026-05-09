@@ -100,8 +100,6 @@
     <div class="account-athletes__documents">
       <AccountDocumentChecklist
         :documents="form.documents"
-        :status-label="documentsStatusLabel"
-        :tag-type="documentsStatusTagType"
         mode="editable"
         :show-header="false"
         embedded
@@ -112,27 +110,10 @@
 
     <div class="account-athletes__actions">
       <button
-        v-if="editingAthleteId"
-        type="button"
-        class="account__table-action account__table-action--ghost btn-reset account-athletes__action-button"
-        @click="$emit('cancel')"
-      >
-        Отмена
-      </button>
-
-      <button
-        type="button"
-        class="account__table-action account__table-action--ghost btn-reset account-athletes__action-button"
-        @click="$emit('reset')"
-      >
-        Очистить
-      </button>
-
-      <button
         type="submit"
         class="account__submit btn-reset account-athletes__action-button account-athletes__submit-button"
       >
-        {{ editingAthleteId ? 'Сохранить' : 'Добавить спортсмена' }}
+        {{ editingAthleteId ? 'Сохранить изменения' : 'Добавить спортсмена' }}
       </button>
     </div>
 
@@ -176,14 +157,6 @@ defineProps({
     type: Function,
     required: true,
   },
-  documentsStatusLabel: {
-    type: String,
-    required: true,
-  },
-  documentsStatusTagType: {
-    type: String,
-    default: 'info',
-  },
   documentUploadState: {
     type: Object,
     required: true,
@@ -206,7 +179,7 @@ defineProps({
   },
 })
 
-defineEmits(['submit', 'reset', 'cancel', 'coach-select'])
+defineEmits(['submit', 'coach-select'])
 </script>
 
 <style scoped>

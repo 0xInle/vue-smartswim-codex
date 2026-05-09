@@ -33,8 +33,12 @@
           class="account__table-action account__table-action--ghost btn-reset account-documents-upload__file-button"
           @click="openFilePicker"
         >
-          Выбрать файл
+          {{ selectedFile ? 'Файл выбран' : 'Выбрать файл' }}
         </button>
+        <div v-if="selectedFile" class="account-documents-upload__file-summary">
+          <span class="account-documents-upload__file-name">{{ selectedFile.name }}</span>
+          <span class="account-documents-upload__file-size">{{ selectedFileSizeLabel }}</span>
+        </div>
         <span class="account__field-hint">
           Поддерживаются `PDF`, `JPG` и `PNG`.
         </span>
@@ -68,7 +72,7 @@
 
 <script setup>
 import { Close } from '@element-plus/icons-vue'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElDialog } from 'element-plus'
 import { getAccountDocumentDefinition } from '@/pages/account/utils/accountDocumentTypes'
 
@@ -87,10 +91,25 @@ const emit = defineEmits(['close', 'submit'])
 
 const fileInputRef = ref(null)
 const selectedFile = ref(null)
+const selectedFileDataUrl = ref('')
+const selectedFileType = ref('')
 const expiresAt = ref('')
 const fileError = ref('')
 
 const dialogTitle = ref('')
+const selectedFileSizeLabel = computed(() => {
+  if (!selectedFile.value) {
+    return ''
+  }
+
+  const sizeInKb = selectedFile.value.size / 1024
+
+  if (sizeInKb < 1024) {
+    return `${Math.max(1, Math.round(sizeInKb))} КБ`
+  }
+
+  return `${(sizeInKb / 1024).toFixed(1)} МБ`
+})
 
 watch(
   () => [props.modelValue, props.documentType],
@@ -109,20 +128,66 @@ function handleFileChange(event) {
   const nextFile = event.target.files?.[0] || null
   selectedFile.value = nextFile
   fileError.value = ''
+
+  if (!nextFile) {
+    selectedFileDataUrl.value = ''
+    selectedFileType.value = ''
+    return
+  }
+
+  selectedFileType.value = nextFile.type || ''
+  selectedFileDataUrl.value = ''
+
+  void readFileAsDataUrl(nextFile)
+    .then((result) => {
+      selectedFileDataUrl.value = result
+    })
+    .catch(() => {
+      selectedFileDataUrl.value = ''
+      selectedFileType.value = ''
+      fileError.value = 'Не удалось прочитать файл.'
+    })
 }
 
 function openFilePicker() {
   fileInputRef.value?.click()
 }
 
-function handleSubmit() {
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      resolve(typeof reader.result === 'string' ? reader.result : '')
+    }
+
+    reader.onerror = () => {
+      reject(new Error('Не удалось прочитать файл.'))
+    }
+
+    reader.readAsDataURL(file)
+  })
+}
+
+async function handleSubmit() {
   if (!selectedFile.value) {
     fileError.value = 'Выберите файл документа.'
     return
   }
 
+  if (!selectedFileDataUrl.value) {
+    try {
+      selectedFileDataUrl.value = await readFileAsDataUrl(selectedFile.value)
+    } catch (error) {
+      fileError.value = error instanceof Error ? error.message : 'Не удалось прочитать файл.'
+      return
+    }
+  }
+
   emit('submit', {
     file: selectedFile.value,
+    fileDataUrl: selectedFileDataUrl.value,
+    fileType: selectedFileType.value,
     expiresAt: expiresAt.value,
   })
 
@@ -131,6 +196,8 @@ function handleSubmit() {
 
 function resetDialog() {
   selectedFile.value = null
+  selectedFileDataUrl.value = ''
+  selectedFileType.value = ''
   expiresAt.value = ''
   fileError.value = ''
 
@@ -163,6 +230,31 @@ function resetDialog() {
   padding: 8px 14px;
   line-height: 1;
   text-align: center;
+}
+
+.account-documents-upload__file-summary {
+  display: grid;
+  gap: 2px;
+  margin-top: 2px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 20%, white);
+  border-radius: 10px;
+  background: rgb(246 251 255 / 0.92);
+}
+
+.account-documents-upload__file-name {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--black);
+  word-break: break-word;
+}
+
+.account-documents-upload__file-size {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #64748b;
 }
 
 .account__field-hint {

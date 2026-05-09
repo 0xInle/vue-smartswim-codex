@@ -80,7 +80,7 @@
     append-to-body
     align-center
     destroy-on-close
-    class="account__dialog"
+    class="account__dialog account__dialog--confirm"
     :close-icon="Close"
     @closed="closeDeleteDialog"
     @update:model-value="!$event && closeDeleteDialog()"

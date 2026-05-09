@@ -83,7 +83,7 @@
       append-to-body
       align-center
       destroy-on-close
-      class="account-date-picker__confirm-dialog"
+      class="account-date-picker__confirm-dialog account__dialog--confirm"
       width="420px"
       title="Подтвердите изменение даты"
       :close-icon="Close"

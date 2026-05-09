@@ -41,7 +41,11 @@
       </div>
       <div class="account-athlete-card__field account-athlete-card__field--wide">
         <span class="account-athlete-card__label">Документы</span>
-        <span class="account-athlete-card__value">{{ documentsStatusText }}</span>
+        <div class="account-athlete-card__documents">
+          <span class="account-athlete-card__status" :class="`account-athlete-card__status--${documentsStatus.status}`">
+            {{ documentsStatus.label }}
+          </span>
+        </div>
       </div>
     </div>
   </article>
@@ -50,6 +54,7 @@
 <script setup>
 import { computed } from 'vue'
 import { normalizeAccountDocumentsState } from '@/pages/account/utils/accountDocumentTypes'
+import { getAccountDocumentsAdmissionStatus } from '@/pages/account/utils/accountFormatters'
 
 const props = defineProps({
   athlete: {
@@ -65,21 +70,7 @@ const props = defineProps({
 defineEmits(['edit', 'delete'])
 
 const documents = computed(() => normalizeAccountDocumentsState(props.athlete?.documents))
-const loadedDocumentsCount = computed(() =>
-  documents.value.filter((document) => document.status !== 'missing').length,
-)
-const documentsCount = computed(() => documents.value.length)
-const documentsStatusText = computed(() => {
-  if (!loadedDocumentsCount.value) {
-    return 'Документы не загружены'
-  }
-
-  if (loadedDocumentsCount.value < documentsCount.value) {
-    return 'Документы загружены частично'
-  }
-
-  return 'Документы загружены'
-})
+const documentsStatus = computed(() => getAccountDocumentsAdmissionStatus(documents.value))
 </script>
 
 <style scoped>
@@ -89,7 +80,7 @@ const documentsStatusText = computed(() => {
   padding: 16px;
   border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
   border-radius: 10px;
-  background: linear-gradient(180deg, rgb(246 251 255 / 0.94) 0%, rgb(255 255 255 / 0.86) 100%);
+  background: var(--white);
 }
 
 .account-athlete-card__head {
@@ -141,6 +132,34 @@ const documentsStatusText = computed(() => {
 .account-athlete-card__field {
   display: grid;
   gap: 4px;
+}
+
+.account-athlete-card__documents {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.account-athlete-card__status {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.account-athlete-card__status--admitted {
+  color: #2f8f5b;
+}
+
+.account-athlete-card__status--pending {
+  color: #176384;
+}
+
+.account-athlete-card__status--missing {
+  color: #64748b;
+}
+
+.account-athlete-card__status--attention {
+  color: #d76034;
 }
 
 .account-athlete-card__label {

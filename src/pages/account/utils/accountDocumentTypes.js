@@ -26,6 +26,14 @@ export const ACCOUNT_DOCUMENT_TYPES = Object.freeze([
   },
 ])
 
+export const ACCOUNT_DOCUMENT_STATUS = Object.freeze({
+  MISSING: 'missing',
+  UPLOADED: 'uploaded',
+  VERIFIED: 'verified',
+  REJECTED: 'rejected',
+  NEEDS_REUPLOAD: 'needs_reupload',
+})
+
 export function getAccountDocumentDefinition(documentType) {
   return ACCOUNT_DOCUMENT_TYPES.find((item) => item.type === documentType) || null
 }
@@ -35,28 +43,34 @@ export function createAccountDocumentState(definition) {
     type: definition.type,
     label: definition.label,
     hint: definition.hint,
-    status: 'missing',
+    status: ACCOUNT_DOCUMENT_STATUS.MISSING,
     fileName: '',
     fileSize: 0,
+    fileType: '',
+    fileDataUrl: '',
     uploadedAt: '',
     expiresAt: '',
     verifiedAt: '',
     verifiedBy: '',
+    rejectionReason: '',
   }
 }
 
 export function normalizeAccountDocumentState(document, definition) {
   const fallback = createAccountDocumentState(definition)
+  const allowedStatuses = Object.values(ACCOUNT_DOCUMENT_STATUS)
 
   return {
     ...fallback,
-    ...(document || {}),
+    ...document,
     type: definition.type,
     label: definition.label,
     hint: definition.hint,
-    status: ['missing', 'uploaded', 'verified', 'rejected'].includes(document?.status)
+    status: allowedStatuses.includes(document?.status)
       ? document.status
       : fallback.status,
+    fileDataUrl: typeof document?.fileDataUrl === 'string' ? document.fileDataUrl : '',
+    fileType: typeof document?.fileType === 'string' ? document.fileType : '',
   }
 }
 
@@ -76,16 +90,36 @@ export function normalizeAccountDocumentsState(documents = []) {
 export function getAccountDocumentsStatusMeta(documents = []) {
   const normalizedDocuments = Array.isArray(documents) ? documents : []
   const documentCount = normalizedDocuments.length
-  const missingCount = normalizedDocuments.filter((document) => document.status === 'missing').length
-  const loadedCount = normalizedDocuments.filter((document) => document.status !== 'missing').length
-  const hasPendingDocuments = normalizedDocuments.some((document) => document.status === 'uploaded')
-  const hasRejectedDocuments = normalizedDocuments.some((document) => document.status === 'rejected')
+  const missingCount = normalizedDocuments.filter(
+    (document) => document.status === ACCOUNT_DOCUMENT_STATUS.MISSING,
+  ).length
+  const loadedCount = normalizedDocuments.filter(
+    (document) => document.status !== ACCOUNT_DOCUMENT_STATUS.MISSING,
+  ).length
+  const hasPendingDocuments = normalizedDocuments.some(
+    (document) => document.status === ACCOUNT_DOCUMENT_STATUS.UPLOADED,
+  )
+  const hasRejectedDocuments = normalizedDocuments.some(
+    (document) => document.status === ACCOUNT_DOCUMENT_STATUS.REJECTED,
+  )
+  const hasReuploadRequests = normalizedDocuments.some(
+    (document) => document.status === ACCOUNT_DOCUMENT_STATUS.NEEDS_REUPLOAD,
+  )
   const allDocumentsLoaded = documentCount > 0 && missingCount === 0
 
   if (hasRejectedDocuments) {
     return {
       label: 'Есть отклонённые',
       tagType: 'danger',
+      loadedCount,
+      documentCount,
+    }
+  }
+
+  if (hasReuploadRequests) {
+    return {
+      label: 'Нужна повторная загрузка',
+      tagType: 'warning',
       loadedCount,
       documentCount,
     }
@@ -115,4 +149,43 @@ export function getAccountDocumentsStatusMeta(documents = []) {
     loadedCount,
     documentCount,
   }
+}
+
+export function getAccountDocumentStatusMeta(status) {
+  if (status === ACCOUNT_DOCUMENT_STATUS.VERIFIED) {
+    return {
+      label: 'Проверен',
+      tagType: 'success',
+    }
+  }
+
+  if (status === ACCOUNT_DOCUMENT_STATUS.REJECTED) {
+    return {
+      label: 'Отклонён',
+      tagType: 'danger',
+    }
+  }
+
+  if (status === ACCOUNT_DOCUMENT_STATUS.NEEDS_REUPLOAD) {
+    return {
+      label: 'Нужна повторная загрузка',
+      tagType: 'warning',
+    }
+  }
+
+  if (status === ACCOUNT_DOCUMENT_STATUS.UPLOADED) {
+    return {
+      label: 'На проверке',
+      tagType: 'warning',
+    }
+  }
+
+  return {
+    label: 'Не загружен',
+    tagType: 'info',
+  }
+}
+
+export function isAccountDocumentVerified(document) {
+  return document?.status === ACCOUNT_DOCUMENT_STATUS.VERIFIED
 }

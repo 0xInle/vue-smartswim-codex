@@ -1,11 +1,18 @@
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { trainers } from '@/pages/trainers/trainersData'
+import { ElMessageBox } from 'element-plus'
 import { showToast } from '@/utils/toast'
 import {
   createAccountDocumentsState,
-  getAccountDocumentsStatusMeta,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
+import {
+  mergeDocumentsWithReviewRecords,
+  seedAccountDocumentReviewRecords,
+  removeAccountDocumentReviewRecords,
+  syncAccountDocumentReviewRecords,
+} from '@/pages/account/utils/accountDocumentRegistry'
+import { stripAccountDocumentFileData } from '@/pages/account/utils/accountLocalStorage'
 
 const ATHLETES_STORAGE_KEY = 'smartswim:account-athletes:v1'
 
@@ -53,6 +60,8 @@ export function useAccountAthletes({ currentUser }) {
     return `${ATHLETES_STORAGE_KEY}:${userKey}`
   })
 
+  const anonymousStorageKey = computed(() => `${ATHLETES_STORAGE_KEY}:anonymous`)
+
   function resetErrors() {
     errors.fullName = ''
     errors.birthDate = ''
@@ -80,7 +89,12 @@ export function useAccountAthletes({ currentUser }) {
     }
 
     try {
-      const serializedAthletes = window.localStorage.getItem(storageKey.value)
+      const ownSerializedAthletes = window.localStorage.getItem(storageKey.value)
+      const fallbackSerializedAthletes =
+        storageKey.value === anonymousStorageKey.value
+          ? ''
+          : window.localStorage.getItem(anonymousStorageKey.value)
+      const serializedAthletes = ownSerializedAthletes || fallbackSerializedAthletes
 
       if (!serializedAthletes) {
         athletes.value = []
@@ -88,7 +102,37 @@ export function useAccountAthletes({ currentUser }) {
       }
 
       const parsedAthletes = JSON.parse(serializedAthletes)
-      athletes.value = Array.isArray(parsedAthletes) ? parsedAthletes.map(normalizeAthlete) : []
+      const nextAthletes = Array.isArray(parsedAthletes) ? parsedAthletes.map(normalizeAthlete) : []
+
+      nextAthletes.forEach((athlete) => {
+        seedAccountDocumentReviewRecords({
+          currentUser,
+          ownerName: currentUser.value?.name || '',
+          ownerEmail: currentUser.value?.email || '',
+          ownerPhone: currentUser.value?.phone || '',
+          scope: 'athlete',
+          scopeId: athlete.id,
+          participantName: athlete.fullName || '',
+          participantBirthDate: athlete.birthDate || '',
+          participantClub: athlete.club || '',
+          participantKind: 'athlete',
+          documents: athlete.documents || [],
+        })
+      })
+
+      athletes.value = nextAthletes.map((athlete) => ({
+        ...athlete,
+        documents: mergeDocumentsWithReviewRecords({
+          currentUser,
+          scope: 'athlete',
+          scopeId: athlete.id,
+          documents: athlete.documents,
+        }),
+      }))
+
+      if (!ownSerializedAthletes && fallbackSerializedAthletes) {
+        persistAthletes()
+      }
     } catch {
       athletes.value = []
     }
@@ -96,10 +140,67 @@ export function useAccountAthletes({ currentUser }) {
 
   function persistAthletes() {
     if (typeof window === 'undefined') {
-      return
+      return true
     }
 
-    window.localStorage.setItem(storageKey.value, JSON.stringify(athletes.value))
+    const storageAthletes = athletes.value.map((athlete) => ({
+      ...athlete,
+      documents: stripAccountDocumentFileData(athlete.documents),
+    }))
+
+    try {
+      window.localStorage.setItem(storageKey.value, JSON.stringify(storageAthletes))
+      return true
+    } catch {
+      showToast('Не удалось сохранить спортсменов. Проверьте размер загруженных файлов.', {
+        type: 'error',
+      })
+      return false
+    }
+  }
+
+  function syncAthleteDocumentReviews(athlete) {
+    syncAccountDocumentReviewRecords({
+      currentUser,
+      ownerName: currentUser.value?.name || '',
+      ownerEmail: currentUser.value?.email || '',
+      ownerPhone: currentUser.value?.phone || '',
+      scope: 'athlete',
+      scopeId: athlete.id,
+      participantName: athlete.fullName,
+      participantBirthDate: athlete.birthDate,
+      participantClub: athlete.club,
+      participantKind: 'athlete',
+      documents: athlete.documents,
+    })
+  }
+
+  function persistEditedAthleteDocuments() {
+    if (!editingAthleteId.value) {
+      return true
+    }
+
+    let nextAthlete = null
+
+    athletes.value = athletes.value.map((athlete) => {
+      if (athlete.id !== editingAthleteId.value) {
+        return athlete
+      }
+
+      nextAthlete = normalizeAthlete({
+        ...athlete,
+        documents: form.documents,
+      })
+
+      return nextAthlete
+    })
+
+    if (!nextAthlete) {
+      return false
+    }
+
+    syncAthleteDocumentReviews(nextAthlete)
+    return persistAthletes()
   }
 
   function resetForm() {
@@ -131,14 +232,38 @@ export function useAccountAthletes({ currentUser }) {
   }
 
   function deleteAthlete(athleteId) {
-    athletes.value = athletes.value.filter((athlete) => athlete.id !== athleteId)
-    persistAthletes()
+    void ElMessageBox.confirm(
+      'Удалить спортсмена? Это действие нельзя отменить.',
+      'Подтверждение удаления',
+      {
+        customClass: 'account__confirm-messagebox',
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        confirmButtonClass: 'account__submit btn-reset',
+        cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
+        type: 'warning',
+        autofocus: false,
+        closeOnClickModal: false,
+        closeOnPressEscape: true,
+      },
+    )
+      .then(() => {
+        removeAccountDocumentReviewRecords({
+          currentUser,
+          scope: 'athlete',
+          scopeId: athleteId,
+        })
 
-    if (editingAthleteId.value === athleteId) {
-      resetForm()
-    }
+        athletes.value = athletes.value.filter((athlete) => athlete.id !== athleteId)
+        persistAthletes()
 
-    showToast('Спортсмен удалён')
+        if (editingAthleteId.value === athleteId) {
+          resetForm()
+        }
+
+        showToast('Спортсмен удалён')
+      })
+      .catch(() => {})
   }
 
   function validateForm() {
@@ -200,7 +325,12 @@ export function useAccountAthletes({ currentUser }) {
       athletes.value = [payload, ...athletes.value]
     }
 
-    persistAthletes()
+    syncAthleteDocumentReviews(payload)
+
+    if (!persistAthletes()) {
+      return false
+    }
+
     showToast(editingAthleteId.value ? 'Спортсмен сохранён' : 'Спортсмен добавлен')
     resetForm()
     return true
@@ -233,10 +363,6 @@ export function useAccountAthletes({ currentUser }) {
     fileSize: 0,
     expiresAt: '',
   })
-
-  const documentsStatus = computed(() => getAccountDocumentsStatusMeta(form.documents))
-  const documentsStatusLabel = computed(() => documentsStatus.value.label)
-  const documentsStatusTagType = computed(() => documentsStatus.value.tagType)
 
   function getDocumentState(documentType) {
     return form.documents.find((document) => document.type === documentType) || null
@@ -281,7 +407,7 @@ export function useAccountAthletes({ currentUser }) {
     )
   }
 
-  function handleDocumentUploadSubmit({ file, expiresAt }) {
+  function handleDocumentUploadSubmit({ file, fileDataUrl = '', fileType = '', expiresAt }) {
     if (!documentUploadState.documentType || !file) {
       return
     }
@@ -290,25 +416,58 @@ export function useAccountAthletes({ currentUser }) {
       status: 'uploaded',
       fileName: file.name,
       fileSize: file.size,
+      fileDataUrl,
+      fileType,
       uploadedAt: new Date().toISOString(),
       expiresAt: expiresAt || '',
       verifiedAt: '',
       verifiedBy: '',
+      rejectionReason: '',
     })
 
+    persistEditedAthleteDocuments()
     closeDocumentUploadDialog()
   }
 
   function handleDocumentRemove(documentType) {
-    upsertDocument(documentType, {
-      status: 'missing',
-      fileName: '',
-      fileSize: 0,
-      uploadedAt: '',
-      expiresAt: '',
-      verifiedAt: '',
-      verifiedBy: '',
-    })
+    const targetDocument = form.documents.find((document) => document.type === documentType)
+
+    if (!targetDocument) {
+      return
+    }
+
+    void ElMessageBox.confirm(
+      `Удалить документ «${targetDocument.label}»?`,
+      'Подтверждение удаления',
+      {
+        customClass: 'account__confirm-messagebox',
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        confirmButtonClass: 'account__submit btn-reset',
+        cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
+        type: 'warning',
+        autofocus: false,
+        closeOnClickModal: false,
+        closeOnPressEscape: true,
+      },
+    )
+      .then(() => {
+        upsertDocument(documentType, {
+          status: 'missing',
+          fileName: '',
+          fileSize: 0,
+          fileDataUrl: '',
+          fileType: '',
+          uploadedAt: '',
+          expiresAt: '',
+          verifiedAt: '',
+          verifiedBy: '',
+          rejectionReason: '',
+        })
+
+        persistEditedAthleteDocuments()
+      })
+      .catch(() => {})
   }
 
   watch(
@@ -325,6 +484,32 @@ export function useAccountAthletes({ currentUser }) {
     resetForm()
   })
 
+  function handleStorageChange(event) {
+    const storageKeyValue = String(event?.key || '')
+
+    if (!storageKeyValue.includes(ATHLETES_STORAGE_KEY) && !storageKeyValue.includes('account-document-reviews')) {
+      return
+    }
+
+    syncFromStorage()
+  }
+
+  onMounted(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+  })
+
+  onBeforeUnmount(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.removeEventListener('storage', handleStorageChange)
+  })
+
   return {
     athletes,
     editingAthleteId,
@@ -332,8 +517,6 @@ export function useAccountAthletes({ currentUser }) {
     errors,
     genderOptions: GENDER_OPTIONS,
     coachPlaceholder,
-    documentsStatusLabel,
-    documentsStatusTagType,
     documentUploadState,
     startEdit,
     cancelEdit,

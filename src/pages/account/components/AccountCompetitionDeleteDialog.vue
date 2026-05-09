@@ -1,11 +1,11 @@
 <template>
   <ElDialog
     :model-value="modelValue"
-    width="520px"
+    width="480px"
     append-to-body
     align-center
     destroy-on-close
-    class="account__dialog"
+    class="account__dialog account__dialog--confirm"
     :close-icon="Close"
     @closed="emit('close')"
     @update:model-value="!$event && emit('close')"

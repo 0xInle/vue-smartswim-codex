@@ -1,19 +1,27 @@
 import { computed, reactive, ref, watch } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { accountMockCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import {
   createCompetitionRegistrationRecord,
   persistCompetitionRegistrations,
   readCompetitionRegistrations,
+  updateCompetitionRegistration,
+  updateCompetitionRegistrationStatus,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 import {
   readAccountAthletesSnapshot,
   readAccountProfileSnapshot,
 } from '@/pages/account/utils/accountLocalStorage'
+import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
 import {
   formatCompetitionDateLabel,
   resolveCompetitionRegistrationState,
 } from '@/utils/competitionRegistration'
 import { showToast } from '@/utils/toast'
+import {
+  competitionRegistrationRecordStatusType,
+  formatCompetitionRegistrationRecordStatus,
+} from '@/pages/account/utils/accountFormatters'
 
 const DEFAULT_PARTICIPANT_KIND = 'owner'
 const DEFAULT_REGISTRATION_KIND = 'individual'
@@ -103,8 +111,8 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
 
   const registrationHistory = computed(() =>
     [...registrations.value].sort((left, right) => {
-      const leftTime = Date.parse(left.createdAt || 0) || 0
-      const rightTime = Date.parse(right.createdAt || 0) || 0
+      const leftTime = Date.parse(left.statusChangedAt || left.createdAt || 0) || 0
+      const rightTime = Date.parse(right.statusChangedAt || right.createdAt || 0) || 0
 
       return rightTime - leftTime
     }),
@@ -135,8 +143,6 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
   const selectedStage = computed(
     () => filteredCompetitionRows.value.find((row) => row.id === selectedCompetitionStageId.value) || null,
   )
-
-  const selectedStagePaymentOptions = computed(() => selectedStage.value?.registration?.options || [])
   const availableStagesCount = computed(
     () =>
       filteredCompetitionRows.value.filter((row) => row.registrationState.mode !== 'closed').length,
@@ -145,6 +151,12 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     () => filteredCompetitionRows.value.filter((row) => row.registrationState.mode === 'open').length,
   )
   const registrationsCount = computed(() => registrations.value.length)
+  const activeRegistrationsCount = computed(
+    () =>
+      registrations.value.filter(
+        (registration) => registration.status === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED,
+      ).length,
+  )
 
   function syncSnapshots() {
     ownerSnapshot.value = readAccountProfileSnapshot(currentUser)
@@ -212,7 +224,6 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     const firstParticipant = participantOptions.value[0]
     registrationForm.participantId = firstParticipant?.value || 'owner'
     registrationForm.participantKind = firstParticipant?.kind || 'owner'
-    registrationForm.paymentOptionId = targetStage.registration?.options?.[0]?.id || ''
   }
 
   function closeRegistrationDialog() {
@@ -238,10 +249,6 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
       registrationErrors.participantId = 'Выберите участника из списка.'
     }
 
-    if (selectedStagePaymentOptions.value.length && !registrationForm.paymentOptionId) {
-      registrationErrors.paymentOptionId = 'Выберите вариант оплаты.'
-    }
-
     if (registrationForm.registrationKind === 'relay' && !registrationForm.teamName.trim()) {
       registrationErrors.teamName = 'Укажите название эстафеты или команды.'
     }
@@ -259,9 +266,6 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     }
 
     const selectedParticipant = normalizeParticipantById(registrationForm.participantId)
-    const selectedPayment = selectedStagePaymentOptions.value.find(
-      (option) => option.id === registrationForm.paymentOptionId,
-    )
     const record = createCompetitionRegistrationRecord({
       competitionSlug: selectedStage.value.competitionSlug,
       competitionName: selectedStage.value.competitionName,
@@ -283,12 +287,13 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
       ownerEmail: ownerSnapshot.value.email || currentUser?.value?.email || '',
       ownerPhone: ownerSnapshot.value.phone || '',
       registrationKind: registrationForm.registrationKind,
-      paymentOptionId: selectedPayment?.id || '',
-      paymentOptionTitle: selectedPayment?.title || '',
+      paymentOptionId: '',
+      paymentOptionTitle: '',
       teamName: registrationForm.teamName.trim(),
       seedTime: registrationForm.seedTime.trim(),
       comment: registrationForm.comment.trim(),
       status: 'submitted',
+      statusChangedBy: ownerSnapshot.value.fullName || currentUser?.value?.name || 'user',
     })
 
     registrations.value = [record, ...registrations.value]
@@ -296,6 +301,83 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     showToast('Заявка на соревнования создана')
     closeRegistrationDialog()
     return true
+  }
+
+  async function handleWithdrawRegistration(registrationId) {
+    const targetRegistration = registrations.value.find((registration) => registration.id === registrationId)
+
+    if (!targetRegistration || targetRegistration.status !== COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED) {
+      return false
+    }
+
+    try {
+      await ElMessageBox.confirm(
+        'Снять спортсмена с соревнований? Заявка останется в истории.',
+        'Подтверждение снятия',
+        {
+          customClass: 'account__confirm-messagebox',
+          confirmButtonText: 'Снять',
+          cancelButtonText: 'Отмена',
+          confirmButtonClass: 'account__submit btn-reset',
+          cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
+          type: 'warning',
+          autofocus: false,
+          closeOnClickModal: false,
+          closeOnPressEscape: true,
+        },
+      )
+    } catch {
+      return false
+    }
+
+    const updatedRegistration = updateCompetitionRegistrationStatus(
+      currentUser,
+      registrationId,
+      COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN,
+      {
+        statusChangedBy: ownerSnapshot.value.fullName || currentUser?.value?.name || 'user',
+      },
+    )
+
+    if (!updatedRegistration) {
+      return false
+    }
+
+    registrations.value = registrations.value.map((registration) =>
+      registration.id === registrationId ? updatedRegistration : registration,
+    )
+
+    showToast('Спортсмен снят с соревнований')
+    return true
+  }
+
+  function getRegistrationStatusLabel(status) {
+    return formatCompetitionRegistrationRecordStatus(status)
+  }
+
+  function getRegistrationStatusTagType(status) {
+    return competitionRegistrationRecordStatusType(status)
+  }
+
+  function updateSelectedRegistration(registrationId, patch = {}) {
+    const updatedRegistration = updateCompetitionRegistration(
+      currentUser,
+      registrationId,
+      patch,
+      {
+        statusChangedBy: ownerSnapshot.value.fullName || currentUser?.value?.name || 'user',
+      },
+    )
+
+    if (!updatedRegistration) {
+      return null
+    }
+
+    registrations.value = registrations.value.map((registration) =>
+      registration.id === registrationId ? updatedRegistration : registration,
+    )
+
+    return updatedRegistration
   }
 
   function formatParticipantName(record) {
@@ -331,10 +413,10 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     registrationHistory,
     participantOptions,
     selectedStage,
-    selectedStagePaymentOptions,
     availableStagesCount,
     openStagesCount,
     registrationsCount,
+    activeRegistrationsCount,
     registrationForm,
     registrationErrors,
     isRegistrationDialogOpen,
@@ -342,6 +424,10 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     openRegistrationDialog,
     closeRegistrationDialog,
     handleRegistrationSubmit,
+    handleWithdrawRegistration,
+    updateSelectedRegistration,
+    getRegistrationStatusLabel,
+    getRegistrationStatusTagType,
     formatParticipantName,
     formatRegistrationTypeLabel,
   }

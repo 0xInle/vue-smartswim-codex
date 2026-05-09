@@ -1,64 +1,5 @@
 <template>
   <ElCard class="account__panel account-competition-registrations" shadow="never">
-    <div class="account-competition-registrations__header">
-      <div class="account-competition-registrations__header-top">
-        <div class="account-competition-registrations__controls">
-          <div class="account-competition-registrations__filters">
-            <label class="account__field account__field--filter">
-              <span class="account__field-label">Соревнование</span>
-              <ElSelect
-                :model-value="competitionFilter"
-                class="account__select"
-                popper-class="account__select-popper"
-                placeholder="Все соревнования"
-                @update:model-value="competitionFilter = $event"
-              >
-                <ElOption
-                  v-for="option in competitionOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                />
-              </ElSelect>
-            </label>
-
-            <label class="account__field account__field--filter">
-              <span class="account__field-label">Статус</span>
-              <ElSelect
-                :model-value="statusFilter"
-                class="account__select"
-                popper-class="account__select-popper"
-                placeholder="Все статусы"
-                @update:model-value="statusFilter = $event"
-              >
-                <ElOption label="Все статусы" value="all" />
-                <ElOption label="Открыто" value="open" />
-                <ElOption label="Скоро" value="upcoming" />
-                <ElOption label="Закрыто" value="closed" />
-              </ElSelect>
-            </label>
-          </div>
-
-          <div class="account-competition-registrations__stats">
-            <ElTag
-              class="account-competition-registrations__stat-tag account-competition-registrations__stat-tag--open"
-              type="success"
-              effect="light"
-            >
-              {{ openStagesCount }} открыто
-            </ElTag>
-            <ElTag
-              class="account-competition-registrations__stat-tag account-competition-registrations__stat-tag--available"
-              type="info"
-              effect="light"
-            >
-              {{ availableStagesCount }} доступно
-            </ElTag>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="account-competition-registrations__content">
       <section class="account-competition-registrations__section">
         <div class="account-competition-registrations__section-head">
@@ -69,11 +10,10 @@
           <table class="account__native-table account__native-table--competition-history">
             <thead class="account__native-table-head">
               <tr>
-                <th>Соревнование</th>
                 <th>Участник</th>
-                <th>Тип</th>
-                <th>Оплата</th>
-                <th>Создана</th>
+                <th>Соревнование</th>
+                <th>Статус</th>
+                <th>Действие</th>
               </tr>
             </thead>
 
@@ -82,20 +22,32 @@
                 v-for="record in registrationHistory"
                 :key="record.id"
                 class="account__native-table-row"
+                :class="`account-competition-registrations__history-row--${record.status}`"
               >
-                <td class="account__native-table-cell account__native-table-cell--primary">
-                  <div class="account__table-user">
-                    <div class="account__table-primary">{{ record.competitionName }}</div>
-                  </div>
+                <td class="account__native-table-cell account__native-table-cell--center">
+                  <span class="account-competition-registrations__nowrap">
+                    {{ formatParticipantName(record) }}
+                  </span>
                 </td>
-                <td class="account__native-table-cell">
-                  {{ formatParticipantName(record) }}
+                <td class="account__native-table-cell account__native-table-cell--center">
+                  <span class="account-competition-registrations__nowrap">
+                    {{ record.competitionName || 'Не указано' }}
+                  </span>
                 </td>
-                <td class="account__native-table-cell">
-                  {{ formatRegistrationTypeLabel(record.registrationKind) }}
+                <td class="account__native-table-cell account__native-table-cell--center">
+                  <ElTag :type="getRegistrationStatusTagType(record.status)" effect="light" round>
+                    {{ getRegistrationStatusLabel(record.status) }}
+                  </ElTag>
                 </td>
-                <td class="account__native-table-cell">{{ record.paymentOptionTitle || 'Не выбрано' }}</td>
-                <td class="account__native-table-cell">{{ formatShortDate(record.createdAt) }}</td>
+                <td class="account__native-table-cell account__native-table-cell--center">
+                  <button
+                    type="button"
+                    class="account__table-action account__table-action--edit btn-reset"
+                    @click="openHistoryDetails(record)"
+                  >
+                    Подробнее
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -105,6 +57,65 @@
           <div class="account-competition-registrations__empty-state-title">Пока нет заявок</div>
           <div class="account-competition-registrations__empty-state-text">
             Здесь появятся спортсмены и владельцы кабинета, когда будут отправлены заявки на соревнования.
+          </div>
+        </div>
+      </section>
+
+      <section class="account-competition-registrations__section">
+        <div class="account-competition-registrations__header-top">
+          <div class="account-competition-registrations__controls">
+            <div class="account-competition-registrations__filters">
+              <label class="account__field account__field--filter">
+                <span class="account__field-label">Соревнование</span>
+                <ElSelect
+                  :model-value="competitionFilter"
+                  class="account__select"
+                  popper-class="account__select-popper"
+                  placeholder="Все соревнования"
+                  @update:model-value="competitionFilter = $event"
+                >
+                  <ElOption
+                    v-for="option in competitionOptions"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  />
+                </ElSelect>
+              </label>
+
+              <label class="account__field account__field--filter">
+                <span class="account__field-label">Статус</span>
+                <ElSelect
+                  :model-value="statusFilter"
+                  class="account__select"
+                  popper-class="account__select-popper"
+                  placeholder="Все статусы"
+                  @update:model-value="statusFilter = $event"
+                >
+                  <ElOption label="Все статусы" value="all" />
+                  <ElOption label="Открыто" value="open" />
+                  <ElOption label="Скоро" value="upcoming" />
+                  <ElOption label="Закрыто" value="closed" />
+                </ElSelect>
+              </label>
+            </div>
+
+            <div class="account-competition-registrations__stats">
+              <ElTag
+                class="account-competition-registrations__stat-tag account-competition-registrations__stat-tag--open"
+                type="success"
+                effect="light"
+              >
+                {{ openStagesCount }} открыто
+              </ElTag>
+              <ElTag
+                class="account-competition-registrations__stat-tag account-competition-registrations__stat-tag--available"
+                type="info"
+                effect="light"
+              >
+                {{ availableStagesCount }} доступно
+              </ElTag>
+            </div>
           </div>
         </div>
       </section>
@@ -122,7 +133,6 @@
                 <th>Этап</th>
                 <th>Дата</th>
                 <th>Регистрация</th>
-                <th>Действие</th>
               </tr>
             </thead>
 
@@ -140,19 +150,15 @@
                   {{ formatCompetitionCalendarDateShort(row.date) }}
                 </td>
                 <td class="account__native-table-cell account__native-table-cell--center">
-                  <ElTag :type="statusTagType(row.registrationState.mode)" effect="light" round>
-                    {{ statusLabel(row.registrationState.mode) }}
-                  </ElTag>
-                </td>
-                <td class="account__native-table-cell account__native-table-cell--center">
                   <button
                     type="button"
-                    class="account__table-action account__table-action--success btn-reset"
+                    class="account__table-action account__table-action--edit btn-reset account-competition-registrations__registration-button"
+                    :class="`account-competition-registrations__registration-button--${row.registrationState.mode}`"
                     :disabled="isRegistrationActionDisabled(row)"
                     :title="getRegistrationActionTitle(row)"
                     @click="handleOpenRegistration(row.id)"
                   >
-                    Регистрация
+                    {{ getRegistrationActionLabel(row) }}
                   </button>
                 </td>
               </tr>
@@ -164,17 +170,37 @@
       </section>
     </div>
 
+    <AccountCompetitionRegistrationDetailsDialog
+      :model-value="isHistoryDetailsDialogOpen"
+      :registration="selectedHistoryRegistration"
+      :stage-options="[]"
+      :can-edit-stage="false"
+      :can-edit-registration-kind="true"
+      :show-save-button="true"
+      :show-withdraw-button="true"
+      :status-tag-type="
+        selectedHistoryRegistration
+          ? getRegistrationStatusTagType(selectedHistoryRegistration.status)
+          : 'info'
+      "
+      :status-label="
+        selectedHistoryRegistration ? getRegistrationStatusLabel(selectedHistoryRegistration.status) : ''
+      "
+      @close="closeHistoryDetails"
+      @save="handleUpdateSelectedRegistration"
+      @withdraw="handleWithdrawSelectedRegistration"
+    />
+
     <AccountCompetitionRegistrationDialog
       :model-value="isRegistrationDialogOpen"
       :stage="selectedStage"
-      :owner-snapshot="ownerSnapshot"
       :participant-options="participantOptions"
-      :payment-options="selectedStagePaymentOptions"
       :form="registrationForm"
       :errors="registrationErrors"
       :is-submitting="isSubmitting"
       @close="handleCloseRegistration"
       @submit="handleSubmitRegistration"
+      @update-form-field="handleRegistrationFormFieldUpdate"
     />
   </ElCard>
 </template>
@@ -182,6 +208,7 @@
 <script setup>
 import { computed, ref, toRef, watch } from 'vue'
 import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
+import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/AccountCompetitionRegistrationDetailsDialog.vue'
 import AccountCompetitionRegistrationDialog from '@/pages/account/components/AccountCompetitionRegistrationDialog.vue'
 import { useAccountCompetitionRegistrations } from '@/pages/account/composables/useAccountCompetitionRegistrations'
 import {
@@ -205,15 +232,15 @@ const emit = defineEmits(['consume-target'])
 const competitionFilter = ref('all')
 const statusFilter = ref('all')
 const isSubmitting = ref(false)
+const selectedHistoryRegistration = ref(null)
+const isHistoryDetailsDialogOpen = ref(false)
 
 const {
-  ownerSnapshot,
   competitionOptions,
   filteredCompetitionRows,
   registrationHistory,
   participantOptions,
   selectedStage,
-  selectedStagePaymentOptions,
   availableStagesCount,
   openStagesCount,
   registrationForm,
@@ -222,8 +249,11 @@ const {
   openRegistrationDialog,
   closeRegistrationDialog,
   handleRegistrationSubmit,
+  handleWithdrawRegistration,
+  updateSelectedRegistration,
+  getRegistrationStatusLabel,
+  getRegistrationStatusTagType,
   formatParticipantName,
-  formatRegistrationTypeLabel,
 } = useAccountCompetitionRegistrations({
   currentUser: toRef(props, 'currentUser'),
 })
@@ -239,40 +269,75 @@ const filteredRows = computed(() =>
   }),
 )
 
-const hasOpenRegistrations = computed(() =>
-  filteredRows.value.some((row) => row.registrationState.mode === 'open'),
-)
-
-const testRegistrationStageId = computed(() => {
-  if (hasOpenRegistrations.value) {
-    return ''
-  }
-
-  return filteredRows.value[0]?.id || ''
-})
-
 function handleOpenRegistration(stageId) {
   openRegistrationDialog(stageId)
 }
 
 function isRegistrationActionDisabled(row) {
-  if (row.registrationState.mode === 'open') {
-    return false
-  }
-
-  return row.id !== testRegistrationStageId.value
+  return row.registrationState.mode !== 'open'
 }
 
 function getRegistrationActionTitle(row) {
   if (row.registrationState.mode === 'open') {
-    return 'Открыть форму регистрации'
+    return 'Регистрация на соревнование'
   }
 
-  if (row.id === testRegistrationStageId.value) {
-    return 'Тестовое открытие формы регистрации'
+  if (row.registrationState.mode === 'upcoming') {
+    return 'Регистрация скоро откроется'
   }
 
   return 'Регистрация закрыта'
+}
+
+function getRegistrationActionLabel(row) {
+  if (row.registrationState.mode === 'open') {
+    return 'Регистрация'
+  }
+
+  if (row.registrationState.mode === 'upcoming') {
+    return 'Скоро'
+  }
+
+  return 'Закрыта'
+}
+
+function openHistoryDetails(record) {
+  selectedHistoryRegistration.value = record
+  isHistoryDetailsDialogOpen.value = true
+}
+
+function closeHistoryDetails() {
+  isHistoryDetailsDialogOpen.value = false
+}
+
+async function handleWithdrawSelectedRegistration() {
+  const targetId = selectedHistoryRegistration.value?.id
+
+  if (!targetId) {
+    return
+  }
+
+  const isWithdrawn = await handleWithdrawRegistration(targetId)
+
+  if (isWithdrawn) {
+    closeHistoryDetails()
+  }
+}
+
+function handleUpdateSelectedRegistration(payload) {
+  const targetId = selectedHistoryRegistration.value?.id
+
+  if (!targetId) {
+    return
+  }
+
+  const updatedRegistration = updateSelectedRegistration(targetId, {
+    registrationKind: payload?.registrationKind || 'individual',
+  })
+
+  if (updatedRegistration) {
+    closeHistoryDetails()
+  }
 }
 
 function handleCloseRegistration() {
@@ -293,40 +358,12 @@ function handleSubmitRegistration() {
   }
 }
 
-function formatShortDate(value) {
-  if (!value) {
-    return 'Не указана'
+function handleRegistrationFormFieldUpdate({ field, value }) {
+  if (!Object.prototype.hasOwnProperty.call(registrationForm, field)) {
+    return
   }
 
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(value))
-}
-
-function statusLabel(status) {
-  if (status === 'open') {
-    return 'Открыто'
-  }
-
-  if (status === 'upcoming') {
-    return 'Скоро'
-  }
-
-  return 'Закрыто'
-}
-
-function statusTagType(status) {
-  if (status === 'open') {
-    return 'success'
-  }
-
-  if (status === 'upcoming') {
-    return 'warning'
-  }
-
-  return 'info'
+  registrationForm[field] = value
 }
 
 watch(
@@ -346,14 +383,6 @@ watch(
 </script>
 
 <style scoped>
-.account-competition-registrations__header {
-  display: grid;
-  gap: 18px;
-  padding: 18px 18px 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--aqua) 14%, transparent);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 250, 255, 0.72));
-}
-
 .account-competition-registrations__header-top {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -459,6 +488,105 @@ watch(
   color: #526072;
 }
 
+.account-competition-registrations__registration-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 125px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid #e7edf5;
+  border-radius: 10px;
+  background-color: var(--button-current-bg, #f5fbfd);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--button-current-color, #355b66);
+  white-space: nowrap;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.account-competition-registrations__registration-button:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.account-competition-registrations__registration-button--open {
+  --button-current-bg: color-mix(in srgb, var(--aqua) 18%, white);
+  --button-current-color: color-mix(in srgb, var(--aqua) 62%, var(--black));
+  --button-focus-color: var(--aqua);
+}
+
+.account-competition-registrations__registration-button--upcoming {
+  --button-current-bg: color-mix(in srgb, var(--cyan) 12%, white);
+  --button-current-color: color-mix(in srgb, var(--cyan) 62%, var(--black));
+  --button-focus-color: var(--cyan);
+}
+
+.account-competition-registrations__registration-button--closed {
+  --button-current-bg: color-mix(in srgb, #fff6f2 88%, white);
+  --button-current-color: #d76034;
+  --button-focus-color: #d76034;
+}
+
+.account-competition-registrations__registration-button:hover:not(:disabled) {
+  background-color: var(--button-current-bg, var(--button-hover-bg, var(--button-bg)));
+}
+
+.account-competition-registrations__registration-button:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--button-focus-ring-inner),
+    0 0 0 6px color-mix(in srgb, var(--button-focus-color, var(--cyan)) 28%, transparent);
+}
+
+.account__native-table--competition-history {
+  table-layout: fixed;
+}
+
+.account__native-table--competition-history .account__native-table-cell:not(.account__native-table-cell--primary) {
+  text-align: center;
+}
+
+.account__native-table--competition-history th:nth-child(1),
+.account__native-table--competition-history td:nth-child(1) {
+  width: 24%;
+}
+
+.account__native-table--competition-history th:nth-child(2),
+.account__native-table--competition-history td:nth-child(2) {
+  width: 42%;
+}
+
+.account__native-table--competition-history th:nth-child(3),
+.account__native-table--competition-history td:nth-child(3) {
+  width: 18%;
+}
+
+.account__native-table--competition-history th:nth-child(4),
+.account__native-table--competition-history td:nth-child(4) {
+  width: 16%;
+}
+
+.account-competition-registrations__history-row--withdrawn {
+  background: var(--white);
+}
+
+.account-competition-registrations__history-row--withdrawn .account__native-table-cell {
+  color: #8b4d38;
+}
+
+.account-competition-registrations__nowrap {
+  white-space: nowrap;
+}
+
+.account__native-table--competition-registrations .account__native-table-cell--center {
+  text-align: center;
+}
+
 @media (max-width: 1180px) {
   .account-competition-registrations__header-top {
     grid-template-columns: 1fr;
@@ -480,10 +608,6 @@ watch(
 }
 
 @media (max-width: 640px) {
-  .account-competition-registrations__header {
-    padding-inline: 14px;
-  }
-
   .account-competition-registrations__content {
     padding: 14px;
   }

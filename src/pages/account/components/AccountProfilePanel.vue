@@ -75,22 +75,15 @@
         </label>
       </div>
 
-    <AccountDocumentChecklist
-      :documents="documents"
-      :show-header="false"
-      embedded
-      @upload="openUploadDialog"
-      @remove="handleDocumentRemove"
-    />
+      <AccountDocumentChecklist
+        :documents="profile.documents"
+        :show-header="false"
+        embedded
+        @upload="openUploadDialog"
+        @remove="handleDocumentRemove"
+      />
 
       <div class="account-profile__actions">
-        <button
-          type="button"
-          class="account__table-action account__table-action--ghost btn-reset"
-          @click="resetProfile"
-        >
-          Сбросить
-        </button>
         <button type="submit" class="account__submit btn-reset">Сохранить</button>
       </div>
     </form>
@@ -105,13 +98,22 @@
 </template>
 
 <script setup>
-import { computed, reactive, toRef, watch } from 'vue'
+import { reactive, toRef, watch } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { ElCard } from 'element-plus'
 import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
 import { showToast } from '@/utils/toast'
 import AccountDocumentChecklist from '@/pages/account/components/AccountDocumentChecklist.vue'
 import AccountDocumentUploadDialog from '@/pages/account/components/AccountDocumentUploadDialog.vue'
-import { useAccountDocuments } from '@/pages/account/composables/useAccountDocuments'
+import {
+  createAccountDocumentsState,
+  normalizeAccountDocumentsState,
+} from '@/pages/account/utils/accountDocumentTypes'
+import { syncAccountDocumentReviewRecords } from '@/pages/account/utils/accountDocumentRegistry'
+import {
+  readAccountProfileSnapshot,
+  writeAccountProfileSnapshot,
+} from '@/pages/account/utils/accountLocalStorage'
 
 const props = defineProps({
   currentUser: {
@@ -120,12 +122,15 @@ const props = defineProps({
   },
 })
 
+const currentUserRef = toRef(props, 'currentUser')
+
 const profile = reactive({
   fullName: '',
   birthDate: '',
   club: '',
   phone: '',
   email: '',
+  documents: createAccountDocumentsState(),
 })
 
 const errors = reactive({
@@ -136,22 +141,12 @@ const errors = reactive({
   email: '',
 })
 
-const {
-  documents,
-  uploadDialogState,
-  openUploadDialog,
-  closeUploadDialog,
-  handleUploadSubmit,
-  handleDocumentRemove,
-} = useAccountDocuments({
-  currentUser: toRef(props, 'currentUser'),
-  scope: 'profile',
-  scopeId: computed(() => 'profile'),
-})
-
-const profileStorageKey = computed(() => {
-  const userKey = props.currentUser?.id || props.currentUser?.email || 'anonymous'
-  return `smartswim:account-profile:v2:${userKey}`
+const uploadDialogState = reactive({
+  isOpen: false,
+  documentType: '',
+  fileName: '',
+  fileSize: 0,
+  expiresAt: '',
 })
 
 function resetErrors() {
@@ -163,52 +158,42 @@ function resetErrors() {
 }
 
 function syncFromStorage() {
-  if (typeof window === 'undefined') {
-    return
-  }
+  const snapshot = readAccountProfileSnapshot(currentUserRef)
 
-  try {
-    const serializedProfile = window.localStorage.getItem(profileStorageKey.value)
-
-    if (!serializedProfile) {
-      return
-    }
-
-    const parsedProfile = JSON.parse(serializedProfile)
-
-    if (parsedProfile && typeof parsedProfile === 'object') {
-      profile.fullName = parsedProfile.fullName || ''
-      profile.birthDate = parsedProfile.birthDate || ''
-      profile.club = parsedProfile.club || ''
-      profile.phone = parsedProfile.phone || ''
-      profile.email = parsedProfile.email || ''
-    }
-  } catch {
-    // Ignore broken storage data and keep the current form state.
-  }
-}
-
-function syncFromUser() {
-  profile.fullName = props.currentUser?.name || profile.fullName
-  profile.email = props.currentUser?.email || profile.email
-  profile.phone = props.currentUser?.phone || profile.phone
+  profile.fullName = snapshot.fullName || props.currentUser?.name || ''
+  profile.birthDate = snapshot.birthDate || ''
+  profile.club = snapshot.club || ''
+  profile.phone = snapshot.phone || props.currentUser?.phone || ''
+  profile.email = snapshot.email || props.currentUser?.email || ''
+  profile.documents = normalizeAccountDocumentsState(snapshot.documents || createAccountDocumentsState())
 }
 
 function persistProfile() {
-  if (typeof window === 'undefined') {
-    return
+  const isSaved = writeAccountProfileSnapshot(currentUserRef, profile)
+
+  if (!isSaved) {
+    showToast('Не удалось сохранить профиль. Проверьте размер загруженных файлов.', {
+      type: 'error',
+    })
   }
 
-  window.localStorage.setItem(
-    profileStorageKey.value,
-    JSON.stringify({
-      fullName: profile.fullName,
-      birthDate: profile.birthDate,
-      club: profile.club,
-      phone: profile.phone,
-      email: profile.email,
-    }),
-  )
+  return isSaved
+}
+
+function syncProfileDocumentReviews() {
+  syncAccountDocumentReviewRecords({
+    currentUser: currentUserRef,
+    ownerName: profile.fullName,
+    ownerEmail: profile.email,
+    ownerPhone: profile.phone,
+    scope: 'profile',
+    scopeId: 'profile',
+    participantName: profile.fullName,
+    participantBirthDate: profile.birthDate,
+    participantClub: profile.club,
+    participantKind: 'owner',
+    documents: profile.documents,
+  })
 }
 
 function validateProfile() {
@@ -249,10 +234,112 @@ function handlePhoneInput(event) {
   errors.phone = ''
 }
 
-function resetProfile() {
-  syncFromStorage()
-  syncFromUser()
-  resetErrors()
+function openUploadDialog(documentType) {
+  const target = profile.documents.find((document) => document.type === documentType)
+
+  if (!target) {
+    return
+  }
+
+  uploadDialogState.isOpen = true
+  uploadDialogState.documentType = documentType
+  uploadDialogState.fileName = target.fileName || ''
+  uploadDialogState.fileSize = target.fileSize || 0
+  uploadDialogState.expiresAt = target.expiresAt || ''
+}
+
+function closeUploadDialog() {
+  uploadDialogState.isOpen = false
+  uploadDialogState.documentType = ''
+  uploadDialogState.fileName = ''
+  uploadDialogState.fileSize = 0
+  uploadDialogState.expiresAt = ''
+}
+
+function upsertDocument(documentType, patch) {
+  const hasDocument = profile.documents.some((document) => document.type === documentType)
+
+  if (!hasDocument) {
+    return
+  }
+
+  profile.documents = profile.documents.map((document) =>
+    document.type === documentType
+      ? {
+          ...document,
+          ...patch,
+        }
+      : document,
+  )
+}
+
+function handleUploadSubmit(payload) {
+  if (!uploadDialogState.documentType || !payload.file) {
+    return
+  }
+
+  upsertDocument(uploadDialogState.documentType, {
+    status: 'uploaded',
+    fileName: payload.file.name,
+    fileSize: payload.file.size,
+    fileDataUrl: payload.fileDataUrl || '',
+    fileType: payload.fileType || '',
+    uploadedAt: new Date().toISOString(),
+    expiresAt: payload.expiresAt || '',
+    verifiedAt: '',
+    verifiedBy: '',
+    rejectionReason: '',
+  })
+
+  if (persistProfile()) {
+    syncProfileDocumentReviews()
+    showToast('Документ загружен и отправлен на проверку')
+  }
+
+  closeUploadDialog()
+}
+
+function handleDocumentRemove(documentType) {
+  const targetDocument = profile.documents.find((document) => document.type === documentType)
+
+  if (!targetDocument) {
+    return
+  }
+
+  void ElMessageBox.confirm(
+    `Удалить документ «${targetDocument.label}»?`,
+    'Подтверждение удаления',
+    {
+      customClass: 'account__confirm-messagebox',
+      confirmButtonText: 'Удалить',
+      cancelButtonText: 'Отмена',
+      confirmButtonClass: 'account__submit btn-reset',
+      cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
+      type: 'warning',
+      autofocus: false,
+      closeOnClickModal: false,
+      closeOnPressEscape: true,
+    },
+  )
+    .then(() => {
+      upsertDocument(documentType, {
+        status: 'missing',
+        fileName: '',
+        fileSize: 0,
+        fileDataUrl: '',
+        fileType: '',
+        uploadedAt: '',
+        expiresAt: '',
+        verifiedAt: '',
+        verifiedBy: '',
+        rejectionReason: '',
+      })
+
+      if (persistProfile()) {
+        syncProfileDocumentReviews()
+      }
+    })
+    .catch(() => {})
 }
 
 function handleSubmit() {
@@ -260,7 +347,11 @@ function handleSubmit() {
     return
   }
 
-  persistProfile()
+  if (!persistProfile()) {
+    return
+  }
+
+  syncProfileDocumentReviews()
   showToast('Профиль сохранён')
 }
 
@@ -268,15 +359,9 @@ watch(
   () => props.currentUser,
   () => {
     syncFromStorage()
-    syncFromUser()
   },
   { immediate: true },
 )
-
-watch(profileStorageKey, () => {
-  syncFromStorage()
-  syncFromUser()
-})
 </script>
 
 <style scoped>
@@ -294,6 +379,7 @@ watch(profileStorageKey, () => {
   gap: 12px;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-start;
 }
 
 @media (max-width: 640px) {
