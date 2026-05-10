@@ -1,14 +1,18 @@
 <template>
   <ElCard class="account__panel account-document-review" shadow="never">
     <div class="account-document-review__header">
-      <div class="account__panel-head">
-        <div>
-          <h3 class="account__panel-title">Проверка документов</h3>
-        </div>
+      <div class="account__panel-head account-document-review__panel-head">
         <div class="account__panel-actions">
           <ElTag type="warning" effect="light" round>{{ summary.pending }} на проверке</ElTag>
           <ElTag type="success" effect="light" round>{{ summary.verified }} проверено</ElTag>
-          <ElTag type="danger" effect="light" round>{{ summary.needsReview }} на доработку</ElTag>
+          <ElTag
+            class="account-document-review__meta-tag account-document-review__meta-tag--info"
+            type="primary"
+            effect="light"
+            round
+          >
+            {{ summary.usersWithDocuments }} с документами / {{ summary.totalUsers }} пользователей
+          </ElTag>
         </div>
       </div>
 
@@ -20,15 +24,15 @@
             class="account__input account__input--toolbar"
             type="search"
             name="document-review-search"
-            placeholder="ФИО, email, документ"
+            placeholder="Поиск по пользователям"
           />
         </label>
 
-        <label class="account__field account__field--filter">
+        <label class="account__field account__field--filter account-document-review__filter-field">
           <span class="account__field-label">Статус</span>
           <ElSelect
             v-model="statusFilter"
-            class="account__select"
+            class="account__select account-document-review__status-select"
             popper-class="account__select-popper"
             placeholder="Все статусы"
           >
@@ -42,8 +46,14 @@
         </label>
 
         <div class="account-document-review__meta">
-          <ElTag type="primary" effect="light" round>{{ summary.total }} документов</ElTag>
-          <ElTag type="info" effect="light" round>{{ summary.expired }} просрочено</ElTag>
+          <ElTag
+            class="account-document-review__meta-tag account-document-review__meta-tag--expired"
+            type="danger"
+            effect="light"
+            round
+          >
+            {{ summary.expired }} просрочено
+          </ElTag>
           <ElButton class="account__refresh-button" plain type="primary" @click="refresh">
             Обновить
           </ElButton>
@@ -57,7 +67,7 @@
           <tr>
             <th>Участник</th>
             <th>Статус</th>
-            <th>Срок</th>
+            <th>Действие</th>
           </tr>
         </thead>
 
@@ -69,13 +79,6 @@
                 <div class="account__table-secondary">
                   <span v-if="group.ownerEmail">{{ group.ownerEmail }}</span>
                 </div>
-                <button
-                  type="button"
-                  class="account-document-review__open-button btn-reset"
-                  @click="openGroup(group)"
-                >
-                  Проверить документы
-                </button>
               </div>
             </td>
             <td class="account__native-table-cell account__native-table-cell--center">
@@ -84,10 +87,13 @@
               </span>
             </td>
             <td class="account__native-table-cell account__native-table-cell--center">
-              <div class="account__table-user account__table-user--compact">
-                <div class="account__table-primary">{{ group.expiryLabel }}</div>
-                <div class="account__table-secondary">{{ group.documentCount }} документов</div>
-              </div>
+              <button
+                type="button"
+                class="account-document-review__open-button btn-reset"
+                @click="openGroup(group)"
+              >
+                Проверить документы
+              </button>
             </td>
           </tr>
         </tbody>
@@ -112,25 +118,13 @@
         <div class="account-document-review__dialog-head">
           <div class="account-document-review__dialog-copy">
             <p class="account__dialog-text">{{ selectedGroup.ownerName }}</p>
-            <p class="account__dialog-hint">
-              <span v-if="selectedGroup.ownerEmail">· {{ selectedGroup.ownerEmail }}</span>
-            </p>
-          </div>
-
-          <div class="account__panel-actions">
-            <ElTag :type="selectedGroup.statusMeta.tagType" effect="light" round>
-              {{ selectedGroup.statusMeta.label }}
-            </ElTag>
-            <ElTag type="info" effect="light" round>
-              {{ selectedGroup.documentCount }} документов
-            </ElTag>
           </div>
         </div>
 
         <div class="account-document-review__document-list">
           <article
             v-for="document in selectedGroup.documents"
-            :key="document.type"
+            :key="document.id || document.type"
             class="account-document-review__document-item"
             :class="`account-document-review__document-item--${documentState(document)}`"
           >
@@ -141,12 +135,15 @@
                   <p class="account-document-review__document-hint">{{ document.hint }}</p>
                 </div>
 
-                <span
+                <ElTag
+                  :type="documentStatusTagType(document)"
+                  effect="light"
+                  round
                   class="account-document-review__status account-document-review__status--plain"
                   :class="`account-document-review__status--${documentState(document)}`"
                 >
                   {{ documentStatusLabel(document) }}
-                </span>
+                </ElTag>
               </div>
 
               <div class="account-document-review__document-meta">
@@ -162,9 +159,11 @@
                   </a>
                   <span v-else>{{ document.fileName || 'Не загружен' }}</span>
                 </span>
-                <span>Срок: {{ formatAccountDocumentDate(document.expiresAt) }}</span>
-                <span>Загружен: {{ formatCompactDateTime(document.uploadedAt) }}</span>
-                <span>Проверен: {{ formatCompactDateTime(document.verifiedAt || document.reviewedAt) }}</span>
+                <div class="account-document-review__document-dates">
+                  <span>Срок: {{ formatAccountDocumentDate(document.expiresAt) }}</span>
+                  <span>Загружен: {{ formatCompactDateTime(document.uploadedAt) }}</span>
+                  <span>Проверен: {{ formatDocumentReviewDate(document) }}</span>
+                </div>
                 <span v-if="document.rejectionReason">Причина: {{ document.rejectionReason }}</span>
               </div>
             </div>
@@ -173,13 +172,15 @@
               <button
                 type="button"
                 class="account__table-action account__table-action--success btn-reset"
+                :disabled="!canReviewDocument(document)"
                 @click="handleApprove(document)"
               >
-                Проверить
+                Одобрить
               </button>
               <button
                 type="button"
                 class="account__table-action account__table-action--delete btn-reset"
+                :disabled="!canReviewDocument(document)"
                 @click="openReviewDialog(document, 'reject')"
               >
                 Отклонить
@@ -221,6 +222,9 @@
             rows="4"
             placeholder="Причина отклонения"
           ></textarea>
+          <p v-if="reviewDialogError" class="account__field-error account-document-review__error">
+            {{ reviewDialogError }}
+          </p>
         </label>
 
         <div class="account__dialog-actions">
@@ -245,7 +249,7 @@ import { Close } from '@element-plus/icons-vue'
 import { computed, reactive, toRef, watch } from 'vue'
 import { ElButton, ElCard, ElDialog, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import { useAccountDocumentReviews } from '@/pages/account/composables/useAccountDocumentReviews'
-import { getAccountDocumentDisplayStatus, getAccountDocumentsAdmissionStatus } from '@/pages/account/utils/accountFormatters'
+import { getAccountDocumentDisplayStatus } from '@/pages/account/utils/accountFormatters'
 
 const props = defineProps({
   currentUser: {
@@ -256,20 +260,28 @@ const props = defineProps({
 
 const GROUP_STATUS_OPTIONS = [
   { value: 'all', label: 'Все статусы' },
-  { value: 'missing', label: 'Не загружен' },
-  { value: 'pending', label: 'На проверке' },
-  { value: 'admitted', label: 'Допущен' },
-  { value: 'attention', label: 'Требует внимания' },
+  { value: 'missing', label: 'Документ не загружен' },
+  { value: 'admitted', label: 'Одобрен' },
+  { value: 'attention', label: 'На проверке' },
 ]
 
 const statusOptions = GROUP_STATUS_OPTIONS
 
+function getCurrentUserKey(user) {
+  if (!user) {
+    return ''
+  }
+
+  return [user.id || '', user.email || '', user.role || ''].join(':')
+}
+
 const {
-  records,
+  groupedRows,
   summary,
   search,
   statusFilter,
   reviewDialogState,
+  reviewDialogError,
   reviewRecord,
   reviewDialogTitle,
   reviewDialogHint,
@@ -289,124 +301,9 @@ const groupDialogState = reactive({
   selectedGroupId: '',
 })
 
-const groupedRows = computed(() => {
-  const grouped = new Map()
-  const normalizedSearch = String(search.value || '').trim().toLowerCase()
-
-  records.value.forEach((record) => {
-    const groupId = getGroupId(record)
-    const current = grouped.get(groupId)
-
-    if (current) {
-      current.documents.push(record)
-      return
-    }
-
-    grouped.set(groupId, {
-      id: groupId,
-      ownerUserKey: record.ownerUserKey || 'anonymous',
-      ownerName: record.ownerName || 'Не указан',
-      ownerEmail: record.ownerEmail || '',
-      participantName: record.ownerName || record.participantName || 'Без имени',
-      documents: [record],
-    })
-  })
-
-  return Array.from(grouped.values())
-    .map((group) => {
-      const statusMeta = getAccountDocumentsAdmissionStatus(group.documents)
-      const expiryLabel = resolveExpiryLabel(group.documents)
-      const haystack = [
-        group.ownerName,
-        group.ownerEmail,
-        group.participantName,
-        ...group.documents.flatMap((document) => [
-          document.documentLabel,
-          document.documentType,
-          document.fileName,
-          document.rejectionReason,
-          document.status,
-        ]),
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-
-      return {
-        ...group,
-        statusMeta,
-        expiryLabel,
-        documentCount: group.documents.length,
-        haystack,
-      }
-    })
-    .filter((group) => {
-      if (statusFilter.value !== 'all' && group.statusMeta.status !== statusFilter.value) {
-        return false
-      }
-
-      if (!normalizedSearch) {
-        return true
-      }
-
-      return group.haystack.includes(normalizedSearch)
-    })
-    .sort((left, right) => {
-      const leftTime = getGroupSortTime(left.documents)
-      const rightTime = getGroupSortTime(right.documents)
-
-      return rightTime - leftTime
-    })
-})
-
 const selectedGroup = computed(
   () => groupedRows.value.find((group) => group.id === groupDialogState.selectedGroupId) || null,
 )
-
-function getGroupId(record) {
-  return record.ownerUserKey || 'anonymous'
-}
-
-function getGroupSortTime(documents) {
-  return documents.reduce((max, document) => {
-    const candidate = Date.parse(document.reviewedAt || document.uploadedAt || 0) || 0
-    return Math.max(max, candidate)
-  }, 0)
-}
-
-function resolveExpiryLabel(documents) {
-  const nextExpiry = documents
-    .map((document) => document?.expiresAt || '')
-    .filter(Boolean)
-    .map((value) => ({ raw: value, time: parseDocumentDate(value)?.getTime() || 0 }))
-    .sort((left, right) => left.time - right.time)[0]?.raw
-
-  return nextExpiry ? formatAccountDocumentDate(nextExpiry) : 'Не указан'
-}
-
-function parseDocumentDate(value) {
-  const normalizedValue = String(value || '').trim()
-
-  if (!normalizedValue) {
-    return null
-  }
-
-  const isoMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-
-  if (isoMatch) {
-    return new Date(`${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}T23:59:59`)
-  }
-
-  const ruMatch = normalizedValue.match(/^(\d{2})\.(\d{2})\.(\d{4})$/)
-
-  if (ruMatch) {
-    return new Date(`${ruMatch[3]}-${ruMatch[2]}-${ruMatch[1]}T23:59:59`)
-  }
-
-  const parsed = new Date(normalizedValue)
-
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
 
 function openGroup(group) {
   groupDialogState.isOpen = true
@@ -427,10 +324,28 @@ function documentState(document) {
   return getAccountDocumentDisplayStatus(document).status
 }
 
+function documentStatusTagType(document) {
+  return getAccountDocumentDisplayStatus(document).tagType
+}
+
+function formatDocumentReviewDate(document) {
+  if (!document?.verifiedAt || document.status === 'uploaded') {
+    return '—'
+  }
+
+  return formatCompactDateTime(document.verifiedAt)
+}
+
+function canReviewDocument(document) {
+  return Boolean(document?.fileName || document?.fileDataUrl)
+}
+
 watch(
-  () => props.currentUser,
-  () => {
-    closeGroupDialog()
+  () => getCurrentUserKey(props.currentUser),
+  (nextUserKey, previousUserKey) => {
+    if (nextUserKey !== previousUserKey) {
+      closeGroupDialog()
+    }
   },
 )
 </script>
@@ -442,11 +357,23 @@ watch(
   margin-bottom: 16px;
 }
 
+.account-document-review__panel-head {
+  justify-content: flex-end;
+}
+
 .account-document-review__filters {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1.2fr) auto;
   gap: 12px;
   align-items: end;
+}
+
+.account-document-review__filter-field {
+  min-width: 0;
+}
+
+.account-document-review__status-select {
+  width: 100%;
 }
 
 .account-document-review__meta {
@@ -456,10 +383,28 @@ watch(
   gap: 8px;
 }
 
+.account-document-review__meta-tag--info {
+  border-width: 1px;
+  border-style: solid;
+  border-color: #dbe7f4;
+  font-weight: 800;
+}
+
+.account-document-review__meta-tag--expired {
+  min-height: 38px;
+  padding-inline: 16px;
+  border: 1px solid color-mix(in srgb, var(--orange) 24%, white);
+  font-weight: 800;
+}
+
+.account-document-review__meta .el-tag.account-document-review__meta-tag--expired {
+  border-radius: 10px;
+}
+
 .account-document-review__status {
   font-size: 12px;
   font-weight: 900;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -467,24 +412,24 @@ watch(
   display: inline-flex;
 }
 
-.account-document-review__status--verified,
-.account-document-review__status--admitted {
+.account-document-review__status--verified:not(.account-document-review__status--plain),
+.account-document-review__status--admitted:not(.account-document-review__status--plain) {
   color: #2f8f5b;
 }
 
-.account-document-review__status--uploaded,
-.account-document-review__status--pending {
+.account-document-review__status--uploaded:not(.account-document-review__status--plain),
+.account-document-review__status--pending:not(.account-document-review__status--plain) {
   color: #176384;
 }
 
-.account-document-review__status--rejected,
-.account-document-review__status--needs_reupload,
-.account-document-review__status--expired,
-.account-document-review__status--attention {
+.account-document-review__status--rejected:not(.account-document-review__status--plain),
+.account-document-review__status--needs_reupload:not(.account-document-review__status--plain),
+.account-document-review__status--expired:not(.account-document-review__status--plain),
+.account-document-review__status--attention:not(.account-document-review__status--plain) {
   color: #d76034;
 }
 
-.account-document-review__status--missing {
+.account-document-review__status--missing:not(.account-document-review__status--plain) {
   color: #64748b;
 }
 
@@ -493,22 +438,27 @@ watch(
 }
 
 .account-document-review__open-button {
-  justify-self: start;
-  margin-top: 6px;
-  padding: 0;
-  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 16px;
+  border: 1px solid #dbe7f4;
+  border-radius: 10px;
   background: transparent;
-  font-size: 12px;
-  font-weight: 900;
-  color: #176384;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--el-color-primary);
+  line-height: 1;
+  letter-spacing: 0;
   cursor: pointer;
 }
 
 .account-document-review__open-button:hover,
 .account-document-review__open-button:focus-visible {
-  color: color-mix(in srgb, #176384 78%, var(--black) 22%);
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
   outline: none;
 }
 
@@ -540,7 +490,7 @@ watch(
   padding: 14px;
   border: 1px solid color-mix(in srgb, var(--cyan) 14%, white);
   border-radius: 10px;
-  background: linear-gradient(180deg, rgb(246 251 255 / 0.94) 0%, rgb(255 255 255 / 0.88) 100%);
+  background: transparent;
 }
 
 .account-document-review__document-item--verified {
@@ -582,12 +532,21 @@ watch(
 }
 
 .account-document-review__document-meta {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   font-size: 13px;
   font-weight: 800;
   line-height: 1.45;
   color: var(--black);
+}
+
+.account-document-review__document-dates {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
 }
 
 .account-document-review__download-link {
@@ -601,6 +560,17 @@ watch(
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.account__textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 20%, var(--white));
+  border-radius: 10px;
+  background: rgb(from var(--white) r g b / 86%);
+  font: inherit;
+  resize: none;
 }
 
 @media (max-width: 1120px) {
@@ -629,6 +599,11 @@ watch(
 
   .account-document-review__document-actions > * {
     width: 100%;
+  }
+
+  .account-document-review__document-dates {
+    flex-direction: column;
+    gap: 4px;
   }
 }
 </style>

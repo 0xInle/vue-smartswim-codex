@@ -1,6 +1,6 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { accountMockCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
+import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import {
   createCompetitionRegistrationRecord,
   persistCompetitionRegistrations,
@@ -73,7 +73,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
   })
 
   const competitionRows = computed(() =>
-    accountMockCompetitionStages.map((stage) => ({
+    buildAccountCompetitionStages().map((stage) => ({
       ...stage,
       registrationState: resolveCompetitionRegistrationState(stage.registration),
     })),
@@ -122,8 +122,8 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     const options = [
       {
         value: 'owner',
-        label: `${ownerSnapshot.value.fullName || 'Владелец кабинета'}`,
-        subtitle: ownerSnapshot.value.email || 'Основной аккаунт',
+        label: `${ownerSnapshot.value.fullName || 'Пользователь'}`,
+        subtitle: ownerSnapshot.value.email || 'Основной профиль',
         kind: 'owner',
       },
     ]
@@ -255,6 +255,18 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
 
     if (registrationForm.registrationKind === 'long-distance' && !registrationForm.seedTime.trim()) {
       registrationErrors.seedTime = 'Укажите ориентировочное время или комментарий.'
+    }
+
+    const hasActiveDuplicate = registrations.value.some(
+      (registration) =>
+        registration.stageId === selectedStage.value.id &&
+        registration.participantId === registrationForm.participantId &&
+        registration.status === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED,
+    )
+
+    if (hasActiveDuplicate) {
+      registrationErrors.participantId = 'У этого участника уже есть активная заявка на этап.'
+      showToast('Активная заявка на этот этап уже создана', { type: 'error' })
     }
 
     return !Object.values(registrationErrors).some(Boolean)

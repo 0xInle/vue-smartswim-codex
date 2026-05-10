@@ -3,7 +3,7 @@ import { SUPABASE_MIN_PASSWORD_LENGTH } from '@/utils/supabaseAuth'
 import { createAccountDocumentsState } from '@/pages/account/utils/accountDocumentTypes'
 
 export const ACCOUNT_SYNC_COOLDOWN_MS = 1200
-export const USERS_PAGE_SIZE = 20
+export const USERS_PAGE_SIZE = 10
 export const MIN_PASSWORD_LENGTH = SUPABASE_MIN_PASSWORD_LENGTH
 
 export const CONSULTATION_STATUS = Object.freeze({
@@ -72,10 +72,10 @@ export const COMPETITION_NAME_OPTIONS = [
 export const DOCUMENT_REVIEW_STATUS_OPTIONS = [
   { value: 'all', label: 'Все статусы' },
   { value: 'uploaded', label: 'На проверке' },
-  { value: 'verified', label: 'Проверено' },
-  { value: 'rejected', label: 'Отклонено' },
-  { value: 'needs_reupload', label: 'Нужна доработка' },
-  { value: 'missing', label: 'Не загружен' },
+  { value: 'verified', label: 'Одобрен' },
+  { value: 'rejected', label: 'Отклонен' },
+  { value: 'needs_reupload', label: 'Нужно обновить' },
+  { value: 'missing', label: 'Документ не загружен' },
 ]
 
 export const DOCUMENT_SCOPE_OPTIONS = [
@@ -118,6 +118,7 @@ export function createDefaultUserEditForm() {
     phone: '',
     role: CRM_ROLE.USER,
     status: 'paid',
+    registeredAt: null,
     documents: createAccountDocumentsState(),
   }
 }

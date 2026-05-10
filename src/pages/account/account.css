@@ -964,27 +964,30 @@
 
 .account-dashboard__action {
   min-height: 38px;
-  padding-inline: 16px;
+  padding-inline: 12px;
   border: 1px solid #dbe7f4;
   border-radius: 10px;
+  width: fit-content;
+  font-size: 13px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .account-dashboard__body {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .account-dashboard__metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .account-dashboard__metric {
   display: grid;
-  gap: 8px;
-  padding: 16px;
+  gap: 6px;
+  padding: 14px;
   border: 1px solid #e5eaf3;
   border-radius: 10px;
   background: rgb(255 255 255 / 0.9);
@@ -1007,7 +1010,7 @@
 
 .account-dashboard__metric-value {
   font-family: Oswald, sans-serif;
-  font-size: 34px;
+  font-size: 32px;
   line-height: 1;
   text-transform: uppercase;
   color: var(--black);
@@ -1023,17 +1026,29 @@
 .account-dashboard__cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-areas:
+    'activity snapshot';
+  gap: 10px;
+  align-items: stretch;
+}
+
+.account-dashboard__card--activity {
+  grid-area: activity;
+}
+
+.account-dashboard__card--snapshot {
+  grid-area: snapshot;
 }
 
 .account-dashboard__card {
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  gap: 12px;
+  padding: 14px;
   border: 1px solid #e5eaf3;
   border-radius: 10px;
   background: rgb(255 255 255 / 0.84);
   box-shadow: 0 18px 38px rgb(15 23 42 / 0.06);
+  height: 100%;
 }
 
 .account-dashboard__card-head {
@@ -1043,13 +1058,41 @@
   gap: 12px;
 }
 
-.account-dashboard__card-title {
-  margin: 6px 0 0;
+.account-dashboard__document-highlight {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 14%, white);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgb(246 251 255 / 0.96) 0%, rgb(255 255 255 / 0.9) 100%);
+}
+
+.account-dashboard__document-highlight--empty {
+  border-style: dashed;
+}
+
+.account-dashboard__document-highlight-label {
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.account-dashboard__document-highlight-name {
   font-family: Oswald, sans-serif;
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1.05;
   text-transform: uppercase;
   color: var(--black);
+}
+
+.account-dashboard__document-highlight-meta {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: #526072;
 }
 
 .account-dashboard__list {
@@ -1083,13 +1126,13 @@
 .account-dashboard__mini-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .account-dashboard__mini-stat {
   display: grid;
-  gap: 4px;
-  padding: 12px 14px;
+  gap: 3px;
+  padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--cyan) 14%, white);
   border-radius: 10px;
   background: rgb(255 255 255 / 0.92);
@@ -1106,14 +1149,91 @@
 
 .account-dashboard__mini-stat-value {
   font-family: Oswald, sans-serif;
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1;
   text-transform: uppercase;
   color: var(--black);
 }
 
+.account-dashboard__activity-list {
+  display: grid;
+  gap: 6px;
+}
+
+.account-dashboard__activity-item {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.account-dashboard__activity-item:last-child {
+  border-bottom: 0;
+}
+
+.account-dashboard__activity-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.account-dashboard__activity-title {
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.25;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.account-dashboard__activity-name {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--black);
+}
+
+.account-dashboard__activity-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.account-dashboard__activity-time {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #526072;
+  white-space: nowrap;
+}
+
+.account-dashboard__snapshot-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 0;
+}
+
+.account-dashboard__snapshot-note {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #526072;
+}
+
+.account-dashboard__snapshot-link {
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.35;
+  color: var(--el-color-primary);
+  white-space: nowrap;
+}
+
 .account-dashboard__empty {
-  padding: 18px 16px;
+  padding: 14px 12px;
   border: 1px dashed color-mix(in srgb, var(--cyan) 22%, white);
   border-radius: 10px;
   background:
@@ -1410,9 +1530,6 @@
     justify-content: flex-start;
   }
 
-  .account-dashboard__cards {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 1023px) {
@@ -1493,7 +1610,22 @@
     grid-template-columns: 1fr;
   }
 
+  .account-dashboard__cards {
+    grid-template-columns: 1fr;
+    grid-template-areas: none;
+  }
+
+  .account-dashboard__card--activity,
+  .account-dashboard__card--snapshot {
+    grid-area: auto;
+  }
+
   .account-dashboard__card-head {
     flex-direction: column;
+  }
+
+  .account-dashboard__snapshot-footer {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

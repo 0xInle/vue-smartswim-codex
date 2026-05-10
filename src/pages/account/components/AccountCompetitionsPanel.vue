@@ -233,6 +233,7 @@
     <AccountCompetitionDeleteDialog
       :model-value="isDeleteCompetitionDialogOpen"
       :stage="deleteCompetitionStage"
+      :active-registrations-count="deleteCompetitionActiveRegistrationsCount"
       @close="closeDeleteCompetitionDialog"
       @confirm="confirmDeleteCompetition"
     />
@@ -284,6 +285,10 @@ const props = defineProps({
     type: Function,
     required: true,
   },
+  getStageActiveRegistrationsCount: {
+    type: Function,
+    required: true,
+  },
 })
 
 const emit = defineEmits([
@@ -317,6 +322,14 @@ const distanceDialogDescription = computed(() => {
   }
 
   return props.getStageDistances(distanceDialogStage.value.id)
+})
+
+const deleteCompetitionActiveRegistrationsCount = computed(() => {
+  if (!deleteCompetitionStage.value) {
+    return 0
+  }
+
+  return props.getStageActiveRegistrationsCount(deleteCompetitionStage.value.id)
 })
 
 function competitionRegistrationState(registration) {

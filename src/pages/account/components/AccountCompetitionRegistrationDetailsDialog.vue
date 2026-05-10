@@ -12,21 +12,14 @@
     @update:model-value="!$event && emit('close')"
   >
     <div v-if="registration" class="account-competition-registration-details__content">
-      <div class="account-competition-registration-details__hero">
-        <div>
-          <h3 class="account-competition-registration-details__title">
-            {{ registration.participantName || 'Без имени' }}
-          </h3>
-        </div>
-
-        <ElTag :type="statusTagType" effect="light" round>
-          {{ statusLabel }}
-        </ElTag>
-      </div>
-
       <div class="account-competition-registration-details__grid">
-        <label class="account__field account-competition-registration-details__field--wide">
-          <span class="account__field-label">Соревнование</span>
+        <div class="account-competition-registration-details__card account-competition-registration-details__card--wide">
+          <div class="account-competition-registration-details__card-head">
+            <span class="account-competition-registration-details__label">Соревнование</span>
+            <ElTag :type="statusTagType" effect="light" round>
+              {{ statusLabel }}
+            </ElTag>
+          </div>
           <template v-if="canEditStage">
             <ElSelect
               v-model="form.stageId"
@@ -42,52 +35,128 @@
               />
             </ElSelect>
           </template>
-          <strong v-else class="account-competition-registration-details__value">
-            {{ registration.competitionName || 'Соревнование не указано' }}
-          </strong>
-        </label>
-
-        <label class="account__field account-competition-registration-details__field--wide">
-          <span class="account__field-label">Тип заявки</span>
-          <template v-if="canEditRegistrationKind">
-            <ElSelect
-              v-model="form.registrationKind"
-              class="account__select"
-              popper-class="account__select-popper"
-            >
-              <ElOption
-                v-for="option in registrationKindOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ElSelect>
+          <template v-else>
+            <strong class="account-competition-registration-details__value">
+              {{ registration.competitionName || 'Соревнование не указано' }}
+            </strong>
           </template>
-          <strong v-else class="account-competition-registration-details__value">
-            {{ registrationKindLabel }}
-          </strong>
-        </label>
+          <span class="account-competition-registration-details__meta">
+            {{ selectedStageLabel }}
+          </span>
+          <span class="account-competition-registration-details__meta">
+            Дата: {{ competitionDateLabel }}
+          </span>
+          <span class="account-competition-registration-details__meta">
+            Регистрация: {{ competitionWindowLabel }}
+          </span>
+        </div>
 
         <div class="account-competition-registration-details__pair">
-          <div class="account-competition-registration-details__card account-competition-registration-details__card--plain">
-            <span class="account-competition-registration-details__label">Оплата</span>
+          <div class="account-competition-registration-details__card">
+            <span class="account-competition-registration-details__label">Тип заявки</span>
+            <template v-if="canEditRegistrationKind">
+              <ElSelect
+                v-model="form.registrationKind"
+                class="account__select"
+                popper-class="account__select-popper"
+              >
+                <ElOption
+                  v-for="option in registrationKindOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                />
+              </ElSelect>
+            </template>
+            <template v-else>
+              <strong class="account-competition-registration-details__value">
+                {{ registrationKindLabel }}
+              </strong>
+            </template>
+            <span class="account-competition-registration-details__meta">
+              {{ registration.participantKind === 'athlete' ? 'Заявка спортсмена' : 'Заявка пользователя' }}
+            </span>
+            <span v-if="registration.teamName" class="account-competition-registration-details__meta">
+              Команда: {{ registration.teamName }}
+            </span>
+            <span v-if="registration.seedTime" class="account-competition-registration-details__meta">
+              Ориентир: {{ registration.seedTime }}
+            </span>
+          </div>
+
+          <div class="account-competition-registration-details__card">
+            <span class="account-competition-registration-details__label">Оплата и статус</span>
             <strong class="account-competition-registration-details__value">
               {{ paymentStatusLabel }}
             </strong>
-          </div>
-
-          <div class="account-competition-registration-details__card account-competition-registration-details__card--plain">
-            <span class="account-competition-registration-details__label">Создана</span>
-            <strong class="account-competition-registration-details__value">
-              {{ formatCompactDateTime(registration.createdAt) }}
-            </strong>
             <span class="account-competition-registration-details__meta">
-              Изменена {{ formatCompactDateTime(registration.updatedAt || registration.statusChangedAt || registration.createdAt) }}
+              Создана: {{ formatCompactDateTime(registration.createdAt) }}
+            </span>
+            <span class="account-competition-registration-details__meta">
+              Изменена:
+              {{ formatCompactDateTime(registration.updatedAt || registration.statusChangedAt || registration.createdAt) }}
             </span>
           </div>
         </div>
 
-        <div class="account-competition-registration-details__card account-competition-registration-details__card--wide account-competition-registration-details__card--plain">
+        <div class="account-competition-registration-details__pair">
+          <div class="account-competition-registration-details__card">
+            <span class="account-competition-registration-details__label">Участник</span>
+            <strong class="account-competition-registration-details__value">
+              {{ registration.participantName || 'Без имени' }}
+            </strong>
+            <span class="account-competition-registration-details__meta">
+              Дата рождения: {{ registration.participantBirthDate || 'Не указана' }}
+            </span>
+            <span class="account-competition-registration-details__meta">
+              Клуб: {{ registration.participantClub || 'Не указан' }}
+            </span>
+            <span class="account-competition-registration-details__meta">
+              Телефон: {{ registration.participantPhone || 'Не указан' }}
+            </span>
+            <span class="account-competition-registration-details__meta">
+              Email: {{ registration.participantEmail || 'Не указан' }}
+            </span>
+          </div>
+
+          <div class="account-competition-registration-details__card">
+            <span class="account-competition-registration-details__label">Пользователь</span>
+            <strong class="account-competition-registration-details__value">
+              {{ registration.ownerName || 'Не указан' }}
+            </strong>
+            <span class="account-competition-registration-details__meta">
+              Email: {{ registration.ownerEmail || 'Не указан' }}
+            </span>
+            <span class="account-competition-registration-details__meta">
+              Телефон: {{ registration.ownerPhone || 'Не указан' }}
+            </span>
+          </div>
+        </div>
+
+        <div
+          v-if="documentsStatusLabel"
+          class="account-competition-registration-details__card account-competition-registration-details__card--wide"
+        >
+          <div class="account-competition-registration-details__card-head">
+            <span class="account-competition-registration-details__label">Документы</span>
+            <ElTag
+              :type="documentsStatusTagType"
+              effect="light"
+              round
+              class="account-competition-registration-details__status-tag"
+            >
+              {{ documentsStatusLabel }}
+            </ElTag>
+          </div>
+          <span
+            v-if="documentsStatusDescription"
+            class="account-competition-registration-details__meta account-competition-registration-details__meta--stacked"
+          >
+            {{ documentsStatusDescription }}
+          </span>
+        </div>
+
+        <div class="account-competition-registration-details__card account-competition-registration-details__card--wide">
           <span class="account-competition-registration-details__label">Комментарий</span>
           <strong class="account-competition-registration-details__value">
             {{ registration.comment || 'Нет комментария' }}
@@ -101,7 +170,7 @@
           class="account__table-action account__table-action--ghost btn-reset"
           @click="emit('close')"
         >
-          Отменить
+          {{ closeButtonLabel }}
         </button>
         <button
           v-if="showSaveButton && (canEditStage || canEditRegistrationKind)"
@@ -168,6 +237,18 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  documentsStatusTagType: {
+    type: String,
+    default: 'info',
+  },
+  documentsStatusLabel: {
+    type: String,
+    default: '',
+  },
+  documentsStatusDescription: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['close', 'save', 'withdraw'])
@@ -187,8 +268,28 @@ const registrationKindLabel = computed(() =>
   formatRegistrationKindLabel(props.registration?.registrationKind),
 )
 
+const selectedStageLabel = computed(() => {
+  const stageOption = props.stageOptions.find((option) => option.value === props.registration?.stageId)
+
+  return props.registration?.stageLabel || stageOption?.label || 'Этап не указан'
+})
+
+const competitionDateLabel = computed(
+  () => props.registration?.competitionDateLabel || 'Дата соревнования не указана',
+)
+
+const competitionWindowLabel = computed(
+  () => props.registration?.competitionWindowLabel || 'Окно регистрации не указано',
+)
+
 const paymentStatusLabel = computed(() =>
-  props.registration?.paymentOptionTitle ? 'Оплачено' : 'Нет',
+  props.registration?.paymentOptionTitle || 'Не указана',
+)
+
+const closeButtonLabel = computed(() =>
+  props.canEditStage || props.canEditRegistrationKind || props.showSaveButton || props.showWithdrawButton
+    ? 'Отменить'
+    : 'Закрыть',
 )
 
 function formatRegistrationKindLabel(value) {
@@ -220,30 +321,10 @@ watch(
   padding-inline: 0;
 }
 
-.account-competition-registration-details__hero {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 0 0;
-}
-
-.account-competition-registration-details__title {
-  margin: 0;
-  font-family: Oswald, sans-serif;
-  font-size: 28px;
-  line-height: 1.05;
-  text-transform: uppercase;
-}
-
 .account-competition-registration-details__grid {
   display: grid;
   gap: 12px;
   padding: 0;
-}
-
-.account-competition-registration-details__field--wide {
-  min-width: 0;
 }
 
 .account-competition-registration-details__card--wide {
@@ -262,7 +343,14 @@ watch(
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
   border-radius: 10px;
-  background: linear-gradient(180deg, rgb(246 251 255 / 0.92) 0%, rgb(255 255 255 / 0.86) 100%);
+  background: rgb(255 255 255 / 0.9);
+}
+
+.account-competition-registration-details__card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .account-competition-registration-details__card--plain {
@@ -285,11 +373,24 @@ watch(
   color: var(--black);
 }
 
+.account-competition-registration-details__card .account__select {
+  width: 100%;
+}
+
 .account-competition-registration-details__meta {
   font-size: 13px;
   font-weight: 700;
   line-height: 1.4;
   color: #64748b;
+}
+
+.account-competition-registration-details__meta--stacked {
+  margin-top: 2px;
+}
+
+.account-competition-registration-details__status-tag {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .account-competition-registration-details__actions {
@@ -301,10 +402,6 @@ watch(
 }
 
 @media (max-width: 760px) {
-  .account-competition-registration-details__hero {
-    flex-direction: column;
-  }
-
   .account-competition-registration-details__pair {
     grid-template-columns: 1fr;
   }

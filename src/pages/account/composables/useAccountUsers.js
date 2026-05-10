@@ -117,6 +117,7 @@ export function useAccountUsers() {
       phone: user.phone,
       role: user.role,
       status: user.status,
+      registeredAt: user.registeredAt || null,
       documents: normalizeAccountDocumentsState(user.documents || createAccountDocumentsState()),
     })
 
@@ -251,6 +252,7 @@ export function useAccountUsers() {
       phone: formatRussianPhone(userEditForm.phone.trim()),
       role: userEditForm.role,
       status: userEditForm.status,
+      registeredAt: userEditForm.registeredAt,
       documents: normalizeAccountDocumentsState(userEditForm.documents || createAccountDocumentsState()),
     }
 

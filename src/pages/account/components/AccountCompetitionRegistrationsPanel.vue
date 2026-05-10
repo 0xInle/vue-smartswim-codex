@@ -186,6 +186,9 @@
       :status-label="
         selectedHistoryRegistration ? getRegistrationStatusLabel(selectedHistoryRegistration.status) : ''
       "
+      :documents-status-tag-type="selectedHistoryRegistrationDocumentsStatus?.tagType || 'info'"
+      :documents-status-label="selectedHistoryRegistrationDocumentsStatus?.label || ''"
+      :documents-status-description="selectedHistoryRegistrationDocumentsStatus?.description || ''"
       @close="closeHistoryDetails"
       @save="handleUpdateSelectedRegistration"
       @withdraw="handleWithdrawSelectedRegistration"
@@ -214,6 +217,7 @@ import { useAccountCompetitionRegistrations } from '@/pages/account/composables/
 import {
   formatCompetitionCalendarDateShort,
   formatCompetitionStageLabel,
+  getAccountDocumentsAdmissionStatus,
 } from '@/pages/account/utils/accountFormatters'
 
 const props = defineProps({
@@ -236,6 +240,8 @@ const selectedHistoryRegistration = ref(null)
 const isHistoryDetailsDialogOpen = ref(false)
 
 const {
+  ownerSnapshot,
+  athleteSnapshots,
   competitionOptions,
   filteredCompetitionRows,
   registrationHistory,
@@ -268,6 +274,24 @@ const filteredRows = computed(() =>
     return matchesCompetition && matchesStatus
   }),
 )
+
+const selectedHistoryRegistrationDocumentsStatus = computed(() => {
+  const registration = selectedHistoryRegistration.value
+
+  if (!registration) {
+    return null
+  }
+
+  if (registration.participantKind === 'athlete') {
+    const athlete = athleteSnapshots.value.find((item) => item.id === registration.participantId)
+
+    if (athlete) {
+      return getAccountDocumentsAdmissionStatus(athlete.documents || [])
+    }
+  }
+
+  return getAccountDocumentsAdmissionStatus(ownerSnapshot.value.documents || [])
+})
 
 function handleOpenRegistration(stageId) {
   openRegistrationDialog(stageId)

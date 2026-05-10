@@ -38,7 +38,7 @@
 
           <div class="account-user-dashboard__mini-stats">
             <div class="account-user-dashboard__mini-stat">
-              <span class="account-user-dashboard__mini-stat-label">Допущены</span>
+              <span class="account-user-dashboard__mini-stat-label">Одобрены</span>
               <strong class="account-user-dashboard__mini-stat-value">{{
                 admittedAthletesCount
               }}</strong>
@@ -58,8 +58,8 @@
           </div>
 
           <p class="account-user-dashboard__source">
-            Считаем по документам добавленных спортсменов: проверены, на проверке или требуют
-            загрузки/доработки.
+            Считаем по документам добавленных спортсменов: одобрены, на проверке или требуют
+            загрузки.
           </p>
         </article>
       </section>

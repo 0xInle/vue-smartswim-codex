@@ -1,10 +1,15 @@
 import { computed, ref } from 'vue'
 import {
-  accountMockCompetitionStages,
+  buildAccountCompetitionStages,
   buildCompetitionSeriesOptions,
 } from '@/pages/account/accountCompetitionStages.data'
+import {
+  countCompetitionRegistrationsByStageId,
+  updateCompetitionRegistrationsByStageId,
+} from '@/pages/account/utils/accountCompetitionRegistrations'
 import { competitionDirections } from '@/pages/competitions/competitionData'
 import { publicAsset } from '@/utils/publicAsset'
+import { showToast } from '@/utils/toast'
 import {
   buildCompetitionRegistrationWindow,
   formatCompetitionDateLabel,
@@ -122,9 +127,19 @@ function findDirectionBySlug(slug) {
   return competitionDirections.find((item) => item.slug === slug)
 }
 
+function resolveCompetitionWindowLabel(registration) {
+  const state = resolveCompetitionRegistrationState(registration)
+
+  if (state.mode === 'open') {
+    return `Открыта до ${state.closeDateLabel}`
+  }
+
+  return `${state.openDateLabel} - ${state.closeDateLabel}`
+}
+
 export function useCompetitionStages() {
   const competitionStages = ref(
-    accountMockCompetitionStages.map((stage) => ({
+    buildAccountCompetitionStages().map((stage) => ({
       ...stage,
       registration: { ...stage.registration },
       protocolUrl: stage.protocolUrl || '',
@@ -217,6 +232,12 @@ function updateCompetitionStage(
       targetStage.photoUrl = photoUrl
     }
 
+    updateCompetitionRegistrationsByStageId(targetStage.id, {
+      competitionName: targetStage.competitionName,
+      competitionDateLabel: formatCompetitionDateLabel(targetStage.date),
+      competitionWindowLabel: resolveCompetitionWindowLabel(targetStage.registration),
+    })
+
     const direction = findDirectionBySlug(competitionSlug)
 
     if (!direction) {
@@ -276,6 +297,13 @@ function updateCompetitionStage(
       return
     }
 
+    const activeRegistrationsCount = countCompetitionRegistrationsByStageId(stageId)
+
+    if (activeRegistrationsCount > 0) {
+      showToast('Нельзя удалить этап: на него есть активные заявки', { type: 'error' })
+      return
+    }
+
     competitionStages.value = competitionStages.value.filter((stage) => stage.id !== stageId)
 
     const direction = findDirectionBySlug(targetStage.competitionSlug)
@@ -291,6 +319,10 @@ function updateCompetitionStage(
     }
 
     direction.cards.splice(directionCardIndex, 1)
+  }
+
+  function getStageActiveRegistrationsCount(stageId) {
+    return countCompetitionRegistrationsByStageId(stageId)
   }
 
   function updateCompetitionStageDistances(stageId, description = '') {
@@ -350,11 +382,22 @@ function updateCompetitionStage(
     const normalizedStage = Number(stage)
 
     if (!normalizedName || !normalizedDate || !Number.isFinite(normalizedStage)) {
+      showToast('Заполните название, этап и дату соревнования', { type: 'error' })
       return
     }
 
     let direction = findDirectionByName(normalizedName)
     const competitionSlug = direction?.slug || buildSlug(normalizedName)
+
+    const stageAlreadyExists = competitionStages.value.some(
+      (item) => item.competitionSlug === competitionSlug && Number(item.stage) === normalizedStage,
+    )
+
+    if (stageAlreadyExists) {
+      showToast('Такой этап уже есть в календаре', { type: 'error' })
+      return
+    }
+
     const registration = {
       openAt: openAt ? toCompetitionDateTime(openAt) : '',
       closeAt: closeAt ? toCompetitionDateTime(closeAt, { endOfDay: true }) : '',
@@ -414,6 +457,7 @@ function updateCompetitionStage(
     updateCompetitionStageDistances,
     getCompetitionStageDescription,
     deleteCompetitionStage,
+    getStageActiveRegistrationsCount,
     createCompetitionStage,
   }
 }

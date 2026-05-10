@@ -109,7 +109,7 @@ export function getAccountDocumentsStatusMeta(documents = []) {
 
   if (hasRejectedDocuments) {
     return {
-      label: 'Есть отклонённые',
+      label: 'Есть отклоненные',
       tagType: 'danger',
       loadedCount,
       documentCount,
@@ -118,7 +118,7 @@ export function getAccountDocumentsStatusMeta(documents = []) {
 
   if (hasReuploadRequests) {
     return {
-      label: 'Нужна повторная загрузка',
+      label: 'Нужно обновить',
       tagType: 'warning',
       loadedCount,
       documentCount,
@@ -154,21 +154,21 @@ export function getAccountDocumentsStatusMeta(documents = []) {
 export function getAccountDocumentStatusMeta(status) {
   if (status === ACCOUNT_DOCUMENT_STATUS.VERIFIED) {
     return {
-      label: 'Проверен',
+      label: 'Одобрен',
       tagType: 'success',
     }
   }
 
   if (status === ACCOUNT_DOCUMENT_STATUS.REJECTED) {
     return {
-      label: 'Отклонён',
+      label: 'Отклонен',
       tagType: 'danger',
     }
   }
 
   if (status === ACCOUNT_DOCUMENT_STATUS.NEEDS_REUPLOAD) {
     return {
-      label: 'Нужна повторная загрузка',
+      label: 'Нужно обновить',
       tagType: 'warning',
     }
   }
@@ -181,7 +181,7 @@ export function getAccountDocumentStatusMeta(status) {
   }
 
   return {
-    label: 'Не загружен',
+    label: 'Документ не загружен',
     tagType: 'info',
   }
 }

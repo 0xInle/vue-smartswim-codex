@@ -1,12 +1,18 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { accountMockCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
+import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import {
   readAllCompetitionRegistrations,
   updateCompetitionRegistrationByUserKey,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
+import {
+  readAccountAthletesSnapshot,
+  readAccountProfileSnapshot,
+} from '@/pages/account/utils/accountLocalStorage'
+import { readAccountUsersSnapshot } from '@/pages/account/utils/accountUsersStorage'
 import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
 import {
+  getAccountDocumentsAdmissionStatus,
   competitionRegistrationRecordStatusType,
   formatCompetitionRegistrationRecordStatus,
   formatCompactDateTime,
@@ -61,7 +67,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
   }
 
   const stageOptions = computed(() =>
-    accountMockCompetitionStages
+    buildAccountCompetitionStages()
       .slice()
       .sort((left, right) => {
         const leftCompetition = normalizeSearchValue(left.competitionName)
@@ -82,6 +88,48 @@ export function useAccountCompetitionRegistrationsAdmin() {
   const selectedRegistration = computed(
     () => registrations.value.find((item) => item.id === selectedRegistrationId.value) || null,
   )
+
+  const selectedRegistrationDocumentsStatus = computed(() => {
+    const registration = selectedRegistration.value
+
+    if (!registration?.sourceUserKey) {
+      return null
+    }
+
+    const sourceUser =
+      readAccountUsersSnapshot().find(
+        (item) => item.id === registration.sourceUserKey || item.email === registration.sourceUserKey,
+      ) || {
+        id: registration.sourceUserKey,
+        email: registration.ownerEmail || '',
+        name: registration.ownerName || '',
+        phone: registration.ownerPhone || '',
+      }
+
+    if (!sourceUser) {
+      return null
+    }
+
+    if (registration.participantKind === 'athlete') {
+      const athlete = readAccountAthletesSnapshot(sourceUser).find(
+        (item) => item.id === registration.participantId,
+      )
+
+      if (athlete) {
+        return getAccountDocumentsAdmissionStatus(athlete.documents || [])
+      }
+    }
+
+    const profile = readAccountProfileSnapshot(sourceUser)
+    const profileDocuments = profile.documents || []
+    const sourceUserDocuments = sourceUser.documents || []
+
+    return getAccountDocumentsAdmissionStatus(
+      profileDocuments.some((document) => document.status !== 'missing')
+        ? profileDocuments
+        : sourceUserDocuments,
+    )
+  })
 
   const filteredRegistrations = computed(() => {
     const normalizedSearch = normalizeSearchValue(search.value)
@@ -178,7 +226,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
   function handleStageSave(payload) {
     const stageId = typeof payload === 'string' ? payload : payload?.stageId
     const registrationKind = typeof payload === 'object' && payload ? payload.registrationKind : ''
-    const stage = accountMockCompetitionStages.find((item) => item.id === stageId)
+    const stage = buildAccountCompetitionStages().find((item) => item.id === stageId)
 
     if (!stage) {
       return
@@ -273,6 +321,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     isDetailsDialogOpen,
     openDetailsDialog,
     closeDetailsDialog,
+    selectedRegistrationDocumentsStatus,
     handleStageSave,
     handleWithdrawSelectedRegistration,
     competitionRegistrationRecordStatusType,

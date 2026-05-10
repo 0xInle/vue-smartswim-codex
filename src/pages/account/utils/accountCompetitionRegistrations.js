@@ -35,6 +35,25 @@ function buildStorageKeyFromUserKey(userKey) {
   return `${ACCOUNT_COMPETITION_REGISTRATIONS_STORAGE_PREFIX}:${userKey || 'anonymous'}`
 }
 
+function getCompetitionRegistrationStorageKeys() {
+  if (typeof window === 'undefined') {
+    return []
+  }
+
+  const storagePrefix = `${ACCOUNT_COMPETITION_REGISTRATIONS_STORAGE_PREFIX}:`
+  const storageKeys = []
+
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const storageKey = window.localStorage.key(index)
+
+    if (storageKey && storageKey.startsWith(storagePrefix)) {
+      storageKeys.push(storageKey)
+    }
+  }
+
+  return storageKeys
+}
+
 function normalizeRegistrationStatus(status) {
   if (status === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
     return COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN
@@ -173,22 +192,9 @@ export function readCompetitionRegistrations(currentUser) {
 }
 
 export function readAllCompetitionRegistrations() {
-  if (typeof window === 'undefined') {
-    return []
-  }
-
   const storagePrefix = `${ACCOUNT_COMPETITION_REGISTRATIONS_STORAGE_PREFIX}:`
-  const storageKeys = []
 
-  for (let index = 0; index < window.localStorage.length; index += 1) {
-    const storageKey = window.localStorage.key(index)
-
-    if (storageKey && storageKey.startsWith(storagePrefix)) {
-      storageKeys.push(storageKey)
-    }
-  }
-
-  return storageKeys.flatMap((storageKey) => {
+  return getCompetitionRegistrationStorageKeys().flatMap((storageKey) => {
     const sourceUserKey = storageKey.slice(storagePrefix.length)
     const parsedRegistrations = readJsonStorage(storageKey, [])
 
@@ -200,6 +206,23 @@ export function readAllCompetitionRegistrations() {
       .filter((item) => item && typeof item === 'object')
       .map((item) => normalizeCompetitionRegistrationRecord(item, sourceUserKey))
   })
+}
+
+export function countCompetitionRegistrationsByStageId(
+  stageId,
+  { status = COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED } = {},
+) {
+  if (!stageId) {
+    return 0
+  }
+
+  return readAllCompetitionRegistrations().filter((registration) => {
+    if (registration.stageId !== stageId) {
+      return false
+    }
+
+    return status === 'all' ? true : registration.status === status
+  }).length
 }
 
 export function persistCompetitionRegistrations(currentUser, registrations) {
@@ -289,6 +312,99 @@ export function updateCompetitionRegistration(
   return updatedRegistration
 }
 
+export function countCompetitionRegistrationsForParticipant(
+  currentUser,
+  { participantKind = '', participantId = '', status = COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED } = {},
+) {
+  if (!participantKind || !participantId) {
+    return 0
+  }
+
+  return readCompetitionRegistrations(currentUser).filter((registration) => {
+    if (
+      registration.participantKind !== participantKind ||
+      registration.participantId !== participantId
+    ) {
+      return false
+    }
+
+    return status === 'all' ? true : registration.status === status
+  }).length
+}
+
+export function syncCompetitionRegistrationOwnerSnapshot(currentUser, profile = {}) {
+  const registrations = readCompetitionRegistrations(currentUser)
+
+  if (!registrations.length) {
+    return 0
+  }
+
+  let updatedCount = 0
+  const now = new Date().toISOString()
+  const nextRegistrations = registrations.map((registration) => {
+    const ownerPatch = {
+      ownerName: profile.fullName || registration.ownerName,
+      ownerEmail: profile.email || registration.ownerEmail,
+      ownerPhone: profile.phone || registration.ownerPhone,
+      updatedAt: now,
+    }
+
+    if (registration.participantKind !== 'owner') {
+      updatedCount += 1
+      return {
+        ...registration,
+        ...ownerPatch,
+      }
+    }
+
+    updatedCount += 1
+    return {
+      ...registration,
+      ...ownerPatch,
+      participantName: profile.fullName || registration.participantName,
+      participantBirthDate: profile.birthDate || registration.participantBirthDate,
+      participantClub: profile.club || registration.participantClub,
+      participantPhone: profile.phone || registration.participantPhone,
+      participantEmail: profile.email || registration.participantEmail,
+    }
+  })
+
+  persistCompetitionRegistrations(currentUser, nextRegistrations)
+
+  return updatedCount
+}
+
+export function syncCompetitionRegistrationAthleteSnapshot(currentUser, athlete = {}) {
+  if (!athlete?.id) {
+    return 0
+  }
+
+  const registrations = readCompetitionRegistrations(currentUser)
+  let updatedCount = 0
+  const now = new Date().toISOString()
+  const nextRegistrations = registrations.map((registration) => {
+    if (registration.participantKind !== 'athlete' || registration.participantId !== athlete.id) {
+      return registration
+    }
+
+    updatedCount += 1
+
+    return {
+      ...registration,
+      participantName: athlete.fullName || registration.participantName,
+      participantBirthDate: athlete.birthDate || registration.participantBirthDate,
+      participantClub: athlete.club || registration.participantClub,
+      updatedAt: now,
+    }
+  })
+
+  if (updatedCount > 0) {
+    persistCompetitionRegistrations(currentUser, nextRegistrations)
+  }
+
+  return updatedCount
+}
+
 export function updateCompetitionRegistrationStatus(
   currentUser,
   registrationId,
@@ -350,4 +466,55 @@ export function updateCompetitionRegistrationByUserKey(
   )
 
   return updatedRegistration
+}
+
+export function updateCompetitionRegistrationsByStageId(
+  stageId,
+  patch = {},
+  { statusChangedBy = 'admin' } = {},
+) {
+  if (!stageId) {
+    return 0
+  }
+
+  const storagePrefix = `${ACCOUNT_COMPETITION_REGISTRATIONS_STORAGE_PREFIX}:`
+  let updatedCount = 0
+
+  getCompetitionRegistrationStorageKeys().forEach((storageKey) => {
+    const sourceUserKey = storageKey.slice(storagePrefix.length)
+    const parsedRegistrations = readJsonStorage(storageKey, [])
+
+    if (!Array.isArray(parsedRegistrations)) {
+      return
+    }
+
+    let hasUpdates = false
+    const now = new Date().toISOString()
+    const nextRegistrations = parsedRegistrations
+      .filter((item) => item && typeof item === 'object')
+      .map((item) => {
+        const registration = normalizeCompetitionRegistrationRecord(item, sourceUserKey)
+
+        if (registration.stageId !== stageId) {
+          return registration
+        }
+
+        hasUpdates = true
+        updatedCount += 1
+
+        return {
+          ...registration,
+          ...patch,
+          stageId,
+          updatedAt: patch.updatedAt || now,
+          statusChangedBy: patch.statusChangedBy || statusChangedBy,
+        }
+      })
+
+    if (hasUpdates) {
+      writeRegistrationsByStorageKey(storageKey, nextRegistrations)
+    }
+  })
+
+  return updatedCount
 }

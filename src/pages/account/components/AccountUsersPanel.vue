@@ -37,14 +37,12 @@
       </div>
     </div>
 
-    <div v-if="users.length" class="account__native-table-wrap">
+    <div v-if="users.length" class="account__native-table-wrap account-users__table-wrap">
       <table class="account__native-table account__native-table--users">
         <thead class="account__native-table-head">
           <tr>
-            <th>Пользователь</th>
-            <th>Телефон</th>
+            <th>ФИО</th>
             <th>Роль</th>
-            <th>Регистрация</th>
             <th>Действия</th>
           </tr>
         </thead>
@@ -54,41 +52,31 @@
             <td class="account__native-table-cell account__native-table-cell--primary">
               <div class="account__table-user">
                 <div class="account__table-primary">{{ row.name }}</div>
-                <div class="account__table-secondary">{{ row.email }}</div>
               </div>
             </td>
-            <td class="account__native-table-cell account__native-table-cell--phone">
-              <span class="account__table-phone">{{ row.phone }}</span>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <div class="account-users__role-cell">
+                <span class="account-users__role-text">{{ formatUserRole(row.role) }}</span>
+              </div>
             </td>
             <td class="account__native-table-cell account__native-table-cell--center">
-              <ElTag
-                class="account__user-role-tag"
-                :type="userRoleTagType(row.role)"
-                effect="light"
-                round
-              >
-                {{ formatUserRole(row.role) }}
-              </ElTag>
-            </td>
-            <td class="account__native-table-cell account__native-table-cell--center">
-              {{ formatCompactDateTime(row.registeredAt) }}
-            </td>
-            <td class="account__native-table-cell account__native-table-cell--center">
-              <div class="account__table-actions">
-                <button
-                  type="button"
-                  class="account__table-action account__table-action--edit btn-reset"
-                  @click="$emit('edit-user', row)"
-                >
-                  Редактировать
-                </button>
-                <button
-                  type="button"
-                  class="account__table-action account__table-action--delete btn-reset"
-                  @click="$emit('delete-user', row)"
-                >
-                  Удалить
-                </button>
+              <div class="account-users__actions-cell">
+                <div class="account__table-actions">
+                  <button
+                    type="button"
+                    class="account__table-action account__table-action--edit btn-reset"
+                    @click="$emit('edit-user', row)"
+                  >
+                    Просмотр
+                  </button>
+                  <button
+                    type="button"
+                    class="account__table-action account__table-action--delete btn-reset"
+                    @click="$emit('delete-user', row)"
+                  >
+                    Удалить
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
@@ -98,9 +86,10 @@
 
     <ElEmpty v-else description="Пользователи не найдены." />
 
-    <div v-if="pageCount > 1" class="account__pagination-wrap">
+    <div v-if="pageCount > 1" class="account-users__pagination-wrap">
       <ElPagination
         background
+        class="account-users__pagination"
         layout="prev, pager, next"
         :current-page="page"
         :page-size="usersPageSize"
@@ -111,92 +100,69 @@
 
     <ElDialog
       :model-value="isEditDialogOpen"
-      width="520px"
+      width="760px"
+      append-to-body
+      align-center
       destroy-on-close
-      class="account__dialog"
-      title="Редактирование пользователя"
+      class="account__dialog account__dialog--user-view"
+      title="Просмотр пользователя"
       :close-icon="Close"
       @closed="$emit('close-edit')"
       @update:model-value="!$event && $emit('close-edit')"
     >
-      <form class="account__dialog-form" @submit.prevent="$emit('submit-edit')">
-        <label class="account__field">
-          <span class="account__field-label">Имя и фамилия</span>
-          <input
-            v-model.trim="editForm.name"
-            class="account__input"
-            type="text"
-            name="user-name"
-            placeholder="Введите имя пользователя"
-          />
-        </label>
+      <div class="account__dialog-form account-users__dialog-form">
+        <div class="account-users__summary-grid">
+          <article class="account__profile-item account-users__summary-item">
+            <span class="account__profile-label">Имя и фамилия</span>
+            <strong class="account__profile-value account-users__summary-value">
+              {{ editForm.name || 'Не указано' }}
+            </strong>
+          </article>
 
-        <label class="account__field">
-          <span class="account__field-label">Почта</span>
-          <input
-            v-model.trim="editForm.email"
-            class="account__input"
-            type="email"
-            name="user-email"
-            placeholder="example@mail.ru"
-          />
-        </label>
+          <article class="account__profile-item account-users__summary-item">
+            <span class="account__profile-label">Почта</span>
+            <strong class="account__profile-value account-users__summary-value">
+              {{ editForm.email || 'Не указана' }}
+            </strong>
+          </article>
 
-        <label class="account__field">
-          <span class="account__field-label">Телефон</span>
-          <input
-            :value="editForm.phone"
-            class="account__input"
-            type="tel"
-            name="user-phone"
-            inputmode="tel"
-            placeholder="+7 (961) 471-33-80"
-            @input="editForm.phone = formatRussianPhoneInput($event.target.value)"
-          />
-        </label>
+          <article class="account__profile-item account-users__summary-item">
+            <span class="account__profile-label">Телефон</span>
+            <strong class="account__profile-value account-users__summary-value">
+              {{ editForm.phone || 'Не указан' }}
+            </strong>
+          </article>
 
-        <div class="account__field-grid">
-          <label class="account__field">
-            <span class="account__field-label">Роль</span>
-            <ElSelect
-              v-model="editForm.role"
-              class="account__select"
-              popper-class="account__select-popper"
-              placeholder="Выберите роль"
-            >
-              <ElOption
-                v-for="option in userRoleOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ElSelect>
-          </label>
+          <article class="account__profile-item account-users__summary-item">
+            <span class="account__profile-label">Роль</span>
+            <strong class="account__profile-value account-users__summary-value">
+              {{ formatUserRole(editForm.role) }}
+            </strong>
+          </article>
 
-          <label class="account__field">
-            <span class="account__field-label">Статус</span>
-            <ElSelect
-              v-model="editForm.status"
-              class="account__select"
-              popper-class="account__select-popper"
-              placeholder="Выберите статус"
-            >
-              <ElOption
-                v-for="option in userStatusOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ElSelect>
-          </label>
+          <article class="account__profile-item account-users__summary-item">
+            <span class="account__profile-label">Статус</span>
+            <strong class="account__profile-value account-users__summary-value">
+              {{ formatUserStatus(editForm.status) }}
+            </strong>
+          </article>
+
+          <article class="account__profile-item account-users__summary-item">
+            <span class="account__profile-label">Дата регистрации</span>
+            <strong class="account__profile-value account-users__summary-value">
+              {{
+                editForm.registeredAt ? formatCompactDateTime(editForm.registeredAt) : 'Не указана'
+              }}
+            </strong>
+          </article>
         </div>
 
         <AccountDocumentChecklist
           :documents="editForm.documents"
           :show-header="false"
           embedded
-          @upload="$emit('open-document-upload', $event)"
-          @remove="$emit('remove-document', $event)"
+          mode="readonly"
+          :show-action-button="false"
         />
 
         <div class="account__dialog-actions">
@@ -205,11 +171,10 @@
             class="account__table-action account__table-action--ghost btn-reset"
             @click="$emit('close-edit')"
           >
-            Отмена
+            Закрыть
           </button>
-          <button type="submit" class="account__submit btn-reset">Сохранить</button>
         </div>
-      </form>
+      </div>
     </ElDialog>
 
     <AccountDocumentUploadDialog
@@ -222,6 +187,8 @@
     <ElDialog
       :model-value="isDeleteDialogOpen"
       width="480px"
+      append-to-body
+      align-center
       destroy-on-close
       class="account__dialog account__dialog--confirm"
       title="Удалить пользователя"
@@ -261,28 +228,15 @@
 
 <script setup>
 import { Close } from '@element-plus/icons-vue'
-import {
-  ElCard,
-  ElEmpty,
-  ElDialog,
-  ElOption,
-  ElPagination,
-  ElSelect,
-  ElTag,
-} from 'element-plus'
+import { ElCard, ElEmpty, ElDialog, ElOption, ElPagination, ElSelect, ElTag } from 'element-plus'
 import AccountDocumentChecklist from '@/pages/account/components/AccountDocumentChecklist.vue'
 import AccountDocumentUploadDialog from '@/pages/account/components/AccountDocumentUploadDialog.vue'
-import {
-  USER_ROLE_OPTIONS,
-  USERS_PAGE_SIZE,
-  USER_STATUS_OPTIONS,
-} from '@/pages/account/utils/accountConstants'
+import { USER_ROLE_OPTIONS, USERS_PAGE_SIZE } from '@/pages/account/utils/accountConstants'
 import {
   formatCompactDateTime,
   formatUserRole,
-  userRoleTagType,
+  formatUserStatus,
 } from '@/pages/account/utils/accountFormatters'
-import { formatRussianPhoneInput } from '@/utils/phone'
 
 defineProps({
   users: {
@@ -348,6 +302,127 @@ defineEmits([
 ])
 
 const userRoleOptions = USER_ROLE_OPTIONS
-const userStatusOptions = USER_STATUS_OPTIONS
 const usersPageSize = USERS_PAGE_SIZE
 </script>
+
+<style scoped>
+.account-users__dialog-form {
+  gap: 18px;
+}
+
+.account-users__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.account-users__summary-item {
+  align-content: start;
+  min-width: 0;
+  background: transparent;
+}
+
+.account-users__role-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 12px;
+}
+
+.account-users__role-text {
+  font-weight: 800;
+  color: var(--black);
+}
+
+.account-users__actions-cell {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.account-users__table-wrap {
+  margin-bottom: 16px;
+}
+
+.account-users__pagination-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.account-users__pagination :deep(.el-pager li),
+.account-users__pagination :deep(.btn-prev),
+.account-users__pagination :deep(.btn-next) {
+  min-width: 38px;
+  height: 38px;
+  margin: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 18%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.88);
+  box-shadow: 0 10px 18px rgb(15 23 42 / 0.06);
+  color: #526072;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.account-users__pagination :deep(.el-pager li:hover),
+.account-users__pagination :deep(.btn-prev:hover),
+.account-users__pagination :deep(.btn-next:hover) {
+  border-color: color-mix(in srgb, var(--cyan) 42%, white);
+  background: color-mix(in srgb, var(--aqua) 12%, white);
+  color: var(--black);
+}
+
+.account-users__pagination :deep(.el-pager li.is-active) {
+  border-color: color-mix(in srgb, var(--orange) 42%, white);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--orange) 18%, white) 0%,
+    #fff7ef 100%
+  );
+  color: var(--black);
+  box-shadow: 0 10px 18px rgb(239 120 55 / 0.14);
+}
+
+.account-users__pagination :deep(.el-pager li.is-active:hover) {
+  border-color: color-mix(in srgb, var(--orange) 52%, white);
+}
+
+.account-users__pagination :deep(.btn-prev[disabled]),
+.account-users__pagination :deep(.btn-next[disabled]) {
+  background: rgb(255 255 255 / 0.7);
+  color: #a4afbd;
+  box-shadow: none;
+}
+
+.account-users__summary-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account__dialog--user-view :deep(.el-dialog__body) {
+  max-height: min(72vh, 760px);
+  overflow-y: auto;
+}
+
+.account__dialog--user-view :deep(.el-dialog__body)::-webkit-scrollbar {
+  width: 12px;
+}
+
+.account__dialog--user-view :deep(.el-dialog__body)::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cyan) 36%, white);
+  background-clip: content-box;
+}
+
+@media (max-width: 900px) {
+  .account-users__summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

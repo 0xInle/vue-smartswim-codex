@@ -51,152 +51,157 @@
             Загружаем кабинет...
           </div>
 
-          <AccountDashboardPanel
-            v-else-if="isAdmin && activeSection === 'dashboard'"
-            :consultation-requests="consultationRequests"
-            :trainer-bookings="trainerBookings"
-            :users="users"
-            @select-section="handleSectionSelect"
-          />
+          <template v-else>
+            <AccountDocumentReviewsPanel
+              v-if="isAdmin"
+              v-show="activeSection === 'documents'"
+              :current-user="currentUser"
+            />
 
-          <AccountUserDashboardPanel
-            v-else-if="!isAdmin && activeSection === 'dashboard'"
-            :current-user="currentUser"
-            :open-competitions-count="openCompetitionRegistrationsCount"
-          />
+            <AccountDashboardPanel
+              v-if="isAdmin && activeSection === 'dashboard'"
+              :consultation-requests="consultationRequests"
+              :trainer-bookings="trainerBookings"
+              :users="users"
+              :open-competition-registrations-count="openCompetitionRegistrationsCount"
+              @select-section="handleSectionSelect"
+            />
 
-          <AccountProfilePanel
-            v-else-if="!isAdmin && activeSection === 'profile'"
-            :current-user="currentUser"
-          />
+            <AccountUserDashboardPanel
+              v-else-if="!isAdmin && activeSection === 'dashboard'"
+              :current-user="currentUser"
+              :open-competitions-count="openCompetitionRegistrationsCount"
+            />
 
-          <AccountAthletesPanel
-            v-else-if="!isAdmin && activeSection === 'athletes'"
-            :current-user="currentUser"
-          />
+            <AccountProfilePanel
+              v-else-if="!isAdmin && activeSection === 'profile'"
+              :current-user="currentUser"
+            />
 
-          <AccountCompetitionRegistrationsPanel
-            v-else-if="!isAdmin && activeSection === 'competitions'"
-            :current-user="currentUser"
-            :initial-target="competitionRegistrationTarget"
-            @consume-target="handleCompetitionTargetConsumed"
-          />
+            <AccountAthletesPanel
+              v-else-if="!isAdmin && activeSection === 'athletes'"
+              :current-user="currentUser"
+            />
 
-          <AccountSettingsPanel
-            v-else-if="!isAdmin && activeSection === 'settings'"
-            :form="passwordChangeForm"
-            :errors="passwordChangeErrors"
-            :visibility="passwordVisibility"
-            :status="passwordChangeStatus"
-            :message="passwordChangeMessage"
-            :min-password-length="minPasswordLength"
-            :password-field-type="passwordFieldType"
-            @submit="handlePasswordChange"
-            @toggle-visibility="togglePasswordVisibility"
-          />
+            <AccountCompetitionRegistrationsPanel
+              v-else-if="!isAdmin && activeSection === 'competitions'"
+              :current-user="currentUser"
+              :initial-target="competitionRegistrationTarget"
+              @consume-target="handleCompetitionTargetConsumed"
+            />
 
-          <AccountConsultationsPanel
-            v-else-if="isAdmin && activeSection === 'consultations'"
-            :requests="consultationRequests"
-            :rows="consultationTableRows"
-            :is-loading="isAdminDataLoading"
-            :search="consultationSearch"
-            :status-filter="consultationStatusFilter"
-            :status-options="consultationStatusOptions"
-            :new-count="newConsultationRequestsCount"
-            :total="filteredConsultationRequestsTotal"
-            :loading-id="consultationStatusLoadingId"
-            :get-draft-status="getConsultationDraftStatus"
-            :span-method="consultationTableSpanMethod"
-            @refresh="handleConsultationRefresh"
-            @update:search="consultationSearch = $event"
-            @update:status-filter="consultationStatusFilter = $event"
-            @mark-processed="handleConsultationMarkProcessed"
-            @draft-change="handleConsultationDraftChange"
-            @apply-draft="handleConsultationApplyDraft"
-            @reset-status="handleConsultationResetStatus"
-          />
+            <AccountSettingsPanel
+              v-else-if="!isAdmin && activeSection === 'settings'"
+              :form="passwordChangeForm"
+              :errors="passwordChangeErrors"
+              :visibility="passwordVisibility"
+              :status="passwordChangeStatus"
+              :message="passwordChangeMessage"
+              :min-password-length="minPasswordLength"
+              :password-field-type="passwordFieldType"
+              @submit="handlePasswordChange"
+              @toggle-visibility="togglePasswordVisibility"
+            />
 
-          <AccountTrainerBookingsPanel
-            v-else-if="isAdmin && activeSection === 'trainer-bookings'"
-            :bookings="filteredTrainerBookings"
-            :is-loading="trainerBookingsLoading"
-            :search="trainerBookingsSearch"
-            :status-filter="trainerBookingsStatusFilter"
-            :status-options="trainerBookingsStatusOptions"
-            :new-count="newTrainerBookingsCount"
-            :total="filteredTrainerBookingsTotal"
-            @refresh="handleTrainerBookingsRefresh"
-            @update:search="trainerBookingsSearch = $event"
-            @update:status-filter="trainerBookingsStatusFilter = $event"
-          />
+            <AccountConsultationsPanel
+              v-else-if="isAdmin && activeSection === 'consultations'"
+              :requests="consultationRequests"
+              :rows="consultationTableRows"
+              :is-loading="isAdminDataLoading"
+              :search="consultationSearch"
+              :status-filter="consultationStatusFilter"
+              :status-options="consultationStatusOptions"
+              :new-count="newConsultationRequestsCount"
+              :total="filteredConsultationRequestsTotal"
+              :loading-id="consultationStatusLoadingId"
+              :get-draft-status="getConsultationDraftStatus"
+              :span-method="consultationTableSpanMethod"
+              @refresh="handleConsultationRefresh"
+              @update:search="consultationSearch = $event"
+              @update:status-filter="consultationStatusFilter = $event"
+              @mark-processed="handleConsultationMarkProcessed"
+              @draft-change="handleConsultationDraftChange"
+              @apply-draft="handleConsultationApplyDraft"
+              @reset-status="handleConsultationResetStatus"
+            />
 
-          <AccountDocumentReviewsPanel
-            v-else-if="isAdmin && activeSection === 'documents'"
-            :current-user="currentUser"
-          />
+            <AccountTrainerBookingsPanel
+              v-else-if="isAdmin && activeSection === 'trainer-bookings'"
+              :bookings="filteredTrainerBookings"
+              :is-loading="trainerBookingsLoading"
+              :search="trainerBookingsSearch"
+              :status-filter="trainerBookingsStatusFilter"
+              :status-options="trainerBookingsStatusOptions"
+              :new-count="newTrainerBookingsCount"
+              :total="filteredTrainerBookingsTotal"
+              @refresh="handleTrainerBookingsRefresh"
+              @update:search="trainerBookingsSearch = $event"
+              @update:status-filter="trainerBookingsStatusFilter = $event"
+            />
 
-          <AccountCompetitionRegistrationsAdminPanel
-            v-else-if="isAdmin && activeSection === 'registrations'"
-          />
+            <AccountCompetitionRegistrationsAdminPanel
+              v-else-if="isAdmin && activeSection === 'registrations'"
+            />
 
-          <AccountCompetitionsPanel
-            v-else-if="isAdmin && activeSection === 'competitions'"
-            :rows="filteredCompetitionStages"
-            :is-loading="false"
-            :competition-filter="competitionFilter"
-            :competition-options="competitionOptions"
-            :total="filteredCompetitionStagesTotal"
-            :open-count="filteredOpenCompetitionRegistrationsCount"
-            :get-stage-distances="getCompetitionStageDescription"
-            @update:competition-filter="competitionFilter = $event"
-            @update-stage="handleCompetitionStageUpdate"
-            @update-stage-links="handleCompetitionStageLinksUpdate"
-            @update-stage-distances="handleCompetitionStageDistancesUpdate"
-            @create-stage="handleCompetitionStageCreate"
-            @delete-stage="handleCompetitionStageDelete"
-          />
+            <AccountCompetitionsPanel
+              v-else-if="isAdmin && activeSection === 'competitions'"
+              :rows="filteredCompetitionStages"
+              :is-loading="false"
+              :competition-filter="competitionFilter"
+              :competition-options="competitionOptions"
+              :total="filteredCompetitionStagesTotal"
+              :open-count="filteredOpenCompetitionRegistrationsCount"
+              :get-stage-distances="getCompetitionStageDescription"
+              :get-stage-active-registrations-count="getStageActiveRegistrationsCount"
+              @update:competition-filter="competitionFilter = $event"
+              @update-stage="handleCompetitionStageUpdate"
+              @update-stage-links="handleCompetitionStageLinksUpdate"
+              @update-stage-distances="handleCompetitionStageDistancesUpdate"
+              @create-stage="handleCompetitionStageCreate"
+              @delete-stage="handleCompetitionStageDelete"
+            />
 
-          <AccountUsersPanel
-            v-else-if="isAdmin && activeSection === 'users'"
-            :users="paginatedUsers"
-            :search="usersSearch"
-            :role-filter="usersRoleFilter"
-            :total="filteredUsersTotal"
-            :page="usersPage"
-            :page-count="usersPageCount"
-            :is-edit-dialog-open="isUserEditDialogOpen"
-            :is-delete-dialog-open="isUserDeleteDialogOpen"
-            :edit-form="userEditForm"
-            :pending-delete-user="userPendingDelete"
-            :document-upload-state="documentUploadState"
-            @update:search="usersSearch = $event"
-            @update:role-filter="usersRoleFilter = $event"
-            @page-change="handleUsersPageChange"
-            @edit-user="handleOpenUserEdit"
-            @delete-user="handleOpenUserDelete"
-            @close-edit="handleCloseUserEdit"
-            @submit-edit="handleUserEditSubmit"
-            @close-delete="handleCloseUserDelete"
-            @confirm-delete="handleConfirmUserDelete"
-            @open-document-upload="openDocumentUploadDialog"
-            @close-document-upload="closeDocumentUploadDialog"
-            @submit-document-upload="handleDocumentUploadSubmit"
-            @remove-document="handleDocumentRemove"
-          />
+            <AccountUsersPanel
+              v-else-if="isAdmin && activeSection === 'users'"
+              :users="paginatedUsers"
+              :search="usersSearch"
+              :role-filter="usersRoleFilter"
+              :total="filteredUsersTotal"
+              :page="usersPage"
+              :page-count="usersPageCount"
+              :is-edit-dialog-open="isUserEditDialogOpen"
+              :is-delete-dialog-open="isUserDeleteDialogOpen"
+              :edit-form="userEditForm"
+              :pending-delete-user="userPendingDelete"
+              :document-upload-state="documentUploadState"
+              @update:search="usersSearch = $event"
+              @update:role-filter="usersRoleFilter = $event"
+              @page-change="handleUsersPageChange"
+              @edit-user="handleOpenUserEdit"
+              @delete-user="handleOpenUserDelete"
+              @close-edit="handleCloseUserEdit"
+              @submit-edit="handleUserEditSubmit"
+              @close-delete="handleCloseUserDelete"
+              @confirm-delete="handleConfirmUserDelete"
+              @open-document-upload="openDocumentUploadDialog"
+              @close-document-upload="closeDocumentUploadDialog"
+              @submit-document-upload="handleDocumentUploadSubmit"
+              @remove-document="handleDocumentRemove"
+            />
 
-          <AccountSettingsPanel
-            v-else-if="isAdmin && activeSection === 'settings'"
-            :form="passwordChangeForm"
-            :errors="passwordChangeErrors"
-            :visibility="passwordVisibility"
-            :status="passwordChangeStatus"
-            :message="passwordChangeMessage"
-            :min-password-length="minPasswordLength"
-            :password-field-type="passwordFieldType"
-            @submit="handlePasswordChange"
-            @toggle-visibility="togglePasswordVisibility"
-          />
+            <AccountSettingsPanel
+              v-else-if="isAdmin && activeSection === 'settings'"
+              :form="passwordChangeForm"
+              :errors="passwordChangeErrors"
+              :visibility="passwordVisibility"
+              :status="passwordChangeStatus"
+              :message="passwordChangeMessage"
+              :min-password-length="minPasswordLength"
+              :password-field-type="passwordFieldType"
+              @submit="handlePasswordChange"
+              @toggle-visibility="togglePasswordVisibility"
+            />
+          </template>
         </ElMain>
       </ElContainer>
     </ElContainer>
@@ -335,6 +340,7 @@ const {
   updateCompetitionStageDistances,
   getCompetitionStageDescription,
   deleteCompetitionStage,
+  getStageActiveRegistrationsCount,
   createCompetitionStage,
 } = useCompetitionStages()
 
@@ -450,12 +456,12 @@ const navigationItems = computed(() => {
   if (isAdmin.value) {
     return [
       { id: 'dashboard', label: 'Дашборд', icon: Monitor },
-      { id: 'consultations', label: 'Консультации', icon: Calendar },
-      { id: 'trainer-bookings', label: 'Записи к тренерам', icon: Calendar },
-      { id: 'documents', label: 'Документы', icon: Document },
-      { id: 'registrations', label: 'Заявки', icon: Trophy },
-      { id: 'competitions', label: 'Соревнования', icon: Trophy },
       { id: 'users', label: 'Пользователи', icon: User },
+      { id: 'competitions', label: 'Соревнования', icon: Trophy },
+      { id: 'trainer-bookings', label: 'Запись к тренерам', icon: Calendar },
+      { id: 'consultations', label: 'Консультации', icon: Calendar },
+      { id: 'registrations', label: 'Заявки', icon: Trophy },
+      { id: 'documents', label: 'Документы', icon: Document },
       { id: 'settings', label: 'Настройки', icon: Setting },
     ]
   }

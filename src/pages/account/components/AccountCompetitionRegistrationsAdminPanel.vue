@@ -2,13 +2,6 @@
   <ElCard class="account__panel account-competition-registrations-admin" shadow="never">
     <div class="account-competition-registrations-admin__header">
       <div class="account__panel-head">
-        <div>
-          <h3 class="account__panel-title">Заявки на соревнования</h3>
-          <p class="account-competition-registrations-admin__subtitle">
-            Показываем только ФИО, соревнование и статус. Все детали и управление находятся в модалке.
-          </p>
-        </div>
-
         <div class="account__panel-actions">
           <ElTag type="primary" effect="light" round>{{ summary.total }} заявок</ElTag>
           <ElTag type="success" effect="light" round>{{ summary.active }} активных</ElTag>
@@ -77,7 +70,11 @@
               </span>
             </td>
             <td class="account__native-table-cell account__native-table-cell--center">
-              <ElTag :type="competitionRegistrationRecordStatusType(registration.status)" effect="light" round>
+              <ElTag
+                :type="competitionRegistrationRecordStatusType(registration.status)"
+                effect="light"
+                round
+              >
                 {{ formatCompetitionRegistrationRecordStatus(registration.status) }}
               </ElTag>
             </td>
@@ -101,17 +98,24 @@
       :model-value="isDetailsDialogOpen"
       :registration="selectedRegistration"
       :stage-options="stageOptions"
+      :can-edit-stage="false"
+      :can-edit-registration-kind="false"
+      :show-save-button="false"
+      :show-withdraw-button="false"
       :status-tag-type="
         selectedRegistration
           ? competitionRegistrationRecordStatusType(selectedRegistration.status)
           : 'info'
       "
       :status-label="
-        selectedRegistration ? formatCompetitionRegistrationRecordStatus(selectedRegistration.status) : ''
+        selectedRegistration
+          ? formatCompetitionRegistrationRecordStatus(selectedRegistration.status)
+          : ''
       "
+      :documents-status-tag-type="selectedRegistrationDocumentsStatus?.tagType || 'info'"
+      :documents-status-label="selectedRegistrationDocumentsStatus?.label || ''"
+      :documents-status-description="selectedRegistrationDocumentsStatus?.description || ''"
       @close="closeDetailsDialog"
-      @save="handleStageSave"
-      @withdraw="handleWithdrawSelectedRegistration"
     />
   </ElCard>
 </template>
@@ -132,8 +136,7 @@ const {
   isDetailsDialogOpen,
   openDetailsDialog,
   closeDetailsDialog,
-  handleStageSave,
-  handleWithdrawSelectedRegistration,
+  selectedRegistrationDocumentsStatus,
   competitionRegistrationRecordStatusType,
   formatCompetitionRegistrationRecordStatus,
 } = useAccountCompetitionRegistrationsAdmin()
@@ -145,17 +148,13 @@ const registrationStatusOptions = COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS
 .account-competition-registrations-admin__header {
   display: grid;
   gap: 18px;
-  padding: 18px 18px 14px;
+  padding: 18px 0;
   border-bottom: 1px solid color-mix(in srgb, var(--aqua) 14%, transparent);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 250, 255, 0.72));
 }
 
-.account-competition-registrations-admin__subtitle {
-  margin: 8px 0 0;
-  max-width: 760px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #526072;
+.account-competition-registrations-admin__header .account__panel-actions {
+  margin-left: auto;
 }
 
 .account-competition-registrations-admin__filters {
@@ -170,7 +169,7 @@ const registrationStatusOptions = COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS
 }
 
 .account-competition-registrations-admin__row--withdrawn {
-  background: linear-gradient(180deg, rgb(255 245 242 / 0.78) 0%, rgb(255 255 255 / 0.72) 100%);
+  background: transparent;
 }
 
 .account-competition-registrations-admin__row--withdrawn .account__native-table-cell {
@@ -182,28 +181,20 @@ const registrationStatusOptions = COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS
 }
 
 .account__native-table--competition-admin-registrations {
-  table-layout: fixed;
-  min-width: 980px;
+  min-width: 100%;
 }
 
-.account__native-table--competition-admin-registrations th:nth-child(1),
-.account__native-table--competition-admin-registrations td:nth-child(1) {
-  width: 22%;
+.account__native-table--competition-admin-registrations th:not(:first-child),
+.account__native-table--competition-admin-registrations td:not(:first-child) {
+  text-align: center;
 }
 
-.account__native-table--competition-admin-registrations th:nth-child(2),
-.account__native-table--competition-admin-registrations td:nth-child(2) {
-  width: 44%;
+.account-competition-registrations-admin .account__native-table-wrap {
+  background: transparent;
 }
 
-.account__native-table--competition-admin-registrations th:nth-child(3),
-.account__native-table--competition-admin-registrations td:nth-child(3) {
-  width: 18%;
-}
-
-.account__native-table--competition-admin-registrations th:nth-child(4),
-.account__native-table--competition-admin-registrations td:nth-child(4) {
-  width: 16%;
+.account-competition-registrations-admin .account__native-table-row:nth-child(even) {
+  background: transparent;
 }
 
 @media (max-width: 1180px) {

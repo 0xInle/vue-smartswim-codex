@@ -311,7 +311,7 @@ export function getAccountDocumentDisplayStatus(document, now = Date.now()) {
   if (!document) {
     return {
       status: ACCOUNT_DOCUMENT_STATUS.MISSING,
-      label: 'Не загружен',
+      label: 'Документ не загружен',
       tagType: 'info',
     }
   }
@@ -351,8 +351,8 @@ export function getAccountDocumentsAdmissionStatus(documents = [], now = Date.no
   if (hasRejected) {
     return {
       status: 'attention',
-      label: 'Требует доработки',
-      description: 'Есть отклонённые или требующие повторной загрузки документы.',
+      label: 'Требует внимания',
+      description: 'Есть отклоненные документы или запрос на повторную загрузку.',
       tagType: 'danger',
     }
   }
@@ -378,7 +378,7 @@ export function getAccountDocumentsAdmissionStatus(documents = [], now = Date.no
   if (isMissing) {
     return {
       status: 'missing',
-      label: 'Документы не загружены',
+      label: 'Документ не загружен',
       description: 'Нужно загрузить обязательные документы для допуска.',
       tagType: 'info',
     }
@@ -386,7 +386,7 @@ export function getAccountDocumentsAdmissionStatus(documents = [], now = Date.no
 
   return {
     status: 'admitted',
-    label: 'Допущен',
+    label: 'Одобрен',
     description: 'Все обязательные документы подтверждены и действительны.',
     tagType: 'success',
   }

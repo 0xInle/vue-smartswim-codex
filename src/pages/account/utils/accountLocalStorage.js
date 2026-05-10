@@ -140,6 +140,58 @@ export function readAccountProfileSnapshot(currentUser) {
   }
 }
 
+export function readAccountProfileSnapshots() {
+  if (typeof window === 'undefined') {
+    return []
+  }
+
+  const snapshots = []
+
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const storageKey = window.localStorage.key(index) || ''
+
+    if (!storageKey.startsWith(`${ACCOUNT_PROFILE_STORAGE_PREFIX}:`)) {
+      continue
+    }
+
+    const userKey = storageKey.slice(`${ACCOUNT_PROFILE_STORAGE_PREFIX}:`.length)
+    const parsedProfile = readJsonStorage(storageKey, null)
+
+    if (!userKey || !parsedProfile || typeof parsedProfile !== 'object') {
+      continue
+    }
+
+    const profileUser = {
+      id: userKey,
+      email: parsedProfile.email || '',
+      name: parsedProfile.fullName || '',
+      phone: parsedProfile.phone || '',
+    }
+    const storedDocuments = readAccountDocumentsSnapshot(profileUser, 'profile', 'profile')
+    const profileDocuments = mergeDocumentsWithReviewRecords({
+      currentUser: profileUser,
+      scope: 'profile',
+      scopeId: 'profile',
+      documents: parsedProfile.documents || [],
+    })
+
+    snapshots.push({
+      userKey,
+      fullName: parsedProfile.fullName || profileUser.name || '',
+      birthDate: parsedProfile.birthDate || '',
+      club: parsedProfile.club || '',
+      phone: parsedProfile.phone || '',
+      email: parsedProfile.email || '',
+      documents:
+        getLoadedDocumentCount(storedDocuments) > getLoadedDocumentCount(profileDocuments)
+          ? storedDocuments
+          : profileDocuments,
+    })
+  }
+
+  return snapshots
+}
+
 export function writeAccountProfileSnapshot(currentUser, profile) {
   if (typeof window === 'undefined') {
     return true

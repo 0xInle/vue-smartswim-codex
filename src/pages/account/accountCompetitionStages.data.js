@@ -88,9 +88,11 @@ function buildCompetitionSeriesStages(direction) {
   return stageRows
 }
 
-export const accountMockCompetitionStages = competitionDirections.flatMap((direction) =>
-  buildCompetitionSeriesStages(direction),
-)
+export function buildAccountCompetitionStages() {
+  return competitionDirections.flatMap((direction) => buildCompetitionSeriesStages(direction))
+}
+
+export const accountMockCompetitionStages = buildAccountCompetitionStages()
 
 export function buildCompetitionSeriesOptions() {
   return [

@@ -12,8 +12,11 @@
   >
     <div class="account__dialog-form">
       <div class="account__dialog-copy account__dialog-copy--centered">
-        <p class="account__dialog-text">Вы уверены, что хотите удалить этап?</p>
+        <p class="account__dialog-text">{{ dialogText }}</p>
         <p class="account__dialog-title-line">{{ stageTitle }}</p>
+        <p v-if="activeRegistrationsCount > 0" class="account__dialog-hint">
+          Сначала снимите участников или дождитесь завершения активных заявок.
+        </p>
       </div>
 
       <div class="account__dialog-actions">
@@ -27,6 +30,7 @@
         <button
           type="button"
           class="account__table-action account__table-action--delete btn-reset"
+          :disabled="activeRegistrationsCount > 0"
           @click="confirmDelete"
         >
           Удалить
@@ -54,6 +58,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  activeRegistrationsCount: {
+    type: Number,
+    default: 0,
+  },
 })
 
 const emit = defineEmits(['close', 'confirm'])
@@ -66,8 +74,16 @@ const stageTitle = computed(() => {
   return `${formatCompetitionName(props.stage.competitionName)} · ${formatCompetitionStageLabel(props.stage.stage)}`
 })
 
+const dialogText = computed(() => {
+  if (props.activeRegistrationsCount > 0) {
+    return `Этап нельзя удалить: есть активные заявки (${props.activeRegistrationsCount}).`
+  }
+
+  return 'Вы уверены, что хотите удалить этап?'
+})
+
 function confirmDelete() {
-  if (!props.stage) {
+  if (!props.stage || props.activeRegistrationsCount > 0) {
     return
   }
 

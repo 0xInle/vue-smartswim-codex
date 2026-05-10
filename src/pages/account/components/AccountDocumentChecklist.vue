@@ -20,11 +20,7 @@
     </ul>
   </div>
 
-  <div
-    v-else
-    class="account-documents"
-    :class="{ 'account-documents--embedded': embedded }"
-  >
+  <div v-else class="account-documents" :class="{ 'account-documents--embedded': embedded }">
     <div v-if="showHeader" class="account-documents__head">
       <div>
         <p v-if="eyebrow" class="account__panel-eyebrow">{{ eyebrow }}</p>
@@ -43,11 +39,14 @@
         v-for="document in documents"
         :key="document.type"
         class="account-documents__item"
-        :class="`account-documents__item--${statusState(document)}`"
+        :class="[
+          `account-documents__item--${statusState(document)}`,
+          { 'account-documents__item--readonly': !showActionButton },
+        ]"
         role="listitem"
       >
         <button
-          v-if="isEditable"
+          v-if="showActionButton && isEditable"
           type="button"
           class="account-documents__icon-button btn-reset"
           :class="{ 'account-documents__icon-button--locked': isDocumentLoaded(document) }"
@@ -61,7 +60,11 @@
           </ElIcon>
         </button>
 
-        <div v-else class="account-documents__icon-box" aria-hidden="true">
+        <div
+          v-else-if="showActionButton"
+          class="account-documents__icon-box"
+          aria-hidden="true"
+        >
           <ElIcon class="account-documents__action-icon">
             <component :is="isDocumentLoaded(document) ? DocumentChecked : Upload" />
           </ElIcon>
@@ -71,19 +74,24 @@
           <p class="account-documents__label">{{ document.label }}</p>
           <p class="account-documents__hint">{{ document.hint }}</p>
           <div class="account-documents__meta">
-            <span v-if="document.expiresAt">Действует до: {{ formatAccountDocumentDate(document.expiresAt) }}</span>
-            <span v-if="document.verifiedAt">Проверен: {{ formatCompactDateTime(document.verifiedAt) }}</span>
-            <span v-if="document.rejectionReason && document.status !== 'verified'">
-              Причина: {{ document.rejectionReason }}
-            </span>
+            <span v-if="document.expiresAt"
+              >Действует до: {{ formatAccountDocumentDate(document.expiresAt) }}</span
+            >
+            <span v-if="document.verifiedAt"
+              >Проверен: {{ formatCompactDateTime(document.verifiedAt) }}</span
+            >
           </div>
+          <p v-if="reviewNote(document)" class="account-documents__review-text">
+            <span class="account-documents__review-label">КОМЕНТАРИЙ:</span>
+            <span class="account-documents__review-copy">{{ reviewNote(document) }}</span>
+          </p>
         </div>
 
         <span class="account-documents__status-text" :class="statusClass(document)">
           {{ statusText(document) }}
         </span>
 
-        <div class="account-documents__item-actions">
+        <div v-if="isEditable" class="account-documents__item-actions">
           <button
             v-if="isEditable && document.status !== 'missing'"
             type="button"
@@ -151,6 +159,10 @@ const props = defineProps({
     default: 'editable',
     validator: (value) => ['editable', 'readonly'].includes(value),
   },
+  showActionButton: {
+    type: Boolean,
+    default: true,
+  },
   showHeader: {
     type: Boolean,
     default: true,
@@ -186,6 +198,18 @@ function statusClass(document) {
 
 function isDocumentLoaded(document) {
   return statusState(document) !== 'missing'
+}
+
+function reviewNote(document) {
+  if (!document?.rejectionReason) {
+    return ''
+  }
+
+  if (document.status === 'verified') {
+    return ''
+  }
+
+  return document.rejectionReason
 }
 </script>
 
@@ -299,6 +323,10 @@ function isDocumentLoaded(document) {
   background: rgb(255 255 255 / 0.88);
 }
 
+.account-documents__item--readonly {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .account-documents__item--verified {
   border-color: color-mix(in srgb, var(--cyan) 32%, white);
   background: linear-gradient(180deg, rgb(241 255 252 / 0.96) 0%, rgb(255 255 255 / 0.92) 100%);
@@ -330,6 +358,10 @@ function isDocumentLoaded(document) {
   justify-self: end;
 }
 
+.account-documents__item--readonly .account-documents__item-actions {
+  display: none;
+}
+
 .account-documents__label {
   margin: 0;
   font-size: 15px;
@@ -350,6 +382,23 @@ function isDocumentLoaded(document) {
 .account-documents__meta {
   display: grid;
   gap: 2px;
+}
+
+.account-documents__review-text {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.account-documents__review-label {
+  color: #d76034;
+}
+
+.account-documents__review-copy {
+  color: var(--black);
 }
 
 .account-documents__icon-button,
