@@ -54,13 +54,8 @@
           <tr>
             <th>Клиент</th>
             <th>Тренер</th>
-            <th>Телефон</th>
-            <th>Email</th>
-            <th>Дата</th>
-            <th>Время</th>
             <th>Статус</th>
-            <th>Получена</th>
-            <th>Комментарий</th>
+            <th>Действие</th>
           </tr>
         </thead>
 
@@ -74,51 +69,19 @@
               </div>
             </td>
             <td class="account__native-table-cell">{{ booking.trainerName }}</td>
-            <td class="account__native-table-cell account__native-table-cell--phone">
-              {{ booking.phone }}
-            </td>
-            <td class="account__native-table-cell">{{ booking.email }}</td>
-            <td class="account__native-table-cell account__native-table-cell--center">
-              {{ formatConsultationDate(booking.preferredDate) }}
-            </td>
-            <td class="account__native-table-cell account__native-table-cell--center">
-              {{ booking.preferredTime || 'Не указано' }}
-            </td>
             <td class="account__native-table-cell account__native-table-cell--center">
               <ElTag :type="trainerBookingStatusType(booking.status)" effect="light" round>
                 {{ formatTrainerBookingStatus(booking.status) }}
               </ElTag>
             </td>
             <td class="account__native-table-cell account__native-table-cell--center">
-              {{ formatCompactDateTime(booking.createdAt) }}
-            </td>
-            <td class="account__native-table-cell account__native-table-cell--comment">
-              <div
-                :class="[
-                  'account__booking-comment',
-                  { 'account__booking-comment--expanded': isCommentExpanded(booking.id) },
-                ]"
+              <button
+                type="button"
+                class="account__table-action account__table-action--edit btn-reset"
+                @click="openDetailsDialog(booking)"
               >
-                <p
-                  :class="[
-                    'account__booking-comment-text',
-                    {
-                      'account__booking-comment-text--expanded': isCommentExpanded(booking.id),
-                    },
-                  ]"
-                >
-                  {{ booking.comment || 'Без комментария' }}
-                </p>
-
-                <button
-                  v-if="shouldShowCommentToggle(booking.comment)"
-                  type="button"
-                  class="account__booking-comment-toggle btn-reset"
-                  @click="toggleComment(booking.id)"
-                >
-                  {{ isCommentExpanded(booking.id) ? 'Свернуть' : 'Показать' }}
-                </button>
-              </div>
+                Подробнее
+              </button>
             </td>
           </tr>
         </tbody>
@@ -126,15 +89,20 @@
     </div>
 
     <ElEmpty v-else description="Записей к тренерам пока нет." />
+
+    <AccountTrainerBookingDetailsDialog
+      :model-value="isDetailsDialogOpen"
+      :booking="selectedBooking"
+      @close="closeDetailsDialog"
+    />
   </ElCard>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { ElButton, ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
+import AccountTrainerBookingDetailsDialog from '@/pages/account/components/AccountTrainerBookingDetailsDialog.vue'
 import {
-  formatCompactDateTime,
-  formatConsultationDate,
   formatTrainerBookingClientName,
   formatTrainerBookingStatus,
   trainerBookingStatusType,
@@ -173,29 +141,23 @@ defineProps({
 
 defineEmits(['refresh', 'update:search', 'update:status-filter'])
 
-const expandedCommentIds = ref(new Set())
+const isDetailsDialogOpen = ref(false)
+const selectedBooking = ref(null)
 
-function shouldShowCommentToggle(comment) {
-  if (!comment) {
-    return false
-  }
-
-  return comment.includes('\n') || comment.trim().length > 90
+function openDetailsDialog(booking) {
+  selectedBooking.value = booking
+  isDetailsDialogOpen.value = true
 }
 
-function isCommentExpanded(bookingId) {
-  return expandedCommentIds.value.has(bookingId)
-}
-
-function toggleComment(bookingId) {
-  const nextExpandedIds = new Set(expandedCommentIds.value)
-
-  if (nextExpandedIds.has(bookingId)) {
-    nextExpandedIds.delete(bookingId)
-  } else {
-    nextExpandedIds.add(bookingId)
-  }
-
-  expandedCommentIds.value = nextExpandedIds
+function closeDetailsDialog() {
+  isDetailsDialogOpen.value = false
+  selectedBooking.value = null
 }
 </script>
+
+<style scoped>
+.account__native-table--trainer-bookings th:not(:first-child),
+.account__native-table--trainer-bookings td:not(:first-child) {
+  text-align: center;
+}
+</style>

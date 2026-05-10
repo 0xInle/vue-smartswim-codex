@@ -148,12 +148,16 @@
               :rows="filteredCompetitionStages"
               :is-loading="false"
               :competition-filter="competitionFilter"
+              :competition-view-filter="competitionViewFilter"
               :competition-options="competitionOptions"
               :total="filteredCompetitionStagesTotal"
+              :active-count="activeCompetitionStagesCount"
+              :archived-count="archivedCompetitionStagesCount"
               :open-count="filteredOpenCompetitionRegistrationsCount"
               :get-stage-distances="getCompetitionStageDescription"
               :get-stage-active-registrations-count="getStageActiveRegistrationsCount"
               @update:competition-filter="competitionFilter = $event"
+              @update:competition-view-filter="competitionViewFilter = $event"
               @update-stage="handleCompetitionStageUpdate"
               @update-stage-links="handleCompetitionStageLinksUpdate"
               @update-stage-distances="handleCompetitionStageDistancesUpdate"
@@ -330,9 +334,12 @@ const {
 
 const {
   competitionFilter,
+  competitionViewFilter,
   competitionOptions,
   filteredCompetitionStages,
   filteredCompetitionStagesTotal,
+  activeCompetitionStagesCount,
+  archivedCompetitionStagesCount,
   filteredOpenCompetitionRegistrationsCount,
   openCompetitionRegistrationsCount,
   updateCompetitionStage,

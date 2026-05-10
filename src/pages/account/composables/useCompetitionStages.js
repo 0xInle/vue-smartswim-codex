@@ -137,6 +137,12 @@ function resolveCompetitionWindowLabel(registration) {
   return `${state.openDateLabel} - ${state.closeDateLabel}`
 }
 
+function isCompetitionStageArchived(stage, now = Date.now()) {
+  const archiveTimestamp = Date.parse(toCompetitionDateTime(stage?.date, { endOfDay: true }))
+
+  return Number.isFinite(archiveTimestamp) ? now >= archiveTimestamp : false
+}
+
 export function useCompetitionStages() {
   const competitionStages = ref(
     buildAccountCompetitionStages().map((stage) => ({
@@ -147,18 +153,41 @@ export function useCompetitionStages() {
     })),
   )
   const competitionFilter = ref('all')
+  const competitionViewFilter = ref('active')
 
-  const filteredCompetitionStages = computed(() =>
+  const filteredCompetitionSeriesStages = computed(() =>
     competitionStages.value.filter((stage) =>
       competitionFilter.value === 'all' ? true : stage.competitionName === competitionFilter.value,
     ),
   )
 
+  const filteredCompetitionStages = computed(() => {
+    const seriesStages = filteredCompetitionSeriesStages.value
+
+    return seriesStages.filter((stage) =>
+      competitionViewFilter.value === 'archived'
+        ? isCompetitionStageArchived(stage)
+        : !isCompetitionStageArchived(stage),
+    )
+  })
+
   const filteredCompetitionStagesTotal = computed(() => filteredCompetitionStages.value.length)
+
+  const activeCompetitionStagesCount = computed(
+    () =>
+      filteredCompetitionSeriesStages.value.filter((stage) => !isCompetitionStageArchived(stage))
+        .length,
+  )
+
+  const archivedCompetitionStagesCount = computed(
+    () =>
+      filteredCompetitionSeriesStages.value.filter((stage) => isCompetitionStageArchived(stage))
+        .length,
+  )
 
   const filteredOpenCompetitionRegistrationsCount = computed(
     () =>
-      filteredCompetitionStages.value.filter(
+      filteredCompetitionSeriesStages.value.filter(
         (stage) => resolveCompetitionRegistrationState(stage.registration).mode === 'open',
       ).length,
   )
@@ -169,7 +198,7 @@ export function useCompetitionStages() {
     ).length
   })
 
-function updateCompetitionStage(
+  function updateCompetitionStage(
     stageId,
     { competitionName, date, openAt, closeAt, protocolUrl, photoUrl } = {},
   ) {
@@ -447,9 +476,12 @@ function updateCompetitionStage(
   return {
     competitionStages,
     competitionFilter,
+    competitionViewFilter,
     competitionOptions: computed(() => buildCompetitionSeriesOptions()),
     filteredCompetitionStages,
     filteredCompetitionStagesTotal,
+    activeCompetitionStagesCount,
+    archivedCompetitionStagesCount,
     filteredOpenCompetitionRegistrationsCount,
     openCompetitionRegistrationsCount,
     updateCompetitionStage,
