@@ -4,12 +4,13 @@
       <label class="account__field account-athletes__field--wide">
         <span class="account__field-label">ФИО спортсмена</span>
         <input
-          v-model.trim="form.fullName"
+          :value="form.fullName"
           class="account__input"
           type="text"
           name="athlete-full-name"
           placeholder="Введите ФИО спортсмена"
           :aria-invalid="Boolean(errors.fullName)"
+          @input="updateField('fullName', $event.target.value, { trim: true })"
         />
         <span v-if="errors.fullName" class="account__field-error">{{ errors.fullName }}</span>
       </label>
@@ -17,13 +18,14 @@
       <label class="account__field">
         <span class="account__field-label">Дата рождения</span>
         <input
-          v-model.trim="form.birthDate"
+          :value="form.birthDate"
           class="account__input"
           type="text"
           name="athlete-birth-date"
           inputmode="numeric"
           placeholder="дд.мм.гггг"
           :aria-invalid="Boolean(errors.birthDate)"
+          @input="updateField('birthDate', $event.target.value, { trim: true })"
         />
         <span v-if="errors.birthDate" class="account__field-error">{{ errors.birthDate }}</span>
       </label>
@@ -40,11 +42,12 @@
             :class="{ 'account-athletes__radio--selected': form.gender === option.value }"
           >
             <input
-              v-model="form.gender"
+              :checked="form.gender === option.value"
               class="account-athletes__radio-input"
               type="radio"
               name="athlete-gender"
               :value="option.value"
+              @change="updateField('gender', option.value)"
             />
             <span class="account-athletes__radio-label">{{ option.label }}</span>
           </label>
@@ -55,12 +58,13 @@
       <label class="account__field">
         <span class="account__field-label">Клуб</span>
         <input
-          v-model.trim="form.club"
+          :value="form.club"
           class="account__input"
           type="text"
           name="athlete-club"
           placeholder="Введите клуб"
           :aria-invalid="Boolean(errors.club)"
+          @input="updateField('club', $event.target.value, { trim: true })"
         />
         <span v-if="errors.club" class="account__field-error">{{ errors.club }}</span>
       </label>
@@ -70,18 +74,19 @@
       <label class="account__field">
         <span class="account__field-label">Разряд</span>
         <input
-          v-model.trim="form.rank"
+          :value="form.rank"
           class="account__input"
           type="text"
           name="athlete-rank"
           placeholder="Введите разряд"
+          @input="updateField('rank', $event.target.value, { trim: true })"
         />
       </label>
 
       <label class="account__field account-athletes__field--wide">
         <span class="account__field-label">Тренер</span>
         <ElAutocomplete
-          v-model="form.coach"
+          :model-value="form.coach"
           class="account-athletes__autocomplete"
           :fetch-suggestions="fetchCoachSuggestions"
           clearable
@@ -91,6 +96,7 @@
           trigger-on-focus
           :placeholder="coachPlaceholder"
           aria-label="Тренер"
+          @update:model-value="updateField('coach', $event)"
           @select="$emit('coach-select', $event)"
         />
         <span v-if="errors.coach" class="account__field-error">{{ errors.coach }}</span>
@@ -129,8 +135,8 @@
 <script setup>
 import { ElAutocomplete } from 'element-plus'
 import 'element-plus/es/components/autocomplete/style/css'
-import AccountDocumentChecklist from '@/pages/account/components/AccountDocumentChecklist.vue'
-import AccountDocumentUploadDialog from '@/pages/account/components/AccountDocumentUploadDialog.vue'
+import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
+import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
 
 defineProps({
   form: {
@@ -179,7 +185,11 @@ defineProps({
   },
 })
 
-defineEmits(['submit', 'coach-select'])
+const emit = defineEmits(['submit', 'update-field', 'coach-select'])
+
+function updateField(field, value, { trim = false } = {}) {
+  emit('update-field', field, trim ? value.trim() : value)
+}
 </script>
 
 <style scoped>

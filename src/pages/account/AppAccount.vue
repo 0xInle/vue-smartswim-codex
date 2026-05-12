@@ -99,6 +99,7 @@
               :message="passwordChangeMessage"
               :min-password-length="minPasswordLength"
               :password-field-type="passwordFieldType"
+              @update-field="updatePasswordChangeField"
               @submit="handlePasswordChange"
               @toggle-visibility="togglePasswordVisibility"
             />
@@ -114,15 +115,27 @@
               :new-count="newConsultationRequestsCount"
               :total="filteredConsultationRequestsTotal"
               :loading-id="consultationStatusLoadingId"
-              :get-draft-status="getConsultationDraftStatus"
-              :span-method="consultationTableSpanMethod"
               @refresh="handleConsultationRefresh"
               @update:search="consultationSearch = $event"
               @update:status-filter="consultationStatusFilter = $event"
-              @mark-processed="handleConsultationMarkProcessed"
-              @draft-change="handleConsultationDraftChange"
-              @apply-draft="handleConsultationApplyDraft"
-              @reset-status="handleConsultationResetStatus"
+              @open-details="openConsultationDetailsDialog"
+            />
+
+            <AccountConsultationDetailsDialog
+              v-if="isAdmin && activeSection === 'consultations'"
+              :model-value="isConsultationDetailsDialogOpen"
+              :request="selectedConsultationRequest"
+              :status-options="consultationStatusOptions"
+              :error-message="consultationDetailsError"
+              :is-saving="
+                Boolean(
+                  selectedConsultationRequest &&
+                    consultationStatusLoadingId === selectedConsultationRequest.id,
+                )
+              "
+              @close="closeConsultationDetailsDialog"
+              @closed="clearConsultationDetailsDialog"
+              @save="handleConsultationDetailsSubmit"
             />
 
             <AccountTrainerBookingsPanel
@@ -202,6 +215,7 @@
               :message="passwordChangeMessage"
               :min-password-length="minPasswordLength"
               :password-field-type="passwordFieldType"
+              @update-field="updatePasswordChangeField"
               @submit="handlePasswordChange"
               @toggle-visibility="togglePasswordVisibility"
             />
@@ -217,20 +231,21 @@ import { Calendar, Document, Monitor, Setting, Trophy, User } from '@element-plu
 import { ElAlert, ElContainer, ElMain } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AccountCompetitionRegistrationsPanel from '@/pages/account/components/AccountCompetitionRegistrationsPanel.vue'
-import AccountCompetitionRegistrationsAdminPanel from '@/pages/account/components/AccountCompetitionRegistrationsAdminPanel.vue'
-import AccountCompetitionsPanel from '@/pages/account/components/AccountCompetitionsPanel.vue'
-import AccountDocumentReviewsPanel from '@/pages/account/components/AccountDocumentReviewsPanel.vue'
-import AccountConsultationsPanel from '@/pages/account/components/AccountConsultationsPanel.vue'
-import AccountDashboardPanel from '@/pages/account/components/AccountDashboardPanel.vue'
-import AccountAthletesPanel from '@/pages/account/components/AccountAthletesPanel.vue'
-import AccountHeaderBar from '@/pages/account/components/AccountHeaderBar.vue'
-import AccountProfilePanel from '@/pages/account/components/AccountProfilePanel.vue'
-import AccountUserDashboardPanel from '@/pages/account/components/AccountUserDashboardPanel.vue'
-import AccountSettingsPanel from '@/pages/account/components/AccountSettingsPanel.vue'
-import AccountSidebar from '@/pages/account/components/AccountSidebar.vue'
-import AccountTrainerBookingsPanel from '@/pages/account/components/AccountTrainerBookingsPanel.vue'
-import AccountUsersPanel from '@/pages/account/components/AccountUsersPanel.vue'
+import AccountCompetitionRegistrationsPanel from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationsPanel.vue'
+import AccountCompetitionRegistrationsAdminPanel from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationsAdminPanel.vue'
+import AccountCompetitionsPanel from '@/pages/account/components/competitions/AccountCompetitionsPanel.vue'
+import AccountConsultationDetailsDialog from '@/pages/account/components/consultations/AccountConsultationDetailsDialog.vue'
+import AccountDocumentReviewsPanel from '@/pages/account/components/documents/AccountDocumentReviewsPanel.vue'
+import AccountConsultationsPanel from '@/pages/account/components/consultations/AccountConsultationsPanel.vue'
+import AccountDashboardPanel from '@/pages/account/components/dashboard/AccountDashboardPanel.vue'
+import AccountAthletesPanel from '@/pages/account/components/athletes/AccountAthletesPanel.vue'
+import AccountHeaderBar from '@/pages/account/components/layout/AccountHeaderBar.vue'
+import AccountProfilePanel from '@/pages/account/components/profile/AccountProfilePanel.vue'
+import AccountUserDashboardPanel from '@/pages/account/components/dashboard/AccountUserDashboardPanel.vue'
+import AccountSettingsPanel from '@/pages/account/components/profile/AccountSettingsPanel.vue'
+import AccountSidebar from '@/pages/account/components/layout/AccountSidebar.vue'
+import AccountTrainerBookingsPanel from '@/pages/account/components/trainer-bookings/AccountTrainerBookingsPanel.vue'
+import AccountUsersPanel from '@/pages/account/components/users/AccountUsersPanel.vue'
 import { useOwnTrainerBookings } from '@/pages/account/composables/useOwnTrainerBookings'
 import { useAccountPasswordChange } from '@/pages/account/composables/useAccountPasswordChange'
 import { useAccountSession } from '@/pages/account/composables/useAccountSession'
@@ -285,6 +300,7 @@ const {
   passwordChangeErrors,
   passwordVisibility,
   passwordFieldType,
+  updatePasswordChangeField,
   togglePasswordVisibility,
   handlePasswordChange,
   minPasswordLength,
@@ -305,12 +321,13 @@ const {
   filteredConsultationRequestsTotal,
   consultationTableRows,
   handleConsultationRefresh,
-  handleConsultationDraftChange,
-  getConsultationDraftStatus,
-  handleConsultationMarkProcessed,
-  handleConsultationApplyDraft,
-  handleConsultationResetStatus,
-  consultationTableSpanMethod,
+  selectedConsultationRequest,
+  isConsultationDetailsDialogOpen,
+  consultationDetailsError,
+  openConsultationDetailsDialog,
+  closeConsultationDetailsDialog,
+  clearConsultationDetailsDialog,
+  handleConsultationDetailsSubmit,
   syncAdminData,
   stopConsultationFeed,
   clearConsultationState,
@@ -444,6 +461,10 @@ async function syncAccountData({ force = false } = {}) {
 
 function handleSectionSelect(sectionId) {
   activeSection.value = sectionId
+
+  if (sectionId !== 'consultations') {
+    closeConsultationDetailsDialog()
+  }
 }
 
 function handleSignOutClick() {

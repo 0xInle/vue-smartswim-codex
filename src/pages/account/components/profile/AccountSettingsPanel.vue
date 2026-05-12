@@ -12,13 +12,14 @@
       <label class="account__field">
         <span class="account__field-label">Почта</span>
         <input
-          v-model.trim="form.email"
+          :value="form.email"
           class="account__input"
           type="email"
           name="account-email"
           autocomplete="email"
           placeholder="example@mail.ru"
           :aria-invalid="Boolean(errors.email)"
+          @input="updateField('email', $event.target.value, { trim: true })"
         />
         <span v-if="errors.email" class="account__field-error">
           {{ errors.email }}
@@ -29,13 +30,14 @@
         <span class="account__field-label">Старый пароль</span>
         <div class="account__input-wrap">
           <input
-            v-model="form.currentPassword"
+            :value="form.currentPassword"
             class="account__input account__input--password"
             :type="passwordFieldType('currentPassword')"
             name="current-password"
             autocomplete="current-password"
             placeholder="Введите текущий пароль"
             :aria-invalid="Boolean(errors.currentPassword)"
+            @input="updateField('currentPassword', $event.target.value)"
           />
           <button
             type="button"
@@ -58,13 +60,14 @@
           <span class="account__field-label">Новый пароль</span>
           <div class="account__input-wrap">
             <input
-              v-model="form.newPassword"
+              :value="form.newPassword"
               class="account__input account__input--password"
               :type="passwordFieldType('newPassword')"
               name="new-password"
               autocomplete="new-password"
               :placeholder="`Минимум ${minPasswordLength} символов`"
               :aria-invalid="Boolean(errors.newPassword)"
+              @input="updateField('newPassword', $event.target.value)"
             />
             <button
               type="button"
@@ -84,13 +87,14 @@
           <span class="account__field-label">Подтвердите пароль</span>
           <div class="account__input-wrap">
             <input
-              v-model="form.confirmPassword"
+              :value="form.confirmPassword"
               class="account__input account__input--password"
               :type="passwordFieldType('confirmPassword')"
               name="confirm-new-password"
               autocomplete="new-password"
               placeholder="Повторите новый пароль"
               :aria-invalid="Boolean(errors.confirmPassword)"
+              @input="updateField('confirmPassword', $event.target.value)"
             />
             <button
               type="button"
@@ -164,5 +168,9 @@ defineProps({
   },
 })
 
-defineEmits(['submit', 'toggle-visibility'])
+const emit = defineEmits(['submit', 'update-field', 'toggle-visibility'])
+
+function updateField(field, value, { trim = false } = {}) {
+  emit('update-field', field, trim ? value.trim() : value)
+}
 </script>

@@ -128,7 +128,7 @@
 import { Close, Link, Upload } from '@element-plus/icons-vue'
 import { reactive, watch } from 'vue'
 import { ElDialog, ElIcon } from 'element-plus'
-import AccountDatePicker from '@/pages/account/components/AccountDatePicker.vue'
+import AccountDatePicker from '@/pages/account/components/shared/AccountDatePicker.vue'
 
 const props = defineProps({
   modelValue: {

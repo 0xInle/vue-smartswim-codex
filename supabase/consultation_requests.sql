@@ -6,6 +6,9 @@ create table if not exists public.consultation_requests (
   phone_normalized text,
   consultation_date date not null,
   consultation_time time not null,
+  callback_date date,
+  callback_time time,
+  comment text,
   status text not null default 'new',
   created_at timestamptz not null default timezone('utc', now()),
   constraint consultation_requests_status_check
@@ -37,6 +40,15 @@ drop policy if exists "Allow admin insert consultation requests" on public.consu
 alter table public.consultation_requests
   alter column consultation_time type time
   using consultation_time::time;
+
+alter table public.consultation_requests
+  add column if not exists callback_date date;
+
+alter table public.consultation_requests
+  add column if not exists callback_time time;
+
+alter table public.consultation_requests
+  add column if not exists comment text;
 
 alter table public.consultation_requests
   drop constraint if exists consultation_requests_status_check;

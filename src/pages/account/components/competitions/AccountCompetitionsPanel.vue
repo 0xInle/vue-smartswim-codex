@@ -312,10 +312,10 @@ import {
   formatCompetitionRegistrationWindow,
   formatCompetitionStageLabel,
 } from '@/pages/account/utils/accountFormatters'
-import AccountCompetitionCreateDialog from '@/pages/account/components/AccountCompetitionCreateDialog.vue'
-import AccountCompetitionDeleteDialog from '@/pages/account/components/AccountCompetitionDeleteDialog.vue'
-import AccountCompetitionDistanceDialog from '@/pages/account/components/AccountCompetitionDistanceDialog.vue'
-import AccountCompetitionEditDialog from '@/pages/account/components/AccountCompetitionEditDialog.vue'
+import AccountCompetitionCreateDialog from '@/pages/account/components/competitions/AccountCompetitionCreateDialog.vue'
+import AccountCompetitionDeleteDialog from '@/pages/account/components/competitions/AccountCompetitionDeleteDialog.vue'
+import AccountCompetitionDistanceDialog from '@/pages/account/components/competitions/AccountCompetitionDistanceDialog.vue'
+import AccountCompetitionEditDialog from '@/pages/account/components/competitions/AccountCompetitionEditDialog.vue'
 import {
   resolveCompetitionRegistrationState,
   toCompetitionDateTime,

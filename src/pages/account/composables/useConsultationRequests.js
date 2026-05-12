@@ -1,4 +1,4 @@
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { showToast } from '@/utils/toast'
 import {
   fetchConsultationRequests,
@@ -25,27 +25,26 @@ export function useConsultationRequests({ isAdmin }) {
   const adminDataError = ref('')
   const consultationSearch = ref('')
   const consultationStatusFilter = ref('all')
-  const consultationStatusDrafts = reactive({})
+  const selectedConsultationRequest = ref(null)
+  const isConsultationDetailsDialogOpen = ref(false)
+  const consultationDetailsError = ref('')
   let adminDataSyncPromise = null
   let unsubscribeConsultationFeed = null
-
-  function clearConsultationDrafts() {
-    Object.keys(consultationStatusDrafts).forEach((key) => {
-      delete consultationStatusDrafts[key]
-    })
-  }
 
   function clearConsultationState() {
     consultationRequests.value = []
     adminDataError.value = ''
-    clearConsultationDrafts()
+    closeConsultationDetailsDialog()
   }
 
   function replaceConsultationRequest(nextRequest) {
     consultationRequests.value = consultationRequests.value.map((request) =>
       request.id === nextRequest.id ? nextRequest : request,
     )
-    consultationStatusDrafts[nextRequest.id] = nextRequest.status
+
+    if (selectedConsultationRequest.value?.id === nextRequest.id) {
+      selectedConsultationRequest.value = nextRequest
+    }
   }
 
   async function syncAdminData({ silent = false } = {}) {
@@ -65,9 +64,6 @@ export function useConsultationRequests({ isAdmin }) {
     adminDataSyncPromise = (async () => {
       try {
         consultationRequests.value = await fetchConsultationRequests()
-        consultationRequests.value.forEach((request) => {
-          consultationStatusDrafts[request.id] = request.status
-        })
         adminDataError.value = ''
       } catch (error) {
         adminDataError.value = getErrorMessage(error, 'Не удалось загрузить CRM-данные.')
@@ -102,56 +98,69 @@ export function useConsultationRequests({ isAdmin }) {
     void syncAdminData({ silent: false })
   }
 
-  function handleConsultationDraftChange(requestId, status) {
-    consultationStatusDrafts[requestId] = status
+  function openConsultationDetailsDialog(request) {
+    consultationDetailsError.value = ''
+    selectedConsultationRequest.value = request
+    isConsultationDetailsDialogOpen.value = true
   }
 
-  function getConsultationDraftStatus(requestId) {
-    return consultationStatusDrafts[requestId] || CONSULTATION_STATUS.NEW
+  function closeConsultationDetailsDialog() {
+    isConsultationDetailsDialogOpen.value = false
+    consultationDetailsError.value = ''
   }
 
-  async function updateConsultationStatus(request, nextStatus, successMessage) {
+  function clearConsultationDetailsDialog() {
+    selectedConsultationRequest.value = null
+    consultationDetailsError.value = ''
+  }
+
+  async function updateConsultationStatus(request, payload, successMessage) {
     consultationStatusLoadingId.value = request.id
 
     try {
       const updatedRequest = await updateConsultationRequestStatus({
         id: request.id,
-        status: nextStatus,
+        status: payload.status,
+        callbackTime: payload.callbackTime,
+        comment: payload.comment,
       })
 
       replaceConsultationRequest(updatedRequest)
       showToast(successMessage)
+      return true
     } catch (error) {
-      adminDataError.value = getErrorMessage(error, 'Не удалось обновить статус заявки.')
+      consultationDetailsError.value = getErrorMessage(error, 'Не удалось обновить статус заявки.')
+      return false
     } finally {
       consultationStatusLoadingId.value = null
     }
   }
 
-  function handleConsultationMarkProcessed(request) {
-    void updateConsultationStatus(
-      request,
-      CONSULTATION_STATUS.PROCESSED,
-      'Заявка помечена как обработанная',
-    )
-  }
-
-  function handleConsultationApplyDraft(request) {
-    const nextStatus = getConsultationDraftStatus(request.id)
-
-    if (!nextStatus || nextStatus === request.status) {
+  async function handleConsultationDetailsSubmit(payload) {
+    if (!selectedConsultationRequest.value || selectedConsultationRequest.value.id !== payload.requestId) {
       return
     }
 
-    void updateConsultationStatus(
-      request,
-      nextStatus,
-      `Статус изменён: ${formatConsultationStatus(nextStatus)}`,
-    )
-  }
+    consultationDetailsError.value = ''
 
-  function handleConsultationResetStatus(request) {
-    void updateConsultationStatus(request, CONSULTATION_STATUS.NEW, 'Статус заявки сброшен')
+    if (
+      payload.status === selectedConsultationRequest.value.status &&
+      payload.callbackTime === selectedConsultationRequest.value.callbackTime &&
+      payload.comment === selectedConsultationRequest.value.comment
+    ) {
+      closeConsultationDetailsDialog()
+      return
+    }
+
+    const isUpdated = await updateConsultationStatus(
+      selectedConsultationRequest.value,
+      payload,
+      `Заявка обновлена: ${formatConsultationStatus(payload.status)}`,
+    )
+
+    if (isUpdated) {
+      closeConsultationDetailsDialog()
+    }
   }
 
   const newConsultationRequestsCount = computed(
@@ -185,6 +194,8 @@ export function useConsultationRequests({ isAdmin }) {
         getRussianPhoneSearchValue(request.phone),
         request.consultationDate,
         request.consultationTime,
+        request.callbackDate,
+        request.callbackTime,
         formatCompactDateTime(request.createdAt),
         formatConsultationDate(request.consultationDate),
         formatConsultationStatus(request.status),
@@ -198,39 +209,7 @@ export function useConsultationRequests({ isAdmin }) {
   })
 
   const filteredConsultationRequestsTotal = computed(() => filteredConsultationRequests.value.length)
-  const consultationTableRows = computed(() =>
-    filteredConsultationRequests.value.flatMap((request) => [
-      { key: `${request.id}-data`, kind: 'data', request },
-      { key: `${request.id}-actions`, kind: 'actions', request },
-    ]),
-  )
-
-  function consultationTableSpanMethod({ row, columnIndex }) {
-    if (row.kind !== 'actions') {
-      return [1, 1]
-    }
-
-    if (columnIndex === 0) {
-      return [1, 6]
-    }
-
-    return [0, 0]
-  }
-
-  watch(
-    [consultationSearch, consultationStatusFilter],
-    () => {
-      Object.keys(consultationStatusDrafts).forEach((key) => {
-        const requestExists = filteredConsultationRequests.value.some(
-          (request) => request.id === Number(key),
-        )
-
-        if (!requestExists) {
-          delete consultationStatusDrafts[key]
-        }
-      })
-    },
-  )
+  const consultationTableRows = computed(() => filteredConsultationRequests.value)
 
   watch(
     isAdmin,
@@ -258,12 +237,13 @@ export function useConsultationRequests({ isAdmin }) {
     filteredConsultationRequestsTotal,
     consultationTableRows,
     handleConsultationRefresh,
-    handleConsultationDraftChange,
-    getConsultationDraftStatus,
-    handleConsultationMarkProcessed,
-    handleConsultationApplyDraft,
-    handleConsultationResetStatus,
-    consultationTableSpanMethod,
+    selectedConsultationRequest,
+    isConsultationDetailsDialogOpen,
+    consultationDetailsError,
+    openConsultationDetailsDialog,
+    closeConsultationDetailsDialog,
+    clearConsultationDetailsDialog,
+    handleConsultationDetailsSubmit,
     syncAdminData,
     stopConsultationFeed,
     clearConsultationState,

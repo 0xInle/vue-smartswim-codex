@@ -58,6 +58,7 @@
         :handle-document-upload-submit="handleDocumentUploadSubmit"
         :handle-document-remove="handleDocumentRemove"
         @submit="handleFormSubmit"
+        @update-field="updateFormField"
         @coach-select="handleCoachSelect"
       />
     </ElDialog>
@@ -68,8 +69,8 @@
 import { Close } from '@element-plus/icons-vue'
 import { ElCard, ElDialog } from 'element-plus'
 import { computed, ref, toRef } from 'vue'
-import AccountAthleteCard from '@/pages/account/components/AccountAthleteCard.vue'
-import AccountAthleteForm from '@/pages/account/components/AccountAthleteForm.vue'
+import AccountAthleteCard from '@/pages/account/components/athletes/AccountAthleteCard.vue'
+import AccountAthleteForm from '@/pages/account/components/athletes/AccountAthleteForm.vue'
 import { useAccountAthletes } from '@/pages/account/composables/useAccountAthletes'
 
 const props = defineProps({
@@ -91,6 +92,7 @@ const {
   cancelEdit,
   deleteAthlete,
   resetForm,
+  updateFormField,
   handleSubmit,
   genderLabel,
   fetchCoachSuggestions,

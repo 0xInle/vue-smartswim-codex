@@ -38,6 +38,29 @@ function isTrainerBookingStatusConstraintError(error) {
   return error.code === '23514' && /trainer_bookings_status_check/i.test(error.message || '')
 }
 
+function isMissingColumnError(error, columnName) {
+  if (!error) {
+    return false
+  }
+
+  return (
+    error.code === '42703' ||
+    (
+      error.code === 'PGRST204' &&
+      new RegExp(`['"]${columnName}['"].*schema cache`, 'i').test(error.message || '')
+    ) ||
+    new RegExp(`column .*${columnName}.* does not exist`, 'i').test(error.message || '') ||
+    new RegExp(`column .*${columnName}.* not exist`, 'i').test(error.message || '') ||
+    new RegExp(`could not find .*${columnName}.*column`, 'i').test(error.message || '')
+  )
+}
+
+function getMissingConsultationRequestColumn(error) {
+  return ['callback_time', 'comment'].find((columnName) =>
+    isMissingColumnError(error, columnName),
+  )
+}
+
 function mapCrmUser(row) {
   return {
     id: row.id ?? null,
@@ -50,6 +73,7 @@ function mapCrmUser(row) {
 
 function mapConsultationRequest(row) {
   const rawTime = row.consultation_time ?? ''
+  const rawCallbackTime = row.callback_time ?? ''
   const normalizedStatus = row.status === 'contacted' ? 'processed' : row.status ?? 'new'
 
   return {
@@ -59,6 +83,9 @@ function mapConsultationRequest(row) {
     phone: formatRussianPhone(row.phone ?? ''),
     consultationDate: row.consultation_date ?? '',
     consultationTime: typeof rawTime === 'string' ? rawTime.slice(0, 5) : '',
+    callbackDate: row.callback_date ?? '',
+    callbackTime: typeof rawCallbackTime === 'string' ? rawCallbackTime.slice(0, 5) : '',
+    comment: row.comment ?? '',
     status: normalizedStatus,
     createdAt: row.created_at ?? null,
   }
@@ -219,7 +246,7 @@ export async function fetchConsultationRequests() {
 
   const { data, error } = await getSupabaseClient()
     .from('consultation_requests')
-    .select('id,first_name,last_name,phone,consultation_date,consultation_time,status,created_at')
+    .select('*')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -285,7 +312,12 @@ export async function fetchTrainerBookings() {
   return (data ?? []).map(mapTrainerBooking)
 }
 
-export async function updateConsultationRequestStatus({ id, status }) {
+export async function updateConsultationRequestStatus({
+  id,
+  status,
+  callbackTime = null,
+  comment = '',
+}) {
   const session = await getCurrentSession()
 
   if (!session) {
@@ -293,51 +325,107 @@ export async function updateConsultationRequestStatus({ id, status }) {
   }
 
   const client = getSupabaseClient()
+  const normalizedCallbackTime = callbackTime || null
+  const normalizedComment = comment || ''
 
-  const { data, error } = await client
-    .from('consultation_requests')
-    .update({
-      status,
-    })
-    .eq('id', id)
-    .select('id,first_name,last_name,phone,consultation_date,consultation_time,status,created_at')
-    .single()
+  function buildConsultationUpdatePayload(statusValue, optionalColumns) {
+    const payload = {
+      status: statusValue,
+    }
 
-  if (error) {
-    if (status === 'processed' && isConsultationStatusConstraintError(error)) {
-      const fallbackResult = await client
-        .from('consultation_requests')
-        .update({
-          status: 'contacted',
-        })
-        .eq('id', id)
-        .select('id,first_name,last_name,phone,consultation_date,consultation_time,status,created_at')
-        .single()
+    if (optionalColumns.has('callback_time')) {
+      payload.callback_time = normalizedCallbackTime
+    }
 
-      if (!fallbackResult.error) {
+    if (optionalColumns.has('comment')) {
+      payload.comment = normalizedComment
+    }
+
+    return payload
+  }
+
+  async function runUpdate(statusValue, optionalColumns) {
+    const payload = buildConsultationUpdatePayload(statusValue, optionalColumns)
+
+    return client.from('consultation_requests').update(payload).eq('id', id).select('*').single()
+  }
+
+  async function runUpdateWithAvailableColumns(statusValue, optionalColumns) {
+    const availableOptionalColumns = new Set(optionalColumns)
+    let result = await runUpdate(statusValue, availableOptionalColumns)
+
+    while (result.error) {
+      const missingColumn = getMissingConsultationRequestColumn(result.error)
+
+      if (!missingColumn || !availableOptionalColumns.has(missingColumn)) {
+        break
+      }
+
+      if (missingColumn === 'comment' && normalizedComment) {
+        break
+      }
+
+      availableOptionalColumns.delete(missingColumn)
+      result = await runUpdate(statusValue, availableOptionalColumns)
+    }
+
+    return {
+      result,
+      availableOptionalColumns,
+    }
+  }
+
+  let { result, availableOptionalColumns } = await runUpdateWithAvailableColumns(
+    status,
+    new Set(['callback_time', 'comment']),
+  )
+
+  if (result.error) {
+    if (status === 'processed' && isConsultationStatusConstraintError(result.error)) {
+      const fallbackUpdate = await runUpdateWithAvailableColumns('contacted', availableOptionalColumns)
+      result = fallbackUpdate.result
+      availableOptionalColumns = fallbackUpdate.availableOptionalColumns
+
+      if (!result.error) {
         return mapConsultationRequest({
-          ...fallbackResult.data,
+          ...result.data,
           status: 'processed',
+          callback_time: availableOptionalColumns.has('callback_time')
+            ? normalizedCallbackTime
+            : result.data.callback_time,
+          comment: availableOptionalColumns.has('comment') ? normalizedComment : result.data.comment,
         })
       }
     }
 
-    if (isMissingTableError(error, 'consultation_requests')) {
+    if (isMissingTableError(result.error, 'consultation_requests')) {
       throw new Error(
         toMissingTableError('consultation_requests', 'supabase/consultation_requests.sql'),
       )
     }
 
-    if (isConsultationStatusConstraintError(error)) {
+    if (isConsultationStatusConstraintError(result.error)) {
       throw new Error(
         'В Supabase еще не обновлен список статусов consultation_requests. Выполните SQL из файла supabase/consultation_requests.sql и повторите действие.',
       )
     }
 
-    throw new Error(error.message || 'Не удалось обновить статус заявки.')
+    if (normalizedComment && isMissingColumnError(result.error, 'comment')) {
+      throw new Error(
+        'Комментарий не сохранен: в Supabase не найдена колонка comment у consultation_requests. Выполните SQL из файла supabase/consultation_requests.sql и повторите действие.',
+      )
+    }
+
+    throw new Error(result.error.message || 'Не удалось обновить статус заявки.')
   }
 
-  return mapConsultationRequest(data)
+  return mapConsultationRequest({
+    ...result.data,
+    callback_time: availableOptionalColumns.has('callback_time')
+      ? normalizedCallbackTime
+      : result.data.callback_time,
+    comment: availableOptionalColumns.has('comment') ? normalizedComment : result.data.comment,
+  })
 }
 
 export async function updateTrainerBookingStatus({ id, status }) {

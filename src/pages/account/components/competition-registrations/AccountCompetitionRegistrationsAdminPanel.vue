@@ -124,7 +124,7 @@
 import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import { COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS } from '@/pages/account/utils/accountConstants'
 import { useAccountCompetitionRegistrationsAdmin } from '@/pages/account/composables/useAccountCompetitionRegistrationsAdmin'
-import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/AccountCompetitionRegistrationDetailsDialog.vue'
+import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDetailsDialog.vue'
 
 const {
   search,

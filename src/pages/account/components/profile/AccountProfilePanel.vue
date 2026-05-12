@@ -103,8 +103,8 @@ import { ElMessageBox } from 'element-plus'
 import { ElCard } from 'element-plus'
 import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
 import { showToast } from '@/utils/toast'
-import AccountDocumentChecklist from '@/pages/account/components/AccountDocumentChecklist.vue'
-import AccountDocumentUploadDialog from '@/pages/account/components/AccountDocumentUploadDialog.vue'
+import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
+import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
 import {
   createAccountDocumentsState,
   normalizeAccountDocumentsState,

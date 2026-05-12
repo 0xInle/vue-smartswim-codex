@@ -7,8 +7,8 @@
           :value="search"
           class="account__input account__input--toolbar"
           type="search"
-          name="trainer-bookings-search"
-          placeholder="Поиск по записям"
+          name="consultation-search"
+          placeholder="Поиск по заявкам"
           @input="$emit('update:search', $event.target.value)"
         />
       </label>
@@ -44,41 +44,46 @@
       </div>
     </div>
 
-    <div v-if="isLoading && !bookings.length" class="account__loading-state">
-      Загружаем записи к тренерам...
-    </div>
+    <div v-if="isLoading && !requests.length" class="account__loading-state">Загружаем заявки...</div>
 
-    <div v-else-if="bookings.length" class="account__native-table-wrap">
-      <table class="account__native-table account__native-table--trainer-bookings">
+    <div v-else-if="rows.length" class="account__native-table-wrap">
+      <table class="account__native-table account__native-table--consultations">
         <thead class="account__native-table-head">
           <tr>
-            <th>Клиент</th>
-            <th>Тренер</th>
+            <th>ФИО</th>
+            <th>Телефон</th>
+            <th>Дата получения</th>
             <th>Статус</th>
             <th>Действие</th>
           </tr>
         </thead>
 
         <tbody>
-          <tr v-for="booking in bookings" :key="booking.id" class="account__native-table-row">
+          <tr v-for="request in rows" :key="request.id" class="account__native-table-row">
             <td class="account__native-table-cell account__native-table-cell--primary">
               <div class="account__table-user">
                 <div class="account__table-primary">
-                  {{ formatTrainerBookingClientName(booking) }}
+                  {{ formatConsultationFullName(request) }}
                 </div>
               </div>
             </td>
-            <td class="account__native-table-cell">{{ booking.trainerName }}</td>
+            <td class="account__native-table-cell account__native-table-cell--phone">
+              {{ request.phone }}
+            </td>
             <td class="account__native-table-cell account__native-table-cell--center">
-              <ElTag :type="trainerBookingStatusType(booking.status)" effect="light" round>
-                {{ formatTrainerBookingStatus(booking.status) }}
+              {{ formatCompactDateTime(request.createdAt) }}
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <ElTag :type="consultationStatusType(request.status)" effect="light" round>
+                {{ formatConsultationStatus(request.status) }}
               </ElTag>
             </td>
             <td class="account__native-table-cell account__native-table-cell--center">
               <button
                 type="button"
                 class="account__table-action account__table-action--edit btn-reset"
-                @click="openDetailsDialog(booking)"
+                :disabled="loadingId === request.id"
+                @click="$emit('open-details', request)"
               >
                 Подробнее
               </button>
@@ -88,28 +93,25 @@
       </table>
     </div>
 
-    <ElEmpty v-else description="Записей к тренерам пока нет." />
-
-    <AccountTrainerBookingDetailsDialog
-      :model-value="isDetailsDialogOpen"
-      :booking="selectedBooking"
-      @close="closeDetailsDialog"
-    />
+    <ElEmpty v-else description="Новых заявок пока нет." />
   </ElCard>
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import { ElButton, ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
-import AccountTrainerBookingDetailsDialog from '@/pages/account/components/AccountTrainerBookingDetailsDialog.vue'
 import {
-  formatTrainerBookingClientName,
-  formatTrainerBookingStatus,
-  trainerBookingStatusType,
+  consultationStatusType,
+  formatCompactDateTime,
+  formatConsultationFullName,
+  formatConsultationStatus,
 } from '@/pages/account/utils/accountFormatters'
 
 defineProps({
-  bookings: {
+  requests: {
+    type: Array,
+    required: true,
+  },
+  rows: {
     type: Array,
     required: true,
   },
@@ -137,27 +139,22 @@ defineProps({
     type: Number,
     required: true,
   },
+  loadingId: {
+    type: [Number, String, null],
+    default: null,
+  },
 })
 
-defineEmits(['refresh', 'update:search', 'update:status-filter'])
-
-const isDetailsDialogOpen = ref(false)
-const selectedBooking = ref(null)
-
-function openDetailsDialog(booking) {
-  selectedBooking.value = booking
-  isDetailsDialogOpen.value = true
-}
-
-function closeDetailsDialog() {
-  isDetailsDialogOpen.value = false
-  selectedBooking.value = null
-}
+defineEmits(['refresh', 'update:search', 'update:status-filter', 'open-details'])
 </script>
 
 <style scoped>
-.account__native-table--trainer-bookings th:not(:first-child),
-.account__native-table--trainer-bookings td:not(:first-child) {
+.account__native-table--consultations th:not(:first-child),
+.account__native-table--consultations td:not(:first-child) {
   text-align: center;
+}
+
+.account__native-table--consultations .account__native-table-cell--phone {
+  white-space: nowrap;
 }
 </style>

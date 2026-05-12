@@ -53,6 +53,14 @@ export function useAccountPasswordChange({ currentUser }) {
     return passwordVisibility[field] ? 'text' : 'password'
   }
 
+  function updatePasswordChangeField(field, value) {
+    if (!Object.prototype.hasOwnProperty.call(passwordChangeForm, field)) {
+      return
+    }
+
+    passwordChangeForm[field] = value
+  }
+
   function togglePasswordVisibility(field) {
     passwordVisibility[field] = !passwordVisibility[field]
   }
@@ -138,6 +146,7 @@ export function useAccountPasswordChange({ currentUser }) {
     passwordChangeErrors,
     passwordVisibility,
     passwordFieldType,
+    updatePasswordChangeField,
     togglePasswordVisibility,
     handlePasswordChange,
     resetPasswordChangeForm,

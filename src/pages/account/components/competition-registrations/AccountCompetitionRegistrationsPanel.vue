@@ -211,8 +211,8 @@
 <script setup>
 import { computed, ref, toRef, watch } from 'vue'
 import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
-import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/AccountCompetitionRegistrationDetailsDialog.vue'
-import AccountCompetitionRegistrationDialog from '@/pages/account/components/AccountCompetitionRegistrationDialog.vue'
+import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDetailsDialog.vue'
+import AccountCompetitionRegistrationDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDialog.vue'
 import { useAccountCompetitionRegistrations } from '@/pages/account/composables/useAccountCompetitionRegistrations'
 import {
   formatCompetitionCalendarDateShort,

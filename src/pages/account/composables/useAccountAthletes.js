@@ -219,6 +219,14 @@ export function useAccountAthletes({ currentUser }) {
     resetErrors()
   }
 
+  function updateFormField(field, value) {
+    if (!Object.prototype.hasOwnProperty.call(form, field)) {
+      return
+    }
+
+    form[field] = value
+  }
+
   function startEdit(athlete) {
     form.fullName = athlete.fullName
     form.birthDate = athlete.birthDate
@@ -539,6 +547,7 @@ export function useAccountAthletes({ currentUser }) {
     cancelEdit,
     deleteAthlete,
     resetForm,
+    updateFormField,
     handleSubmit,
     genderLabel,
     fetchCoachSuggestions,

@@ -229,8 +229,8 @@
 <script setup>
 import { Close } from '@element-plus/icons-vue'
 import { ElCard, ElEmpty, ElDialog, ElOption, ElPagination, ElSelect, ElTag } from 'element-plus'
-import AccountDocumentChecklist from '@/pages/account/components/AccountDocumentChecklist.vue'
-import AccountDocumentUploadDialog from '@/pages/account/components/AccountDocumentUploadDialog.vue'
+import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
+import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
 import { USER_ROLE_OPTIONS, USERS_PAGE_SIZE } from '@/pages/account/utils/accountConstants'
 import {
   formatCompactDateTime,

@@ -111,7 +111,7 @@ import {
   formatCompetitionName,
   formatCompetitionStageLabel,
 } from '@/pages/account/utils/accountFormatters'
-import AccountDatePicker from '@/pages/account/components/AccountDatePicker.vue'
+import AccountDatePicker from '@/pages/account/components/shared/AccountDatePicker.vue'
 
 const props = defineProps({
   modelValue: {
