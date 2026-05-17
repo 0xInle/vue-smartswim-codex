@@ -207,6 +207,7 @@ export function useAccountDocumentReviews({ currentUser }) {
         ownerUserKey,
         ownerName: user?.name || 'Не указан',
         ownerEmail: user?.email || '',
+        ownerPhone: user?.phone || '',
         scope: 'user',
         scopeId,
         participantName: user?.name || 'Без имени',
@@ -241,6 +242,7 @@ export function useAccountDocumentReviews({ currentUser }) {
         ownerUserKey,
         ownerName: profile.fullName || 'Не указан',
         ownerEmail: profile.email || '',
+        ownerPhone: profile.phone || '',
         scope: 'profile',
         scopeId: 'profile',
         participantName: profile.fullName || 'Без имени',
@@ -298,6 +300,7 @@ export function useAccountDocumentReviews({ currentUser }) {
         ownerUserKey,
         ownerName: athlete.ownerName || 'Не указан',
         ownerEmail: athlete.ownerEmail || '',
+        ownerPhone: athlete.ownerPhone || '',
         scope,
         scopeId,
         participantName: athlete.fullName || 'Без имени',
@@ -320,6 +323,7 @@ export function useAccountDocumentReviews({ currentUser }) {
         ownerUserKey: record.ownerUserKey || 'anonymous',
         ownerName: record.ownerName || 'Не указан',
         ownerEmail: record.ownerEmail || '',
+        ownerPhone: record.ownerPhone || '',
         scope: record.scope || 'profile',
         scopeId: record.scopeId || 'profile',
         participantName: record.participantName || record.ownerName || 'Без имени',
@@ -350,6 +354,7 @@ export function useAccountDocumentReviews({ currentUser }) {
         const haystack = [
           group.ownerName,
           group.ownerEmail,
+          group.ownerPhone,
           group.participantName,
           ...documents.flatMap((document) => [
             document.documentLabel,
@@ -358,6 +363,7 @@ export function useAccountDocumentReviews({ currentUser }) {
             document.rejectionReason,
             document.status,
           ]),
+          group.statusMeta?.note,
         ]
           .filter(Boolean)
           .join(' ')

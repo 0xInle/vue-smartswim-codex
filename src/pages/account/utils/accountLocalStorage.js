@@ -12,6 +12,10 @@ function resolveCurrentUser(currentUser) {
 function getCurrentUserKey(currentUser) {
   const resolvedUser = resolveCurrentUser(currentUser)
 
+  if (typeof resolvedUser === 'string') {
+    return resolvedUser || 'anonymous'
+  }
+
   return resolvedUser?.id || resolvedUser?.email || 'anonymous'
 }
 
@@ -255,6 +259,40 @@ export function readAccountAthletesSnapshot(currentUser) {
       }
     })
     .filter(Boolean)
+}
+
+export function writeAccountAthletesSnapshot(currentUser, athletes) {
+  if (typeof window === 'undefined') {
+    return true
+  }
+
+  const resolvedUser = resolveCurrentUser(currentUser)
+  const storageKey = getAccountAthletesStorageKey(resolvedUser)
+
+  try {
+    const nextAthletes = Array.isArray(athletes)
+      ? athletes.map((athlete, index) => {
+          const athleteId = athlete?.id || `${Date.now()}-${index}`
+
+          return {
+            ...athlete,
+            id: athleteId,
+            fullName: athlete?.fullName || '',
+            birthDate: athlete?.birthDate || '',
+            gender: athlete?.gender || '',
+            club: athlete?.club || '',
+            rank: athlete?.rank || '',
+            coach: athlete?.coach || '',
+            documents: stripAccountDocumentFileData(athlete?.documents || []),
+          }
+        })
+      : []
+
+    window.localStorage.setItem(storageKey, JSON.stringify(nextAthletes))
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function readAccountAthleteSnapshots() {

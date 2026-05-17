@@ -106,6 +106,24 @@ export const DOCUMENT_REVIEW_STATUS_OPTIONS = [
   { value: 'missing', label: 'Документ не загружен' },
 ]
 
+export const ATHLETE_APPLICATION_STATUS = Object.freeze({
+  NEW: 'new',
+  REVIEWING: 'reviewing',
+  NEEDS_DATA: 'needs_data',
+  READY: 'ready',
+  ADMITTED: 'admitted',
+  REJECTED: 'rejected',
+})
+
+export const ATHLETE_APPLICATION_STATUS_OPTIONS = [
+  { value: ATHLETE_APPLICATION_STATUS.NEW, label: 'Новая' },
+  { value: ATHLETE_APPLICATION_STATUS.REVIEWING, label: 'В работе' },
+  { value: ATHLETE_APPLICATION_STATUS.NEEDS_DATA, label: 'Нужны данные' },
+  { value: ATHLETE_APPLICATION_STATUS.READY, label: 'Готово' },
+  { value: ATHLETE_APPLICATION_STATUS.ADMITTED, label: 'Допущена' },
+  { value: ATHLETE_APPLICATION_STATUS.REJECTED, label: 'Отклонена' },
+]
+
 export const DOCUMENT_SCOPE_OPTIONS = [
   { value: 'all', label: 'Все разделы' },
   { value: 'profile', label: 'Профиль' },

@@ -28,6 +28,13 @@ values ('smartswim@inbox.ru', 'Первый администратор Smart Swi
 on conflict (email) do update
 set note = excluded.note;
 
+insert into public.trainers (email, name, note)
+values ('ss-biryukoff@yandex.ru', '', 'Тренер Smart Swim')
+on conflict (email) do update
+set
+  name = excluded.name,
+  note = excluded.note;
+
 alter table public.crm_users
   add column if not exists role text;
 
