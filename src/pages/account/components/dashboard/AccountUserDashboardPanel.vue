@@ -9,7 +9,7 @@
         </article>
 
         <article class="account-user-dashboard__metric">
-          <p class="account-user-dashboard__metric-label">Регистрации</p>
+          <p class="account-user-dashboard__metric-label">Регистрация на соревнования</p>
           <strong class="account-user-dashboard__metric-value">{{
             activeRegistrationsCount
           }}</strong>
@@ -17,7 +17,7 @@
         </article>
 
         <article class="account-user-dashboard__metric">
-          <p class="account-user-dashboard__metric-label">Открыто</p>
+          <p class="account-user-dashboard__metric-label">Соревнований открыто</p>
           <strong class="account-user-dashboard__metric-value">{{ openCompetitionsCount }}</strong>
           <span class="account-user-dashboard__metric-hint">доступно для подачи заявки</span>
         </article>
@@ -56,11 +56,6 @@
               }}</strong>
             </div>
           </div>
-
-          <p class="account-user-dashboard__source">
-            Считаем по документам добавленных спортсменов: одобрены, на проверке или требуют
-            загрузки.
-          </p>
         </article>
       </section>
     </div>
@@ -75,7 +70,7 @@ import {
   readAccountProfileSnapshot,
 } from '@/pages/account/utils/accountLocalStorage'
 import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
-import { getAccountDocumentsAdmissionStatus } from '@/pages/account/utils/accountFormatters'
+import { resolveAccountAdmissionStatus } from '@/pages/account/utils/accountAdmissions'
 import { readCompetitionRegistrations } from '@/pages/account/utils/accountCompetitionRegistrations'
 
 const props = defineProps({
@@ -96,12 +91,22 @@ const athleteSnapshots = computed(() => readAccountAthletesSnapshot(currentUserR
 const registrations = computed(() => readCompetitionRegistrations(currentUserRef))
 
 const profileAdmission = computed(() =>
-  getAccountDocumentsAdmissionStatus(profileSnapshot.value.documents || []),
+  resolveAccountAdmissionStatus({
+    ownerUserKey: props.currentUser?.id || props.currentUser?.email || 'anonymous',
+    scope: 'profile',
+    scopeId: 'profile',
+    documents: profileSnapshot.value.documents || [],
+  }),
 )
 
 const athleteAdmissions = computed(() =>
   athleteSnapshots.value.map((athlete) =>
-    getAccountDocumentsAdmissionStatus(athlete.documents || []),
+    resolveAccountAdmissionStatus({
+      ownerUserKey: props.currentUser?.id || props.currentUser?.email || 'anonymous',
+      scope: 'athlete',
+      scopeId: athlete.id,
+      documents: athlete.documents || [],
+    }),
   ),
 )
 
@@ -110,7 +115,9 @@ const admittedAthletesCount = computed(
   () => athleteAdmissions.value.filter((admission) => admission.status === 'admitted').length,
 )
 const pendingAthletesCount = computed(
-  () => athleteAdmissions.value.filter((admission) => admission.status === 'pending').length,
+  () =>
+    athleteAdmissions.value.filter((admission) => ['pending', 'ready'].includes(admission.status))
+      .length,
 )
 const attentionAthletesCount = computed(
   () =>

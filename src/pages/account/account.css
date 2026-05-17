@@ -404,6 +404,99 @@
   border-top-right-radius: 10px;
 }
 
+.account__native-table-head th.account__native-table-head-cell--sortable {
+  padding: 0;
+}
+
+.account__table-sort-button {
+  display: flex;
+  align-items: center;
+  justify-content: inherit;
+  gap: 8px;
+  width: 100%;
+  min-height: 100%;
+  padding: 14px 12px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  text-align: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.account__table-sort-button--left {
+  justify-content: flex-start;
+}
+
+.account__table-sort-button--center {
+  justify-content: center;
+}
+
+.account__table-sort-button--active {
+  color: var(--black);
+}
+
+.account__table-sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 12px;
+  height: 12px;
+  flex: none;
+  color: color-mix(in srgb, var(--black) 48%, white);
+}
+
+.account__table-sort-button--active .account__table-sort-indicator {
+  color: var(--black);
+}
+
+.account__table-sort-indicator::before,
+.account__table-sort-indicator::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+.account__table-sort-indicator[data-direction='asc']::before,
+.account__table-sort-indicator[data-direction='none']::before {
+  top: 1px;
+  border-bottom: 5px solid currentColor;
+}
+
+.account__table-sort-indicator[data-direction='desc']::after,
+.account__table-sort-indicator[data-direction='none']::after {
+  bottom: 1px;
+  border-top: 5px solid currentColor;
+}
+
+.account__table-sort-indicator[data-direction='asc']::after,
+.account__table-sort-indicator[data-direction='desc']::before {
+  display: none;
+}
+
+.account__table-sort-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: color-mix(in srgb, var(--black) 48%, white);
+  flex: none;
+}
+
+.account__table-sort-button--active .account__table-sort-icon {
+  color: var(--black);
+}
+
 .account__native-table-row:nth-child(even) {
   background: rgb(248 251 255 / 0.78);
 }

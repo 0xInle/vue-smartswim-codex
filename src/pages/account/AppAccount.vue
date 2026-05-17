@@ -183,6 +183,8 @@
               :users="paginatedUsers"
               :search="usersSearch"
               :role-filter="usersRoleFilter"
+              :sort-key="usersSortKey"
+              :sort-direction="usersSortDirection"
               :total="filteredUsersTotal"
               :page="usersPage"
               :page-count="usersPageCount"
@@ -194,6 +196,7 @@
               @update:search="usersSearch = $event"
               @update:role-filter="usersRoleFilter = $event"
               @page-change="handleUsersPageChange"
+              @toggle-sort="handleUsersSortChange"
               @edit-user="handleOpenUserEdit"
               @delete-user="handleOpenUserDelete"
               @close-edit="handleCloseUserEdit"
@@ -407,6 +410,8 @@ const {
   usersPage,
   usersSearch,
   usersRoleFilter,
+  usersSortKey,
+  usersSortDirection,
   filteredUsersTotal,
   usersPageCount,
   paginatedUsers,
@@ -416,6 +421,7 @@ const {
   userEditForm,
   documentUploadState,
   handleUsersPageChange,
+  handleUsersSortChange,
   resetUsersPage,
   handleOpenUserEdit,
   handleCloseUserEdit,

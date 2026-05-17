@@ -2,7 +2,12 @@
   <article class="account-athlete-card">
     <div class="account-athlete-card__head">
       <div class="account-athlete-card__copy">
-        <h4 class="account-athlete-card__name">{{ athlete.fullName }}</h4>
+        <div class="account-athlete-card__name-row">
+          <h4 class="account-athlete-card__name">{{ athlete.fullName }}</h4>
+          <ElTag :type="documentsStatus.tagType" effect="light" round class="account-athlete-card__status-tag">
+            {{ documentsStatus.label }}
+          </ElTag>
+        </div>
         <p class="account-athlete-card__meta">
           {{ athlete.birthDate }} · {{ genderLabel(athlete.gender) }}
         </p>
@@ -39,27 +44,24 @@
         <span class="account-athlete-card__label">Тренер</span>
         <span class="account-athlete-card__value">{{ athlete.coach || 'Не указан' }}</span>
       </div>
-      <div class="account-athlete-card__field account-athlete-card__field--wide">
-        <span class="account-athlete-card__label">Документы</span>
-        <div class="account-athlete-card__documents">
-          <span class="account-athlete-card__status" :class="`account-athlete-card__status--${documentsStatus.status}`">
-            {{ documentsStatus.label }}
-          </span>
-        </div>
-      </div>
     </div>
   </article>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { ElTag } from 'element-plus'
 import { normalizeAccountDocumentsState } from '@/pages/account/utils/accountDocumentTypes'
-import { getAccountDocumentsAdmissionStatus } from '@/pages/account/utils/accountFormatters'
+import { resolveAccountAdmissionStatus } from '@/pages/account/utils/accountAdmissions'
 
 const props = defineProps({
   athlete: {
     type: Object,
     required: true,
+  },
+  currentUser: {
+    type: Object,
+    default: null,
   },
   genderLabel: {
     type: Function,
@@ -70,7 +72,14 @@ const props = defineProps({
 defineEmits(['edit', 'delete'])
 
 const documents = computed(() => normalizeAccountDocumentsState(props.athlete?.documents))
-const documentsStatus = computed(() => getAccountDocumentsAdmissionStatus(documents.value))
+const documentsStatus = computed(() =>
+  resolveAccountAdmissionStatus({
+    ownerUserKey: props.currentUser?.id || props.currentUser?.email || 'anonymous',
+    scope: 'athlete',
+    scopeId: props.athlete.id,
+    documents: documents.value,
+  }),
+)
 </script>
 
 <style scoped>
@@ -92,7 +101,16 @@ const documentsStatus = computed(() => getAccountDocumentsAdmissionStatus(docume
 
 .account-athlete-card__copy {
   display: grid;
-  gap: 4px;
+  gap: 6px;
+  min-width: 0;
+}
+
+.account-athlete-card__name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
 }
 
 .account-athlete-card__name {
@@ -134,32 +152,14 @@ const documentsStatus = computed(() => getAccountDocumentsAdmissionStatus(docume
   gap: 4px;
 }
 
-.account-athlete-card__documents {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.account-athlete-card__status {
-  font-size: 12px;
+.account-athlete-card__status-tag {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding-inline: 10px;
+  font-size: 11px;
   font-weight: 900;
-}
-
-.account-athlete-card__status--admitted {
-  color: #2f8f5b;
-}
-
-.account-athlete-card__status--pending {
-  color: #176384;
-}
-
-.account-athlete-card__status--missing {
-  color: #64748b;
-}
-
-.account-athlete-card__status--attention {
-  color: #d76034;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .account-athlete-card__label {

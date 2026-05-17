@@ -468,12 +468,36 @@ export function formatCompetitionRegistrationWindow(registration) {
 export function competitionRegistrationRecordStatusType(status) {
   const normalizedStatus = String(status || '')
 
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.REVIEWING) {
+    return 'warning'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.NEEDS_FIX) {
+    return 'danger'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.APPROVED) {
+    return 'success'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.PAYMENT_PENDING) {
+    return 'warning'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.PAID) {
+    return 'success'
+  }
+
   if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
     return 'danger'
   }
 
   if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED) {
-    return 'success'
+    return 'primary'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.REJECTED) {
+    return 'danger'
   }
 
   return 'info'
@@ -484,6 +508,30 @@ export function formatCompetitionRegistrationRecordStatus(status) {
 
   if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
     return 'Снята'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.REVIEWING) {
+    return 'На проверке'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.NEEDS_FIX) {
+    return 'Нужно исправить'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.APPROVED) {
+    return 'Одобрена'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.PAYMENT_PENDING) {
+    return 'Ожидает оплаты'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.PAID) {
+    return 'Оплачена'
+  }
+
+  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.REJECTED) {
+    return 'Отклонена'
   }
 
   if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED) {

@@ -65,19 +65,35 @@
       <table class="account__native-table account__native-table--documents">
         <thead class="account__native-table-head">
           <tr>
-            <th>Участник</th>
+            <th class="account__native-table-head-cell--sortable">
+              <button
+                type="button"
+                class="account__table-sort-button account__table-sort-button--left btn-reset"
+                :class="{ 'account__table-sort-button--active': sortKey === 'participantName' }"
+                :aria-label="getSortAriaLabel('Участник', 'participantName')"
+                @click="toggleSort('participantName')"
+              >
+                <span>Участник</span>
+                <span
+                  class="account__table-sort-indicator"
+                  :data-direction="getSortDirection('participantName')"
+                  aria-hidden="true"
+                ></span>
+              </button>
+            </th>
             <th>Статус</th>
             <th>Действие</th>
           </tr>
         </thead>
 
         <tbody>
-          <tr v-for="group in groupedRows" :key="group.id" class="account__native-table-row">
+          <tr v-for="group in sortedGroupedRows" :key="group.id" class="account__native-table-row">
             <td class="account__native-table-cell account__native-table-cell--primary">
               <div class="account__table-user">
-                <div class="account__table-primary">{{ group.ownerName }}</div>
+                <div class="account__table-primary">{{ group.participantName }}</div>
                 <div class="account__table-secondary">
-                  <span v-if="group.ownerEmail">{{ group.ownerEmail }}</span>
+                  <span v-if="group.ownerName">{{ group.ownerName }}</span>
+                  <span v-if="group.ownerEmail"> · {{ group.ownerEmail }}</span>
                 </div>
               </div>
             </td>
@@ -117,7 +133,24 @@
       <div v-if="selectedGroup" class="account-document-review__dialog">
         <div class="account-document-review__dialog-head">
           <div class="account-document-review__dialog-copy">
-            <p class="account__dialog-text">{{ selectedGroup.ownerName }}</p>
+            <p class="account__dialog-text">{{ selectedGroup.participantName }}</p>
+            <p class="account__dialog-hint">
+              Владелец ЛК: {{ selectedGroup.ownerName }}
+              <span v-if="selectedGroup.participantBirthDate">
+                · {{ selectedGroup.participantBirthDate }}
+              </span>
+            </p>
+          </div>
+
+          <div class="account-document-review__admit-slot">
+            <button
+              type="button"
+              class="account__submit account-document-review__admit-button btn-reset"
+              :disabled="!selectedGroup.statusMeta.canAdmit"
+              @click="handleAdmitAndClose(selectedGroup)"
+            >
+              Допустить спортсмена
+            </button>
           </div>
         </div>
 
@@ -188,6 +221,7 @@
             </div>
           </article>
         </div>
+
       </div>
     </ElDialog>
 
@@ -249,6 +283,7 @@ import { Close } from '@element-plus/icons-vue'
 import { computed, reactive, toRef, watch } from 'vue'
 import { ElButton, ElCard, ElDialog, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import { useAccountDocumentReviews } from '@/pages/account/composables/useAccountDocumentReviews'
+import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import { getAccountDocumentDisplayStatus } from '@/pages/account/utils/accountFormatters'
 
 const props = defineProps({
@@ -261,8 +296,10 @@ const props = defineProps({
 const GROUP_STATUS_OPTIONS = [
   { value: 'all', label: 'Все статусы' },
   { value: 'missing', label: 'Документ не загружен' },
+  { value: 'pending', label: 'На проверке' },
+  { value: 'ready', label: 'Готов к допуску' },
   { value: 'admitted', label: 'Одобрен' },
-  { value: 'attention', label: 'На проверке' },
+  { value: 'attention', label: 'Требует внимания' },
 ]
 
 const statusOptions = GROUP_STATUS_OPTIONS
@@ -288,6 +325,7 @@ const {
   closeReviewDialog: closeReviewDialogState,
   openReviewDialog,
   handleApprove,
+  handleAdmit,
   submitReviewDialog,
   refresh,
   formatAccountDocumentDate,
@@ -295,6 +333,43 @@ const {
 } = useAccountDocumentReviews({
   currentUser: toRef(props, 'currentUser'),
 })
+
+const { sortKey, toggleSort, getSortState, sortItems } =
+  useTriStateTextSort('participantName')
+
+const sortedGroupedRows = computed(() =>
+  sortItems(groupedRows.value, {
+    participantName: (group) => group.participantName || '',
+  }),
+)
+
+function getSortIndicator(columnKey) {
+  const state = getSortState(columnKey)
+
+  if (!state.isActive) {
+    return 'none'
+  }
+
+  return state.direction === 'desc' ? 'desc' : 'asc'
+}
+
+function getSortDirection(columnKey) {
+  return getSortIndicator(columnKey)
+}
+
+function getSortAriaLabel(label, columnKey) {
+  const state = getSortState(columnKey)
+
+  if (!state.isActive) {
+    return `Сортировать по ${label} по возрастанию`
+  }
+
+  if (state.direction === 'asc') {
+    return `Сортировать по ${label} по убыванию`
+  }
+
+  return `Сбросить сортировку по ${label}`
+}
 
 const groupDialogState = reactive({
   isOpen: false,
@@ -314,6 +389,11 @@ function closeGroupDialog() {
   groupDialogState.isOpen = false
   groupDialogState.selectedGroupId = ''
   closeReviewDialogState()
+}
+
+function handleAdmitAndClose(group) {
+  handleAdmit(group)
+  closeGroupDialog()
 }
 
 function documentStatusLabel(document) {
@@ -413,6 +493,7 @@ watch(
 }
 
 .account-document-review__status--verified:not(.account-document-review__status--plain),
+.account-document-review__status--ready:not(.account-document-review__status--plain),
 .account-document-review__status--admitted:not(.account-document-review__status--plain) {
   color: #2f8f5b;
 }
@@ -431,6 +512,30 @@ watch(
 
 .account-document-review__status--missing:not(.account-document-review__status--plain) {
   color: #64748b;
+}
+
+.account-document-review__dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.account-document-review__admit-slot {
+  display: flex;
+  align-self: stretch;
+  align-items: flex-end;
+}
+
+.account-document-review__admit-button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.account-document-review__admit-button:disabled {
+  cursor: not-allowed;
 }
 
 .account__native-table--documents .account__native-table-cell {

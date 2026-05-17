@@ -52,15 +52,45 @@
       <table class="account__native-table account__native-table--trainer-bookings">
         <thead class="account__native-table-head">
           <tr>
-            <th>Клиент</th>
-            <th>Тренер</th>
+            <th class="account__native-table-head-cell--sortable">
+              <button
+                type="button"
+                class="account__table-sort-button account__table-sort-button--left btn-reset"
+                :class="{ 'account__table-sort-button--active': sortKey === 'clientName' }"
+                :aria-label="getSortAriaLabel('Клиент', 'clientName')"
+                @click="toggleSort('clientName')"
+              >
+                <span>Клиент</span>
+                <span
+                  class="account__table-sort-indicator"
+                  :data-direction="getSortDirection('clientName')"
+                  aria-hidden="true"
+                ></span>
+              </button>
+            </th>
+            <th class="account__native-table-head-cell--sortable">
+              <button
+                type="button"
+                class="account__table-sort-button account__table-sort-button--center btn-reset"
+                :class="{ 'account__table-sort-button--active': sortKey === 'trainerName' }"
+                :aria-label="getSortAriaLabel('Тренер', 'trainerName')"
+                @click="toggleSort('trainerName')"
+              >
+                <span>Тренер</span>
+                <span
+                  class="account__table-sort-indicator"
+                  :data-direction="getSortDirection('trainerName')"
+                  aria-hidden="true"
+                ></span>
+              </button>
+            </th>
             <th>Статус</th>
             <th>Действие</th>
           </tr>
         </thead>
 
         <tbody>
-          <tr v-for="booking in bookings" :key="booking.id" class="account__native-table-row">
+          <tr v-for="booking in sortedBookings" :key="booking.id" class="account__native-table-row">
             <td class="account__native-table-cell account__native-table-cell--primary">
               <div class="account__table-user">
                 <div class="account__table-primary">
@@ -99,16 +129,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ElButton, ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import AccountTrainerBookingDetailsDialog from '@/pages/account/components/trainer-bookings/AccountTrainerBookingDetailsDialog.vue'
+import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import {
   formatTrainerBookingClientName,
   formatTrainerBookingStatus,
   trainerBookingStatusType,
 } from '@/pages/account/utils/accountFormatters'
 
-defineProps({
+const props = defineProps({
   bookings: {
     type: Array,
     required: true,
@@ -143,6 +174,15 @@ defineEmits(['refresh', 'update:search', 'update:status-filter'])
 
 const isDetailsDialogOpen = ref(false)
 const selectedBooking = ref(null)
+const { sortKey, toggleSort, getSortState, sortItems } =
+  useTriStateTextSort('clientName')
+
+const sortedBookings = computed(() =>
+  sortItems(props.bookings, {
+    clientName: (booking) => formatTrainerBookingClientName(booking),
+    trainerName: (booking) => booking.trainerName || '',
+  }),
+)
 
 function openDetailsDialog(booking) {
   selectedBooking.value = booking
@@ -152,6 +192,34 @@ function openDetailsDialog(booking) {
 function closeDetailsDialog() {
   isDetailsDialogOpen.value = false
   selectedBooking.value = null
+}
+
+function getSortIndicator(columnKey) {
+  const state = getSortState(columnKey)
+
+  if (!state.isActive) {
+    return 'none'
+  }
+
+  return state.direction === 'desc' ? 'desc' : 'asc'
+}
+
+function getSortDirection(columnKey) {
+  return getSortIndicator(columnKey)
+}
+
+function getSortAriaLabel(label, columnKey) {
+  const state = getSortState(columnKey)
+
+  if (!state.isActive) {
+    return `Сортировать по ${label} по возрастанию`
+  }
+
+  if (state.direction === 'asc') {
+    return `Сортировать по ${label} по убыванию`
+  }
+
+  return `Сбросить сортировку по ${label}`
 }
 </script>
 

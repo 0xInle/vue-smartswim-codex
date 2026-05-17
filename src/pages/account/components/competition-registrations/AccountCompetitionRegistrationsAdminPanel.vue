@@ -41,11 +41,26 @@
       </div>
     </div>
 
-    <div v-if="filteredRegistrations.length" class="account__native-table-wrap">
+        <div v-if="filteredRegistrations.length" class="account__native-table-wrap">
       <table class="account__native-table account__native-table--competition-admin-registrations">
         <thead class="account__native-table-head">
           <tr>
-            <th>ФИО</th>
+            <th class="account__native-table-head-cell--sortable">
+              <button
+                type="button"
+                class="account__table-sort-button account__table-sort-button--left btn-reset"
+                :class="{ 'account__table-sort-button--active': sortKey === 'participantName' }"
+                :aria-label="getSortAriaLabel('ФИО', 'participantName')"
+                @click="toggleSort('participantName')"
+              >
+                <span>ФИО</span>
+                <span
+                  class="account__table-sort-indicator"
+                  :data-direction="getSortDirection('participantName')"
+                  aria-hidden="true"
+                ></span>
+              </button>
+            </th>
             <th>Соревнование</th>
             <th>Статус</th>
             <th>Действие</th>
@@ -54,7 +69,7 @@
 
         <tbody>
           <tr
-            v-for="registration in filteredRegistrations"
+            v-for="registration in sortedRegistrations"
             :key="registration.id"
             class="account__native-table-row"
             :class="`account-competition-registrations-admin__row--${registration.status}`"
@@ -100,8 +115,10 @@
       :stage-options="stageOptions"
       :can-edit-stage="false"
       :can-edit-registration-kind="false"
-      :show-save-button="false"
+      :can-edit-status="true"
+      :show-save-button="true"
       :show-withdraw-button="false"
+      :status-options="registrationStatusOptions"
       :status-tag-type="
         selectedRegistration
           ? competitionRegistrationRecordStatusType(selectedRegistration.status)
@@ -116,14 +133,17 @@
       :documents-status-label="selectedRegistrationDocumentsStatus?.label || ''"
       :documents-status-description="selectedRegistrationDocumentsStatus?.description || ''"
       @close="closeDetailsDialog"
+      @save="handleRegistrationSave"
     />
   </ElCard>
 </template>
 
 <script setup>
 import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
+import { computed } from 'vue'
 import { COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS } from '@/pages/account/utils/accountConstants'
 import { useAccountCompetitionRegistrationsAdmin } from '@/pages/account/composables/useAccountCompetitionRegistrationsAdmin'
+import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDetailsDialog.vue'
 
 const {
@@ -139,9 +159,46 @@ const {
   selectedRegistrationDocumentsStatus,
   competitionRegistrationRecordStatusType,
   formatCompetitionRegistrationRecordStatus,
+  handleRegistrationSave,
 } = useAccountCompetitionRegistrationsAdmin()
 
 const registrationStatusOptions = COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS
+const { sortKey, toggleSort, getSortState, sortItems } =
+  useTriStateTextSort('participantName')
+
+const sortedRegistrations = computed(() =>
+  sortItems(filteredRegistrations.value, {
+    participantName: (registration) => registration.participantName || '',
+  }),
+)
+
+function getSortIndicator(columnKey) {
+  const state = getSortState(columnKey)
+
+  if (!state.isActive) {
+    return 'none'
+  }
+
+  return state.direction === 'desc' ? 'desc' : 'asc'
+}
+
+function getSortDirection(columnKey) {
+  return getSortIndicator(columnKey)
+}
+
+function getSortAriaLabel(label, columnKey) {
+  const state = getSortState(columnKey)
+
+  if (!state.isActive) {
+    return `Сортировать по ${label} по возрастанию`
+  }
+
+  if (state.direction === 'asc') {
+    return `Сортировать по ${label} по убыванию`
+  }
+
+  return `Сбросить сортировку по ${label}`
+}
 </script>
 
 <style scoped>

@@ -256,3 +256,65 @@ export function readAccountAthletesSnapshot(currentUser) {
     })
     .filter(Boolean)
 }
+
+export function readAccountAthleteSnapshots() {
+  if (typeof window === 'undefined') {
+    return []
+  }
+
+  const snapshots = []
+
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const storageKey = window.localStorage.key(index) || ''
+
+    if (!storageKey.startsWith(`${ACCOUNT_ATHLETES_STORAGE_PREFIX}:`)) {
+      continue
+    }
+
+    const userKey = storageKey.slice(`${ACCOUNT_ATHLETES_STORAGE_PREFIX}:`.length)
+    const parsedAthletes = readJsonStorage(storageKey, [])
+
+    if (!userKey || !Array.isArray(parsedAthletes)) {
+      continue
+    }
+
+    const profileStorageKey = `${ACCOUNT_PROFILE_STORAGE_PREFIX}:${userKey}`
+    const parsedProfile = readJsonStorage(profileStorageKey, {})
+    const ownerUser = {
+      id: userKey,
+      email: parsedProfile?.email || '',
+      name: parsedProfile?.fullName || '',
+      phone: parsedProfile?.phone || '',
+    }
+
+    parsedAthletes.forEach((athlete, athleteIndex) => {
+      if (!athlete || typeof athlete !== 'object') {
+        return
+      }
+
+      const athleteId = athlete.id || `${Date.now()}-${athleteIndex}`
+
+      snapshots.push({
+        ownerUserKey: userKey,
+        ownerName: ownerUser.name || '',
+        ownerEmail: ownerUser.email || '',
+        ownerPhone: ownerUser.phone || '',
+        id: athleteId,
+        fullName: athlete.fullName || '',
+        birthDate: athlete.birthDate || '',
+        gender: athlete.gender || '',
+        club: athlete.club || '',
+        rank: athlete.rank || '',
+        coach: athlete.coach || '',
+        documents: mergeDocumentsWithReviewRecords({
+          currentUser: ownerUser,
+          scope: 'athlete',
+          scopeId: athleteId,
+          documents: normalizeAccountDocumentsState(athlete.documents),
+        }),
+      })
+    })
+  }
+
+  return snapshots
+}

@@ -10,7 +10,22 @@
           <table class="account__native-table account__native-table--competition-history">
             <thead class="account__native-table-head">
               <tr>
-                <th>Участник</th>
+                <th class="account__native-table-head-cell--sortable">
+                  <button
+                    type="button"
+                    class="account__table-sort-button account__table-sort-button--left btn-reset"
+                    :class="{ 'account__table-sort-button--active': sortKey === 'participantName' }"
+                    :aria-label="getSortAriaLabel('Участник', 'participantName')"
+                    @click="toggleSort('participantName')"
+                  >
+                    <span>Участник</span>
+                    <span
+                      class="account__table-sort-indicator"
+                      :data-direction="getSortDirection('participantName')"
+                      aria-hidden="true"
+                    ></span>
+                  </button>
+                </th>
                 <th>Соревнование</th>
                 <th>Статус</th>
                 <th>Действие</th>
@@ -19,7 +34,7 @@
 
             <tbody>
               <tr
-                v-for="record in registrationHistory"
+                v-for="record in sortedRegistrationHistory"
                 :key="record.id"
                 class="account__native-table-row"
                 :class="`account-competition-registrations__history-row--${record.status}`"
@@ -214,6 +229,7 @@ import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDetailsDialog.vue'
 import AccountCompetitionRegistrationDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDialog.vue'
 import { useAccountCompetitionRegistrations } from '@/pages/account/composables/useAccountCompetitionRegistrations'
+import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import {
   formatCompetitionCalendarDateShort,
   formatCompetitionStageLabel,
@@ -264,6 +280,9 @@ const {
   currentUser: toRef(props, 'currentUser'),
 })
 
+const { sortKey, toggleSort, getSortState, sortItems } =
+  useTriStateTextSort('participantName')
+
 const filteredRows = computed(() =>
   filteredCompetitionRows.value.filter((row) => {
     const matchesCompetition =
@@ -272,6 +291,12 @@ const filteredRows = computed(() =>
       statusFilter.value === 'all' || row.registrationState.mode === statusFilter.value
 
     return matchesCompetition && matchesStatus
+  }),
+)
+
+const sortedRegistrationHistory = computed(() =>
+  sortItems(registrationHistory.value, {
+    participantName: (record) => formatParticipantName(record),
   }),
 )
 
@@ -325,6 +350,34 @@ function getRegistrationActionLabel(row) {
   return 'Закрыта'
 }
 
+function getSortIndicator(columnKey) {
+  const state = getSortState(columnKey)
+
+  if (!state.isActive) {
+    return 'none'
+  }
+
+  return state.direction === 'desc' ? 'desc' : 'asc'
+}
+
+function getSortDirection(columnKey) {
+  return getSortIndicator(columnKey)
+}
+
+function getSortAriaLabel(label, columnKey) {
+  const state = getSortState(columnKey)
+
+  if (!state.isActive) {
+    return `Сортировать по ${label} по возрастанию`
+  }
+
+  if (state.direction === 'asc') {
+    return `Сортировать по ${label} по убыванию`
+  }
+
+  return `Сбросить сортировку по ${label}`
+}
+
 function openHistoryDetails(record) {
   selectedHistoryRegistration.value = record
   isHistoryDetailsDialogOpen.value = true
@@ -355,9 +408,21 @@ function handleUpdateSelectedRegistration(payload) {
     return
   }
 
-  const updatedRegistration = updateSelectedRegistration(targetId, {
-    registrationKind: payload?.registrationKind || 'individual',
-  })
+  const patch = {}
+
+  if (payload?.stageId) {
+    patch.stageId = payload.stageId
+  }
+
+  if (payload?.registrationKind) {
+    patch.registrationKind = payload.registrationKind
+  }
+
+  if (payload?.status) {
+    patch.status = payload.status
+  }
+
+  const updatedRegistration = updateSelectedRegistration(targetId, patch)
 
   if (updatedRegistration) {
     closeHistoryDetails()

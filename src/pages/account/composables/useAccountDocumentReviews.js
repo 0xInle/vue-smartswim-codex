@@ -7,7 +7,10 @@ import {
 } from '@/pages/account/utils/accountDocumentRegistry'
 import { DOCUMENT_REVIEW_STATUS_OPTIONS } from '@/pages/account/utils/accountConstants'
 import { readAccountUsersSnapshot } from '@/pages/account/utils/accountUsersStorage'
-import { readAccountProfileSnapshots } from '@/pages/account/utils/accountLocalStorage'
+import {
+  readAccountAthleteSnapshots,
+  readAccountProfileSnapshots,
+} from '@/pages/account/utils/accountLocalStorage'
 import {
   formatAccountDocumentDate,
   formatCompactDateTime,
@@ -19,6 +22,11 @@ import {
   ACCOUNT_DOCUMENT_STATUS,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
+import {
+  createAccountAdmission,
+  resolveAccountAdmissionStatus,
+} from '@/pages/account/utils/accountAdmissions'
+import { showToast } from '@/utils/toast'
 
 function normalizeSearchValue(value) {
   return String(value || '')
@@ -34,6 +42,7 @@ export function useAccountDocumentReviews({ currentUser }) {
   const records = ref([])
   const users = ref([])
   const profileSnapshots = ref([])
+  const athleteSnapshots = ref([])
   const search = ref('')
   const statusFilter = ref('all')
   const isLoading = ref(false)
@@ -52,6 +61,7 @@ export function useAccountDocumentReviews({ currentUser }) {
       records.value = readAccountDocumentReviewRecords()
       users.value = readAccountUsersSnapshot().filter((user) => user?.role === CRM_ROLE.USER)
       profileSnapshots.value = readAccountProfileSnapshots()
+      athleteSnapshots.value = readAccountAthleteSnapshots()
     } finally {
       isLoading.value = false
     }
@@ -161,19 +171,20 @@ export function useAccountDocumentReviews({ currentUser }) {
 
   const groupedRows = computed(() => {
     const grouped = new Map()
-    const recordsByOwner = new Map()
+    const recordsByGroup = new Map()
     const normalizedSearch = normalizeSearchValue(search.value)
 
     records.value.forEach((record) => {
-      const ownerUserKey = record.ownerUserKey || 'anonymous'
-      const ownerRecords = recordsByOwner.get(ownerUserKey) || []
+      const groupId = getGroupId(record)
+      const groupRecords = recordsByGroup.get(groupId) || []
 
-      ownerRecords.push(normalizeReviewRecord(record))
-      recordsByOwner.set(ownerUserKey, ownerRecords)
+      groupRecords.push(normalizeReviewRecord(record))
+      recordsByGroup.set(groupId, groupRecords)
     })
 
     users.value.forEach((user) => {
       const ownerUserKey = getUserKey(user)
+      const scopeId = user?.id || ownerUserKey
       const documentById = new Map()
 
       normalizeAccountDocumentsState(user.documents).forEach((document) => {
@@ -181,7 +192,7 @@ export function useAccountDocumentReviews({ currentUser }) {
         documentById.set(baseRecord.id, normalizeReviewRecord(baseRecord))
       })
 
-      ;(recordsByOwner.get(ownerUserKey) || []).forEach((record) => {
+      ;(recordsByGroup.get(getGroupId({ ownerUserKey, scope: 'user', scopeId })) || []).forEach((record) => {
         documentById.set(record.id, {
           ...documentById.get(record.id),
           ...record,
@@ -191,12 +202,17 @@ export function useAccountDocumentReviews({ currentUser }) {
         })
       })
 
-      grouped.set(ownerUserKey, {
-        id: ownerUserKey,
+      grouped.set(getGroupId({ ownerUserKey, scope: 'user', scopeId }), {
+        id: getGroupId({ ownerUserKey, scope: 'user', scopeId }),
         ownerUserKey,
         ownerName: user?.name || 'Не указан',
         ownerEmail: user?.email || '',
+        scope: 'user',
+        scopeId,
         participantName: user?.name || 'Без имени',
+        participantBirthDate: '',
+        participantClub: '',
+        participantKind: 'owner',
         documents: Array.from(documentById.values()),
       })
     })
@@ -210,7 +226,7 @@ export function useAccountDocumentReviews({ currentUser }) {
         documentById.set(baseRecord.id, normalizeReviewRecord(baseRecord))
       })
 
-      ;(recordsByOwner.get(ownerUserKey) || []).forEach((record) => {
+      ;(recordsByGroup.get(getGroupId({ ownerUserKey, scope: 'profile', scopeId: 'profile' })) || []).forEach((record) => {
         documentById.set(record.id, {
           ...documentById.get(record.id),
           ...record,
@@ -220,37 +236,101 @@ export function useAccountDocumentReviews({ currentUser }) {
         })
       })
 
-      const existingGroup = grouped.get(ownerUserKey)
-
-      grouped.set(ownerUserKey, {
-        ...existingGroup,
-        id: ownerUserKey,
+      grouped.set(getGroupId({ ownerUserKey, scope: 'profile', scopeId: 'profile' }), {
+        id: getGroupId({ ownerUserKey, scope: 'profile', scopeId: 'profile' }),
         ownerUserKey,
-        ownerName: profile.fullName || existingGroup?.ownerName || 'Не указан',
-        ownerEmail: profile.email || existingGroup?.ownerEmail || '',
-        participantName: profile.fullName || existingGroup?.participantName || 'Без имени',
+        ownerName: profile.fullName || 'Не указан',
+        ownerEmail: profile.email || '',
+        scope: 'profile',
+        scopeId: 'profile',
+        participantName: profile.fullName || 'Без имени',
+        participantBirthDate: profile.birthDate || '',
+        participantClub: profile.club || '',
+        participantKind: 'owner',
+        documents: Array.from(documentById.values()),
+      })
+    })
+
+    athleteSnapshots.value.forEach((athlete) => {
+      const ownerUserKey = athlete.ownerUserKey || 'anonymous'
+      const scope = 'athlete'
+      const scopeId = athlete.id
+      const documentById = new Map()
+
+      normalizeAccountDocumentsState(athlete.documents).forEach((document) => {
+        const normalizedDocument = normalizeReviewRecord({
+          ...document,
+          id: getAccountDocumentReviewRecordId({
+            ownerUserKey,
+            scope,
+            scopeId,
+            documentType: document.type,
+          }),
+          ownerUserKey,
+          ownerName: athlete.ownerName || 'Не указан',
+          ownerEmail: athlete.ownerEmail || '',
+          ownerPhone: athlete.ownerPhone || '',
+          scope,
+          scopeId,
+          participantName: athlete.fullName || '',
+          participantBirthDate: athlete.birthDate || '',
+          participantClub: athlete.club || '',
+          participantKind: 'athlete',
+          documentType: document.type,
+          documentLabel: document.label,
+          documentHint: document.hint,
+        })
+        documentById.set(normalizedDocument.id, normalizedDocument)
+      })
+
+      ;(recordsByGroup.get(getGroupId({ ownerUserKey, scope, scopeId })) || []).forEach((record) => {
+        documentById.set(record.id, {
+          ...documentById.get(record.id),
+          ...record,
+          type: record.documentType,
+          label: record.documentLabel || documentById.get(record.id)?.label || '',
+          hint: record.documentHint || documentById.get(record.id)?.hint || '',
+        })
+      })
+
+      grouped.set(getGroupId({ ownerUserKey, scope, scopeId }), {
+        id: getGroupId({ ownerUserKey, scope, scopeId }),
+        ownerUserKey,
+        ownerName: athlete.ownerName || 'Не указан',
+        ownerEmail: athlete.ownerEmail || '',
+        scope,
+        scopeId,
+        participantName: athlete.fullName || 'Без имени',
+        participantBirthDate: athlete.birthDate || '',
+        participantClub: athlete.club || '',
+        participantKind: 'athlete',
         documents: Array.from(documentById.values()),
       })
     })
 
     records.value.forEach((record) => {
-      const ownerUserKey = record.ownerUserKey || 'anonymous'
+      const groupId = getGroupId(record)
 
-      if (grouped.has(ownerUserKey)) {
+      if (grouped.has(groupId)) {
         return
       }
 
-      const group = grouped.get(ownerUserKey) || {
-        id: ownerUserKey,
-        ownerUserKey,
+      const group = grouped.get(groupId) || {
+        id: groupId,
+        ownerUserKey: record.ownerUserKey || 'anonymous',
         ownerName: record.ownerName || 'Не указан',
         ownerEmail: record.ownerEmail || '',
-        participantName: record.ownerName || record.participantName || 'Без имени',
+        scope: record.scope || 'profile',
+        scopeId: record.scopeId || 'profile',
+        participantName: record.participantName || record.ownerName || 'Без имени',
+        participantBirthDate: record.participantBirthDate || '',
+        participantClub: record.participantClub || '',
+        participantKind: record.participantKind || 'owner',
         documents: [],
       }
 
       group.documents.push(normalizeReviewRecord(record))
-      grouped.set(ownerUserKey, group)
+      grouped.set(groupId, group)
     })
 
     return Array.from(grouped.values())
@@ -261,7 +341,12 @@ export function useAccountDocumentReviews({ currentUser }) {
 
           return rightTime - leftTime
         })
-        const statusMeta = getAccountDocumentsAdmissionStatus(documents)
+        const statusMeta = resolveAccountAdmissionStatus({
+          ownerUserKey: group.ownerUserKey,
+          scope: group.scope,
+          scopeId: group.scopeId,
+          documents,
+        })
         const haystack = [
           group.ownerName,
           group.ownerEmail,
@@ -454,6 +539,27 @@ export function useAccountDocumentReviews({ currentUser }) {
     applyReviewAction({ record, status: ACCOUNT_DOCUMENT_STATUS.VERIFIED })
   }
 
+  function handleAdmit(group) {
+    if (!group || group.statusMeta.status !== 'ready') {
+      return
+    }
+
+    createAccountAdmission({
+      ownerUserKey: group.ownerUserKey,
+      ownerName: group.ownerName,
+      ownerEmail: group.ownerEmail,
+      scope: group.scope,
+      scopeId: group.scopeId,
+      participantName: group.participantName,
+      participantBirthDate: group.participantBirthDate,
+      participantClub: group.participantClub,
+      participantKind: group.participantKind,
+      admittedBy: resolveReviewerName(currentUser),
+    })
+    showToast('Спортсмен допущен. Email-уведомление подготовлено к отправке.')
+    loadRecords()
+  }
+
   function submitReviewDialog() {
     if (!reviewRecord.value || !reviewDialogState.action) {
       return
@@ -541,6 +647,7 @@ export function useAccountDocumentReviews({ currentUser }) {
     closeReviewDialog,
     openReviewDialog,
     handleApprove,
+    handleAdmit,
     submitReviewDialog,
     refresh,
     formatAccountDocumentDate,
@@ -548,4 +655,8 @@ export function useAccountDocumentReviews({ currentUser }) {
     getAccountDocumentDisplayStatus,
     getAccountDocumentsAdmissionStatus,
   }
+}
+
+function getGroupId({ ownerUserKey, scope, scopeId }) {
+  return [ownerUserKey || 'anonymous', scope || 'profile', scopeId || 'profile'].join(':')
 }

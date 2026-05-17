@@ -10,7 +10,10 @@ import {
   readAccountProfileSnapshot,
 } from '@/pages/account/utils/accountLocalStorage'
 import { readAccountUsersSnapshot } from '@/pages/account/utils/accountUsersStorage'
-import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
+import {
+  COMPETITION_REGISTRATION_RECORD_STATUS,
+  isCompetitionRegistrationActiveStatus,
+} from '@/pages/account/utils/accountConstants'
 import {
   getAccountDocumentsAdmissionStatus,
   competitionRegistrationRecordStatusType,
@@ -168,9 +171,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
 
   const summary = computed(() => ({
     total: registrations.value.length,
-    active: registrations.value.filter(
-      (registration) => registration.status === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED,
-    ).length,
+    active: registrations.value.filter((registration) => isCompetitionRegistrationActiveStatus(registration.status)).length,
     withdrawn: registrations.value.filter(
       (registration) => registration.status === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN,
     ).length,
@@ -223,25 +224,36 @@ export function useAccountCompetitionRegistrationsAdmin() {
     return updatedRegistration
   }
 
-  function handleStageSave(payload) {
+  function handleRegistrationSave(payload) {
     const stageId = typeof payload === 'string' ? payload : payload?.stageId
     const registrationKind = typeof payload === 'object' && payload ? payload.registrationKind : ''
-    const stage = buildAccountCompetitionStages().find((item) => item.id === stageId)
+    const status = typeof payload === 'object' && payload ? payload.status : ''
+    const patch = {}
 
-    if (!stage) {
+    if (stageId) {
+      const stage = buildAccountCompetitionStages().find((item) => item.id === stageId)
+
+      if (stage) {
+        Object.assign(patch, buildStagePatch(stage))
+      }
+    }
+
+    if (registrationKind) {
+      patch.registrationKind = registrationKind
+    }
+
+    if (status) {
+      patch.status = status
+    }
+
+    if (!Object.keys(patch).length) {
       return
     }
 
-    updateSelectedRegistration(
-      {
-        ...buildStagePatch(stage),
-        ...(registrationKind ? { registrationKind } : {}),
-      },
-      {
-        closeDialog: true,
-        toastMessage: 'Заявка обновлена',
-      },
-    )
+    updateSelectedRegistration(patch, {
+      closeDialog: true,
+      toastMessage: 'Заявка обновлена',
+    })
   }
 
   function handleWithdrawSelectedRegistration() {
@@ -322,7 +334,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     openDetailsDialog,
     closeDetailsDialog,
     selectedRegistrationDocumentsStatus,
-    handleStageSave,
+    handleRegistrationSave,
     handleWithdrawSelectedRegistration,
     competitionRegistrationRecordStatusType,
     formatCompetitionRegistrationRecordStatus,

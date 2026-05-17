@@ -25,7 +25,7 @@
       </div>
 
       <div class="account-competition-registration__grid">
-        <label class="account__field">
+        <label class="account__field account-competition-registration__participant-field">
           <span class="account__field-label">Участник</span>
           <ElSelect
             :model-value="form.participantId"
@@ -231,6 +231,10 @@ watch(
   padding-top: 26px;
 }
 
+.account-competition-registration__participant-field {
+  width: 50%;
+}
+
 .account-competition-registration__field--wide {
   width: 100%;
 }
@@ -264,6 +268,10 @@ watch(
   .account-competition-registration__grid,
   .account-competition-registration__payment {
     padding-inline: 0;
+  }
+
+  .account-competition-registration__participant-field {
+    width: 100%;
   }
 
   .account-competition-registration__payment {

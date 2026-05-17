@@ -20,12 +20,14 @@ import {
   readAccountUsersSnapshot,
   writeAccountUsersSnapshot,
 } from '@/pages/account/utils/accountUsersStorage'
+import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 
 export function useAccountUsers() {
   const users = ref(readAccountUsersSnapshot())
   const usersPage = ref(1)
   const usersSearch = ref('')
   const usersRoleFilter = ref('all')
+  const { sortKey: usersSortKey, sortDirection: usersSortDirection, toggleSort: toggleUsersSort, sortItems: sortUsersItems } = useTriStateTextSort('name')
   const isUserEditDialogOpen = ref(false)
   const isUserDeleteDialogOpen = ref(false)
   const userPendingDelete = ref(null)
@@ -72,13 +74,18 @@ export function useAccountUsers() {
   })
 
   const filteredUsersTotal = computed(() => filteredUsers.value.length)
+  const sortedUsers = computed(() =>
+    sortUsersItems(filteredUsers.value, {
+      name: (user) => user.name || '',
+    }),
+  )
   const usersPageCount = computed(() =>
-    Math.max(1, Math.ceil(filteredUsersTotal.value / USERS_PAGE_SIZE)),
+    Math.max(1, Math.ceil(sortedUsers.value.length / USERS_PAGE_SIZE)),
   )
   const paginatedUsers = computed(() => {
     const startIndex = (usersPage.value - 1) * USERS_PAGE_SIZE
 
-    return filteredUsers.value.slice(startIndex, startIndex + USERS_PAGE_SIZE)
+    return sortedUsers.value.slice(startIndex, startIndex + USERS_PAGE_SIZE)
   })
 
   function handleUsersPageChange(page) {
@@ -87,6 +94,11 @@ export function useAccountUsers() {
 
   function resetUsersPage() {
     usersPage.value = 1
+  }
+
+  function handleUsersSortChange(columnKey) {
+    toggleUsersSort(columnKey)
+    resetUsersPage()
   }
 
   function resetUserEditForm() {
@@ -321,6 +333,9 @@ export function useAccountUsers() {
     filteredUsersTotal,
     usersPageCount,
     paginatedUsers,
+    usersSortKey,
+    usersSortDirection,
+    handleUsersSortChange,
     isUserEditDialogOpen,
     isUserDeleteDialogOpen,
     userPendingDelete,

@@ -16,7 +16,21 @@
         <div class="account-competition-registration-details__card account-competition-registration-details__card--wide">
           <div class="account-competition-registration-details__card-head">
             <span class="account-competition-registration-details__label">Соревнование</span>
-            <ElTag :type="statusTagType" effect="light" round>
+            <ElSelect
+              v-if="canEditStatus"
+              v-model="form.status"
+              class="account__select account-competition-registration-details__status-select"
+              popper-class="account__select-popper"
+              placeholder="Выберите статус"
+            >
+              <ElOption
+                v-for="option in statusOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </ElSelect>
+            <ElTag v-else :type="statusTagType" effect="light" round>
               {{ statusLabel }}
             </ElTag>
           </div>
@@ -86,9 +100,9 @@
 
           <div class="account-competition-registration-details__card">
             <span class="account-competition-registration-details__label">Оплата и статус</span>
-            <strong class="account-competition-registration-details__value">
-              {{ paymentStatusLabel }}
-            </strong>
+            <span class="account-competition-registration-details__meta">
+              Оплата: {{ paymentStatusLabel }}
+            </span>
             <span class="account-competition-registration-details__meta">
               Создана: {{ formatCompactDateTime(registration.createdAt) }}
             </span>
@@ -173,16 +187,26 @@
           {{ closeButtonLabel }}
         </button>
         <button
-          v-if="showSaveButton && (canEditStage || canEditRegistrationKind)"
+          v-if="showSaveButton && (canEditStage || canEditRegistrationKind || canEditStatus)"
           type="button"
           class="account__table-action account__table-action--success btn-reset"
-          :disabled="canEditStage ? !form.stageId : !form.registrationKind"
-          @click="emit('save', { stageId: form.stageId, registrationKind: form.registrationKind })"
+          :disabled="
+            (canEditStage && !form.stageId) ||
+            (canEditRegistrationKind && !form.registrationKind) ||
+            (canEditStatus && !form.status)
+          "
+          @click="
+            emit('save', {
+              stageId: form.stageId,
+              registrationKind: form.registrationKind,
+              status: form.status,
+            })
+          "
         >
           Сохранить
         </button>
         <button
-          v-if="showWithdrawButton && registration.status === 'submitted'"
+          v-if="showWithdrawButton && registration.status !== 'withdrawn' && registration.status !== 'rejected'"
           type="button"
           class="account__table-action account__table-action--delete btn-reset"
           @click="emit('withdraw')"
@@ -199,6 +223,10 @@ import { Close } from '@element-plus/icons-vue'
 import { computed, reactive, watch } from 'vue'
 import { ElDialog, ElOption, ElSelect, ElTag } from 'element-plus'
 import { formatCompactDateTime } from '@/pages/account/utils/accountFormatters'
+import {
+  COMPETITION_REGISTRATION_RECORD_STATUS,
+  COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS,
+} from '@/pages/account/utils/accountConstants'
 
 const props = defineProps({
   modelValue: {
@@ -220,6 +248,10 @@ const props = defineProps({
   canEditRegistrationKind: {
     type: Boolean,
     default: true,
+  },
+  canEditStatus: {
+    type: Boolean,
+    default: false,
   },
   showSaveButton: {
     type: Boolean,
@@ -249,6 +281,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  statusOptions: {
+    type: Array,
+    default: () => COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS,
+  },
 })
 
 const emit = defineEmits(['close', 'save', 'withdraw'])
@@ -256,6 +292,7 @@ const emit = defineEmits(['close', 'save', 'withdraw'])
 const form = reactive({
   stageId: '',
   registrationKind: 'individual',
+  status: 'submitted',
 })
 
 const registrationKindOptions = [
@@ -282,9 +319,17 @@ const competitionWindowLabel = computed(
   () => props.registration?.competitionWindowLabel || 'Окно регистрации не указано',
 )
 
-const paymentStatusLabel = computed(() =>
-  props.registration?.paymentOptionTitle || 'Не указана',
-)
+const paymentStatusLabel = computed(() => {
+  if (form.status === COMPETITION_REGISTRATION_RECORD_STATUS.PAID) {
+    return 'Оплачено'
+  }
+
+  if (form.status === COMPETITION_REGISTRATION_RECORD_STATUS.PAYMENT_PENDING) {
+    return 'Ожидает оплаты'
+  }
+
+  return props.registration?.paymentOptionTitle || 'Не указана'
+})
 
 const closeButtonLabel = computed(() =>
   props.canEditStage || props.canEditRegistrationKind || props.showSaveButton || props.showWithdrawButton
@@ -309,6 +354,7 @@ watch(
   () => {
     form.stageId = props.registration?.stageId || ''
     form.registrationKind = props.registration?.registrationKind || 'individual'
+    form.status = props.registration?.status || 'submitted'
   },
   { immediate: true },
 )
@@ -338,6 +384,7 @@ watch(
 }
 
 .account-competition-registration-details__card {
+  position: relative;
   display: grid;
   gap: 6px;
   padding: 12px 14px;
@@ -375,6 +422,13 @@ watch(
 
 .account-competition-registration-details__card .account__select {
   width: 100%;
+}
+
+.account-competition-registration-details__status-select.account__select {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: min(180px, 100%);
 }
 
 .account-competition-registration-details__meta {

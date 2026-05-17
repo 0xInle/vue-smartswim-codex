@@ -23,6 +23,7 @@
         v-for="athlete in athletes"
         :key="athlete.id"
         :athlete="athlete"
+        :current-user="currentUser"
         :gender-label="genderLabel"
         @edit="handleAthleteEdit"
         @delete="deleteAthlete"

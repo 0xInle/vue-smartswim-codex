@@ -41,7 +41,22 @@
       <table class="account__native-table account__native-table--users">
         <thead class="account__native-table-head">
           <tr>
-            <th>ФИО</th>
+            <th class="account__native-table-head-cell--sortable">
+              <button
+                type="button"
+                class="account__table-sort-button account__table-sort-button--left btn-reset"
+                :class="{ 'account__table-sort-button--active': sortKey === 'name' }"
+                :aria-label="getSortAriaLabel('ФИО', 'name')"
+                @click="$emit('toggle-sort', 'name')"
+              >
+                <span>ФИО</span>
+                <span
+                  class="account__table-sort-indicator"
+                  :data-direction="getSortDirection('name')"
+                  aria-hidden="true"
+                ></span>
+              </button>
+            </th>
             <th>Роль</th>
             <th>Действия</th>
           </tr>
@@ -165,6 +180,35 @@
           :show-action-button="false"
         />
 
+        <section class="account-users__admission-section">
+          <div class="account__panel-head account-users__admission-head">
+            <h4 class="account__panel-title">Спортсмены и допуск</h4>
+          </div>
+
+          <div v-if="viewedAthleteAdmissions.length" class="account-users__admission-list">
+            <article
+              v-for="athlete in viewedAthleteAdmissions"
+              :key="athlete.id"
+              class="account-users__admission-item"
+            >
+              <div class="account-users__admission-copy">
+                <strong class="account-users__admission-name">{{ athlete.fullName }}</strong>
+                <span class="account-users__admission-meta">
+                  {{ athlete.birthDate || 'Дата рождения не указана' }}
+                </span>
+              </div>
+
+              <span class="account-users__admission-status" :class="`account-users__admission-status--${athlete.admission.status}`">
+                {{ athlete.admission.label }}
+              </span>
+            </article>
+          </div>
+
+          <p v-else class="account-users__admission-empty">
+            У этого пользователя пока нет добавленных спортсменов.
+          </p>
+        </section>
+
         <div class="account__dialog-actions">
           <button
             type="button"
@@ -228,17 +272,20 @@
 
 <script setup>
 import { Close } from '@element-plus/icons-vue'
-import { ElCard, ElEmpty, ElDialog, ElOption, ElPagination, ElSelect, ElTag } from 'element-plus'
+import { computed } from 'vue'
+import { ElCard, ElDialog, ElEmpty, ElOption, ElPagination, ElSelect, ElTag } from 'element-plus'
 import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
 import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
+import { resolveAccountAdmissionStatus } from '@/pages/account/utils/accountAdmissions'
 import { USER_ROLE_OPTIONS, USERS_PAGE_SIZE } from '@/pages/account/utils/accountConstants'
 import {
   formatCompactDateTime,
   formatUserRole,
   formatUserStatus,
 } from '@/pages/account/utils/accountFormatters'
+import { readAccountAthletesSnapshot } from '@/pages/account/utils/accountLocalStorage'
 
-defineProps({
+const props = defineProps({
   users: {
     type: Array,
     required: true,
@@ -248,6 +295,14 @@ defineProps({
     required: true,
   },
   roleFilter: {
+    type: String,
+    required: true,
+  },
+  sortKey: {
+    type: String,
+    required: true,
+  },
+  sortDirection: {
     type: String,
     required: true,
   },
@@ -299,10 +354,49 @@ defineEmits([
   'close-document-upload',
   'submit-document-upload',
   'remove-document',
+  'toggle-sort',
 ])
 
 const userRoleOptions = USER_ROLE_OPTIONS
 const usersPageSize = USERS_PAGE_SIZE
+
+function getSortIndicator(columnKey) {
+  if (props.sortKey !== columnKey) {
+    return 'none'
+  }
+
+  return props.sortDirection === 'desc' ? 'desc' : 'asc'
+}
+
+function getSortDirection(columnKey) {
+  return getSortIndicator(columnKey)
+}
+
+function getSortAriaLabel(label, columnKey) {
+  if (props.sortKey !== columnKey) {
+    return `Сортировать по ${label} по возрастанию`
+  }
+
+  if (props.sortDirection === 'asc') {
+    return `Сортировать по ${label} по убыванию`
+  }
+
+  return `Сбросить сортировку по ${label}`
+}
+
+const viewedAthleteAdmissions = computed(() => {
+  const ownerUserKey = props.editForm?.id || props.editForm?.email || 'anonymous'
+
+  return readAccountAthletesSnapshot(props.editForm).map((athlete) => ({
+    ...athlete,
+    admission: resolveAccountAdmissionStatus({
+      ownerUserKey,
+      scope: 'athlete',
+      scopeId: athlete.id,
+      documents: athlete.documents || [],
+    }),
+  }))
+})
 </script>
 
 <style scoped>
@@ -402,6 +496,82 @@ const usersPageSize = USERS_PAGE_SIZE
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.account-users__admission-section {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgb(246 251 255 / 0.96) 0%, rgb(255 255 255 / 0.88) 100%);
+}
+
+.account-users__admission-head {
+  padding: 0;
+}
+
+.account-users__admission-list {
+  display: grid;
+  gap: 10px;
+}
+
+.account-users__admission-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 14%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.86);
+}
+
+.account-users__admission-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-users__admission-name {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--black);
+}
+
+.account-users__admission-meta {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.account-users__admission-status {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.account-users__admission-status--admitted {
+  color: #2f8f5b;
+}
+
+.account-users__admission-status--ready,
+.account-users__admission-status--pending {
+  color: #176384;
+}
+
+.account-users__admission-status--attention,
+.account-users__admission-status--missing {
+  color: #d76034;
+}
+
+.account-users__admission-empty {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #526072;
 }
 
 .account__dialog--user-view :deep(.el-dialog__body) {

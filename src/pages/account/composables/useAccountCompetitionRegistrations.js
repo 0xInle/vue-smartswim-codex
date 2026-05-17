@@ -12,7 +12,10 @@ import {
   readAccountAthletesSnapshot,
   readAccountProfileSnapshot,
 } from '@/pages/account/utils/accountLocalStorage'
-import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
+import {
+  COMPETITION_REGISTRATION_RECORD_STATUS,
+  isCompetitionRegistrationActiveStatus,
+} from '@/pages/account/utils/accountConstants'
 import {
   formatCompetitionDateLabel,
   resolveCompetitionRegistrationState,
@@ -152,10 +155,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
   )
   const registrationsCount = computed(() => registrations.value.length)
   const activeRegistrationsCount = computed(
-    () =>
-      registrations.value.filter(
-        (registration) => registration.status === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED,
-      ).length,
+    () => registrations.value.filter((registration) => isCompetitionRegistrationActiveStatus(registration.status)).length,
   )
 
   function syncSnapshots() {
@@ -261,7 +261,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
       (registration) =>
         registration.stageId === selectedStage.value.id &&
         registration.participantId === registrationForm.participantId &&
-        registration.status === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED,
+        isCompetitionRegistrationActiveStatus(registration.status),
     )
 
     if (hasActiveDuplicate) {
@@ -318,7 +318,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
   async function handleWithdrawRegistration(registrationId) {
     const targetRegistration = registrations.value.find((registration) => registration.id === registrationId)
 
-    if (!targetRegistration || targetRegistration.status !== COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED) {
+    if (!targetRegistration || !isCompetitionRegistrationActiveStatus(targetRegistration.status)) {
       return false
     }
 

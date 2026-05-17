@@ -1,0 +1,196 @@
+- generic [active] [ref=e1]:
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - generic:
+        - button "Главная"
+      - list [ref=e5]:
+        - listitem [ref=e6]:
+          - link "Соревнования" [ref=e7] [cursor=pointer]:
+            - /url: /competitions
+        - listitem [ref=e8]:
+          - link "Сборы" [ref=e9] [cursor=pointer]:
+            - /url: /fees
+        - listitem [ref=e10]:
+          - link "Документы" [ref=e11] [cursor=pointer]:
+            - /url: /documents
+        - listitem [ref=e12]:
+          - link "Тренеры" [ref=e13] [cursor=pointer]:
+            - /url: /trainers
+        - listitem [ref=e14]:
+          - link "Контакты" [ref=e15] [cursor=pointer]:
+            - /url: /contacts
+      - button "Личный кабинет" [ref=e16] [cursor=pointer]
+    - generic [ref=e17]:
+      - generic [ref=e18]: Ваш браузер не поддерживает видео.
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]:
+            - img [ref=e26]
+            - generic [ref=e28]:
+              - paragraph [ref=e29]: Smart Swim
+              - paragraph [ref=e30]: Школа плавания для детей и взрослых
+          - generic [ref=e31]:
+            - heading "Быстрый старт" [level=1] [ref=e32]
+            - paragraph [ref=e33]: в воде и на соревнованиях
+          - paragraph [ref=e34]: Помогаем освоиться в воде, выстроить технику и уверенно выходить на первые старты в атмосфере системной подготовки и бережной поддержки.
+          - generic [ref=e35]:
+            - generic [ref=e36]:
+              - generic [ref=e37]: Тренировки
+              - generic [ref=e38]: для детей и взрослых
+            - generic [ref=e39]:
+              - generic [ref=e40]: Подготовка
+              - generic [ref=e41]: к стартам и разрядам
+        - generic [ref=e42]:
+          - generic [ref=e43]:
+            - generic [ref=e44]: Запланировать консультацию
+            - paragraph [ref=e45]: Подберем удобное время и поможем выбрать формат занятий.
+          - textbox
+          - generic [ref=e46]:
+            - generic [ref=e47]: Имя и фамилия
+            - textbox "Имя и фамилия" [ref=e48]:
+              - /placeholder: Введите имя и фамилию
+          - generic [ref=e49]:
+            - generic [ref=e50]: Телефон
+            - textbox "Телефон" [ref=e51]:
+              - /placeholder: +7 (961) 471-33-80
+          - generic [ref=e52]:
+            - button "Дата 17.05" [ref=e54] [cursor=pointer]:
+              - generic [ref=e55]: Дата
+              - generic [ref=e56]: "17.05"
+            - button "Время 19:00" [ref=e58] [cursor=pointer]:
+              - generic [ref=e59]: Время
+              - generic [ref=e60]: 19:00
+          - button "Отправить" [ref=e61] [cursor=pointer]
+          - generic [ref=e62]:
+            - img [ref=e63]
+            - generic [ref=e65]: Свяжемся и ответим на вопросы по тренировкам и соревнованиям
+    - generic [ref=e66]:
+      - generic [ref=e67]:
+        - img "Изображение" [ref=e68]
+        - generic [ref=e69]:
+          - generic [ref=e70]: Подготовка
+          - heading "Как стать чемпионом?" [level=3] [ref=e71]
+          - generic [ref=e72]:
+            - text: Секрет успеха в спорте — регулярная практика и правильная подготовка.
+            - text: Важно развивать технику, выносливость и уверенность в себе. Каждая тренировка строится на постепенном улучшении навыков.
+            - text: Понимание своих сильных и слабых сторон помогает достигать целей.
+            - text: Баланс между физической нагрузкой и отдыхом — ключ к прогрессу.
+      - generic [ref=e73]:
+        - generic [ref=e74]:
+          - generic [ref=e75]: Техника
+          - heading "Правила идеального старта" [level=3] [ref=e76]
+          - generic [ref=e77]: Правильный старт помогает максимально использовать силы и технику. Важно удерживать концентрацию и следовать установленной позиции. Лёгкая разминка и контроль дыхания подготавливают тело к нагрузке. Каждое движение должно быть чётким и скоординированным. Постепенная практика закрепляет навыки и уменьшает ошибки.
+        - img "Изображение" [ref=e78]
+      - generic [ref=e79]:
+        - img "Изображение" [ref=e80]
+        - generic [ref=e81]:
+          - generic [ref=e82]: Практика
+          - heading "В чем польза соревнований?" [level=3] [ref=e83]
+          - generic [ref=e84]: Соревнования развивают мотивацию и помогают оценить свои возможности. Они дают опыт работы в стрессовых и конкурентных условиях. Участие помогает выявить сильные стороны и зоны для роста. Практика соревновательного процесса повышает дисциплину. Наблюдение за другими спортсменами расширяет понимание техники.
+    - generic [ref=e86]:
+      - generic [ref=e87]: Ваш браузер не поддерживает видео.
+      - generic [ref=e89]:
+        - generic [ref=e91]: Квалифицированные специалисты
+        - generic [ref=e93]: Программы тренировок для всех возрастов и уровней подготовки
+        - generic [ref=e95]: Проведение соревнований с присуждением разрядов
+        - generic [ref=e97]: 15 лет успешной работы
+        - generic [ref=e99]: Индивидуальный подход к каждому
+        - generic [ref=e101]: Регулярные тренировочные сборы
+    - generic [ref=e104]:
+      - generic [ref=e105]:
+        - article [ref=e106]:
+          - paragraph [ref=e107]: Ребенок начал ходить на тренировки с удовольствием. За несколько месяцев появилась уверенность в воде и заметный прогресс в технике.
+          - generic [ref=e109]: Марина К.
+        - article [ref=e110]:
+          - paragraph [ref=e111]: Очень спокойная и профессиональная атмосфера. Тренеры умеют объяснить сложные вещи простым языком и взрослым, и детям.
+          - generic [ref=e113]: Алексей П.
+        - article [ref=e114]:
+          - paragraph [ref=e115]: Нравится, что в школе следят не только за результатом, но и за тем, чтобы тренировки были комфортными и безопасными.
+          - generic [ref=e117]: Екатерина Л.
+        - article:
+          - paragraph: Пришел улучшить технику для любительских стартов. Получил понятный план, внимание к деталям и реальный рост результатов.
+          - generic:
+            - generic: Игорь С.
+        - article:
+          - paragraph: Тренировки хорошо структурированы, без хаоса. Видно, что у команды есть система и большой практический опыт.
+          - generic:
+            - generic: Ольга В.
+        - article:
+          - paragraph: Порадовал индивидуальный подход. Даже в групповых занятиях тренер замечает ошибки и сразу корректирует технику.
+          - generic:
+            - generic: Дмитрий Н.
+        - article:
+          - paragraph: После нескольких недель занятий ребенок перестал бояться глубины. Для нашей семьи это был очень важный шаг.
+          - generic:
+            - generic: Анна Р.
+        - article:
+          - paragraph: Красивый процесс обучения без давления. Много внимания дисциплине, технике и мотивации, поэтому хочется продолжать.
+          - generic:
+            - generic: Светлана М.
+        - article:
+          - paragraph: Понравилось, что здесь думают о долгом результате, а не просто проводят занятие. Все последовательно и очень понятно.
+          - generic:
+            - generic: Павел Т.
+        - article:
+          - paragraph: Сын стал увереннее не только в бассейне, но и в целом. Соревновательная практика дала ему отличную внутреннюю опору.
+          - generic:
+            - generic: Юлия Б.
+        - article:
+          - paragraph: Отдельно отмечу организацию сборов и соревнований. Все собрано аккуратно, без лишней суеты и с вниманием к детям.
+          - generic:
+            - generic: Виктор Е.
+        - article:
+          - paragraph: Нравится минималистичный, спокойный подход и уважительное общение. Это место, куда действительно приятно возвращаться.
+          - generic:
+            - generic: Полина А.
+        - article:
+          - paragraph: Занимаюсь для себя, но прогресс ощущается как у спортивной подготовки. Стало легче дышать, плыть и держать темп.
+          - generic:
+            - generic: Кирилл Ж.
+        - article [ref=e118]:
+          - paragraph [ref=e119]: Тренеры умеют поддержать и при этом не снижать планку. Это редкое сочетание, которое очень мотивирует.
+          - generic [ref=e121]: Наталья Ф.
+        - article [ref=e122]:
+          - paragraph [ref=e123]: Одна из самых аккуратных школ, что я видел. Хорошая методика, эстетичная подача и очень сильная тренерская команда.
+          - generic [ref=e125]: Роман Д.
+      - generic [ref=e126]:
+        - button [ref=e127] [cursor=pointer]:
+          - generic [ref=e128]: ‹
+        - generic [ref=e129]:
+          - button [ref=e130] [cursor=pointer]
+          - button [ref=e131] [cursor=pointer]
+          - button [ref=e132] [cursor=pointer]
+          - button [ref=e133] [cursor=pointer]
+          - button [ref=e134] [cursor=pointer]
+          - button [ref=e135] [cursor=pointer]
+          - button [ref=e136] [cursor=pointer]
+          - button [ref=e137] [cursor=pointer]
+          - button [ref=e138] [cursor=pointer]
+          - button [ref=e139] [cursor=pointer]
+          - button [ref=e140] [cursor=pointer]
+          - button [ref=e141] [cursor=pointer]
+          - button [ref=e142] [cursor=pointer]
+          - button [ref=e143] [cursor=pointer]
+          - button [ref=e144] [cursor=pointer]
+        - button [ref=e145] [cursor=pointer]:
+          - generic [ref=e146]: ›
+    - generic [ref=e147]:
+      - generic [ref=e148]:
+        - generic [ref=e149]:
+          - generic [ref=e150]: SmartSwim
+          - generic [ref=e151]: 111674, г. Москва
+          - generic [ref=e152]: ул. Льва Яшина 7-197
+        - generic [ref=e154]: Контакты
+        - generic [ref=e155]:
+          - link "cupsmartswim@yandex.ru" [ref=e156] [cursor=pointer]:
+            - /url: mailto:cupsmartswim@yandex.ru
+          - link "+7 (916) 729-07-73" [ref=e157] [cursor=pointer]:
+            - /url: tel:+79167290773
+      - generic [ref=e158]:
+        - generic [ref=e159]: © 2026 SmartSwim. Все права защищены.
+        - generic [ref=e160]: ИНН 550407139308
+  - generic [ref=e161]:
+    - generic "Toggle devtools panel" [ref=e162] [cursor=pointer]:
+      - img [ref=e163]
+    - generic "Toggle Component Inspector" [ref=e168] [cursor=pointer]:
+      - img [ref=e169]

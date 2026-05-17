@@ -1,4 +1,7 @@
-import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
+import {
+  COMPETITION_REGISTRATION_RECORD_STATUS,
+  isCompetitionRegistrationActiveStatus,
+} from '@/pages/account/utils/accountConstants'
 
 const ACCOUNT_COMPETITION_REGISTRATIONS_STORAGE_PREFIX = 'smartswim:account-competition-registrations:v1'
 
@@ -55,8 +58,12 @@ function getCompetitionRegistrationStorageKeys() {
 }
 
 function normalizeRegistrationStatus(status) {
-  if (status === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
-    return COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN
+  const normalizedStatus = String(status || '')
+
+  if (
+    Object.values(COMPETITION_REGISTRATION_RECORD_STATUS).includes(normalizedStatus)
+  ) {
+    return normalizedStatus
   }
 
   return COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED
@@ -210,7 +217,7 @@ export function readAllCompetitionRegistrations() {
 
 export function countCompetitionRegistrationsByStageId(
   stageId,
-  { status = COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED } = {},
+  { status = 'active' } = {},
 ) {
   if (!stageId) {
     return 0
@@ -221,7 +228,15 @@ export function countCompetitionRegistrationsByStageId(
       return false
     }
 
-    return status === 'all' ? true : registration.status === status
+    if (status === 'all') {
+      return true
+    }
+
+    if (status === 'active') {
+      return isCompetitionRegistrationActiveStatus(registration.status)
+    }
+
+    return registration.status === status
   }).length
 }
 
@@ -291,7 +306,10 @@ export function updateCompetitionRegistration(
     : targetRegistration.status
   const nextCreatedAt = patch.createdAt || targetRegistration.createdAt || new Date().toISOString()
   const now = new Date().toISOString()
-  const nextStatusChangedAt = hasStatusPatch ? patch.statusChangedAt || now : targetRegistration.statusChangedAt
+  const nextStatusChangedAt =
+    hasStatusPatch && nextStatus !== targetRegistration.status
+      ? patch.statusChangedAt || now
+      : targetRegistration.statusChangedAt
   const nextUpdatedAt = patch.updatedAt || now
 
   const updatedRegistration = {
@@ -314,7 +332,7 @@ export function updateCompetitionRegistration(
 
 export function countCompetitionRegistrationsForParticipant(
   currentUser,
-  { participantKind = '', participantId = '', status = COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED } = {},
+  { participantKind = '', participantId = '', status = 'active' } = {},
 ) {
   if (!participantKind || !participantId) {
     return 0
@@ -328,7 +346,15 @@ export function countCompetitionRegistrationsForParticipant(
       return false
     }
 
-    return status === 'all' ? true : registration.status === status
+    if (status === 'all') {
+      return true
+    }
+
+    if (status === 'active') {
+      return isCompetitionRegistrationActiveStatus(registration.status)
+    }
+
+    return registration.status === status
   }).length
 }
 
@@ -446,7 +472,10 @@ export function updateCompetitionRegistrationByUserKey(
     : targetRegistration.status
   const nextCreatedAt = patch.createdAt || targetRegistration.createdAt || new Date().toISOString()
   const now = new Date().toISOString()
-  const nextStatusChangedAt = hasStatusPatch ? patch.statusChangedAt || now : targetRegistration.statusChangedAt
+  const nextStatusChangedAt =
+    hasStatusPatch && nextStatus !== targetRegistration.status
+      ? patch.statusChangedAt || now
+      : targetRegistration.statusChangedAt
   const nextUpdatedAt = patch.updatedAt || now
 
   const updatedRegistration = {
@@ -490,6 +519,8 @@ export function updateCompetitionRegistrationsByStageId(
 
     let hasUpdates = false
     const now = new Date().toISOString()
+    const hasStatusPatch = Object.prototype.hasOwnProperty.call(patch, 'status')
+    const nextStatus = hasStatusPatch ? normalizeRegistrationStatus(patch.status) : ''
     const nextRegistrations = parsedRegistrations
       .filter((item) => item && typeof item === 'object')
       .map((item) => {
@@ -502,10 +533,15 @@ export function updateCompetitionRegistrationsByStageId(
         hasUpdates = true
         updatedCount += 1
 
+        const shouldUpdateStatus =
+          hasStatusPatch && nextStatus !== registration.status
+
         return {
           ...registration,
           ...patch,
           stageId,
+          status: hasStatusPatch ? nextStatus : registration.status,
+          statusChangedAt: shouldUpdateStatus ? patch.statusChangedAt || now : registration.statusChangedAt,
           updatedAt: patch.updatedAt || now,
           statusChangedBy: patch.statusChangedBy || statusChangedBy,
         }

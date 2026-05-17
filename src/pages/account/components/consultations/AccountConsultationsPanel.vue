@@ -50,7 +50,22 @@
       <table class="account__native-table account__native-table--consultations">
         <thead class="account__native-table-head">
           <tr>
-            <th>ФИО</th>
+            <th class="account__native-table-head-cell--sortable">
+              <button
+                type="button"
+                class="account__table-sort-button account__table-sort-button--left btn-reset"
+                :class="{ 'account__table-sort-button--active': sortKey === 'fullName' }"
+                :aria-label="getSortAriaLabel('ФИО', 'fullName')"
+                @click="toggleSort('fullName')"
+              >
+                <span>ФИО</span>
+                <span
+                  class="account__table-sort-indicator"
+                  :data-direction="getSortDirection('fullName')"
+                  aria-hidden="true"
+                ></span>
+              </button>
+            </th>
             <th>Телефон</th>
             <th>Дата получения</th>
             <th>Статус</th>
@@ -59,7 +74,7 @@
         </thead>
 
         <tbody>
-          <tr v-for="request in rows" :key="request.id" class="account__native-table-row">
+          <tr v-for="request in sortedRows" :key="request.id" class="account__native-table-row">
             <td class="account__native-table-cell account__native-table-cell--primary">
               <div class="account__table-user">
                 <div class="account__table-primary">
@@ -98,7 +113,9 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { ElButton, ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
+import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import {
   consultationStatusType,
   formatCompactDateTime,
@@ -106,7 +123,7 @@ import {
   formatConsultationStatus,
 } from '@/pages/account/utils/accountFormatters'
 
-defineProps({
+const props = defineProps({
   requests: {
     type: Array,
     required: true,
@@ -146,6 +163,43 @@ defineProps({
 })
 
 defineEmits(['refresh', 'update:search', 'update:status-filter', 'open-details'])
+
+const { sortKey, toggleSort, getSortState, sortItems } =
+  useTriStateTextSort('fullName')
+
+const sortedRows = computed(() =>
+  sortItems(props.rows, {
+    fullName: (request) => formatConsultationFullName(request),
+  }),
+)
+
+function getSortIndicator(columnKey) {
+  const state = getSortState(columnKey)
+
+  if (!state.isActive) {
+    return 'none'
+  }
+
+  return state.direction === 'desc' ? 'desc' : 'asc'
+}
+
+function getSortDirection(columnKey) {
+  return getSortIndicator(columnKey)
+}
+
+function getSortAriaLabel(label, columnKey) {
+  const state = getSortState(columnKey)
+
+  if (!state.isActive) {
+    return `Сортировать по ${label} по возрастанию`
+  }
+
+  if (state.direction === 'asc') {
+    return `Сортировать по ${label} по убыванию`
+  }
+
+  return `Сбросить сортировку по ${label}`
+}
 </script>
 
 <style scoped>
