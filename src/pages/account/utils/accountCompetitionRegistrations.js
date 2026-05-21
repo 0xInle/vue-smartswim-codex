@@ -2,6 +2,7 @@ import {
   COMPETITION_REGISTRATION_RECORD_STATUS,
   isCompetitionRegistrationActiveStatus,
 } from '@/pages/account/utils/accountConstants'
+import { normalizeApplicationStatus } from '@/domains/competition-applications/applicationLifecycle'
 
 const ACCOUNT_COMPETITION_REGISTRATIONS_STORAGE_PREFIX = 'smartswim:account-competition-registrations:v1'
 
@@ -58,15 +59,7 @@ function getCompetitionRegistrationStorageKeys() {
 }
 
 function normalizeRegistrationStatus(status) {
-  const normalizedStatus = String(status || '')
-
-  if (
-    Object.values(COMPETITION_REGISTRATION_RECORD_STATUS).includes(normalizedStatus)
-  ) {
-    return normalizedStatus
-  }
-
-  return COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED
+  return normalizeApplicationStatus(status)
 }
 
 function normalizeCompetitionRegistrationRecord(item, sourceUserKey = '') {
@@ -275,7 +268,7 @@ export function createCompetitionRegistrationRecord(payload) {
     teamName: payload.teamName || '',
     seedTime: payload.seedTime || '',
     comment: payload.comment || '',
-    status: payload.status || 'submitted',
+    status: normalizeRegistrationStatus(payload.status || COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED),
     createdAt,
     statusChangedAt: payload.statusChangedAt || createdAt,
     updatedAt: payload.updatedAt || payload.statusChangedAt || createdAt,

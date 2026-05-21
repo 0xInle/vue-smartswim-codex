@@ -24,6 +24,8 @@ import { showToast } from '@/utils/toast'
 import {
   competitionRegistrationRecordStatusType,
   formatCompetitionRegistrationRecordStatus,
+  getAccountDocumentsAdmissionStatus,
+  resolveCompetitionRegistrationLifecycleSummary,
 } from '@/pages/account/utils/accountFormatters'
 
 const DEFAULT_PARTICIPANT_KIND = 'owner'
@@ -371,6 +373,29 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     return competitionRegistrationRecordStatusType(status)
   }
 
+  function getRegistrationDocumentsStatus(registration) {
+    if (!registration) {
+      return null
+    }
+
+    if (registration.participantKind === 'athlete') {
+      const athlete = athleteSnapshots.value.find((item) => item.id === registration.participantId)
+
+      if (athlete) {
+        return getAccountDocumentsAdmissionStatus(athlete.documents || [])
+      }
+    }
+
+    return getAccountDocumentsAdmissionStatus(ownerSnapshot.value.documents || [])
+  }
+
+  function getRegistrationLifecycleSummary(registration) {
+    return resolveCompetitionRegistrationLifecycleSummary(registration, {
+      audience: 'user',
+      documentsStatus: getRegistrationDocumentsStatus(registration),
+    })
+  }
+
   function updateSelectedRegistration(registrationId, patch = {}) {
     const updatedRegistration = updateCompetitionRegistration(
       currentUser,
@@ -440,6 +465,8 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     updateSelectedRegistration,
     getRegistrationStatusLabel,
     getRegistrationStatusTagType,
+    getRegistrationDocumentsStatus,
+    getRegistrationLifecycleSummary,
     formatParticipantName,
     formatRegistrationTypeLabel,
   }

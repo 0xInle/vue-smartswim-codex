@@ -19,7 +19,9 @@ import {
   competitionRegistrationRecordStatusType,
   formatCompetitionRegistrationRecordStatus,
   formatCompactDateTime,
+  resolveCompetitionRegistrationLifecycleSummary,
 } from '@/pages/account/utils/accountFormatters'
+import { getApplicationTransitionOptions } from '@/domains/competition-applications/applicationLifecycle'
 import { resolveCompetitionRegistrationState } from '@/utils/competitionRegistration'
 import { formatCompetitionDateLabel } from '@/utils/competitionRegistration'
 import { showToast } from '@/utils/toast'
@@ -134,6 +136,14 @@ export function useAccountCompetitionRegistrationsAdmin() {
     )
   })
 
+  const selectedRegistrationLifecycleSummary = computed(() =>
+    getRegistrationLifecycleSummary(selectedRegistration.value),
+  )
+
+  const selectedRegistrationStatusOptions = computed(() =>
+    getApplicationTransitionOptions(selectedRegistration.value?.status, { includeCurrent: true }),
+  )
+
   const filteredRegistrations = computed(() => {
     const normalizedSearch = normalizeSearchValue(search.value)
 
@@ -184,6 +194,16 @@ export function useAccountCompetitionRegistrationsAdmin() {
 
     selectedRegistrationId.value = registration.id
     isDetailsDialogOpen.value = true
+  }
+
+  function getRegistrationLifecycleSummary(registration) {
+    return resolveCompetitionRegistrationLifecycleSummary(registration, {
+      audience: 'admin',
+      documentsStatus:
+        registration?.id === selectedRegistration.value?.id
+          ? selectedRegistrationDocumentsStatus.value
+          : null,
+    })
   }
 
   function closeDetailsDialog() {
@@ -334,6 +354,9 @@ export function useAccountCompetitionRegistrationsAdmin() {
     openDetailsDialog,
     closeDetailsDialog,
     selectedRegistrationDocumentsStatus,
+    selectedRegistrationLifecycleSummary,
+    selectedRegistrationStatusOptions,
+    getRegistrationLifecycleSummary,
     handleRegistrationSave,
     handleWithdrawSelectedRegistration,
     competitionRegistrationRecordStatusType,

@@ -1,6 +1,11 @@
 import { CRM_ROLE } from '@/utils/crmRoles'
 import { SUPABASE_MIN_PASSWORD_LENGTH } from '@/utils/supabaseAuth'
 import { createAccountDocumentsState } from '@/pages/account/utils/accountDocumentTypes'
+import {
+  APPLICATION_STATUS,
+  getApplicationStatusOptions,
+  isApplicationStatusActive,
+} from '@/domains/competition-applications/applicationLifecycle'
 
 export const ACCOUNT_SYNC_COOLDOWN_MS = 1200
 export const USERS_PAGE_SIZE = 10
@@ -43,29 +48,19 @@ export const TRAINER_BOOKING_STATUS_OPTIONS = [
 ]
 
 export const COMPETITION_REGISTRATION_RECORD_STATUS = Object.freeze({
-  SUBMITTED: 'submitted',
-  REVIEWING: 'reviewing',
-  NEEDS_FIX: 'needs_fix',
-  APPROVED: 'approved',
-  PAYMENT_PENDING: 'payment_pending',
-  PAID: 'paid',
-  WITHDRAWN: 'withdrawn',
-  REJECTED: 'rejected',
+  SUBMITTED: APPLICATION_STATUS.SUBMITTED,
+  REVIEWING: APPLICATION_STATUS.REVIEWING,
+  NEEDS_FIX: APPLICATION_STATUS.NEEDS_FIX,
+  APPROVED: APPLICATION_STATUS.APPROVED,
+  PAYMENT_PENDING: APPLICATION_STATUS.PAYMENT_PENDING,
+  PAID: APPLICATION_STATUS.PAID,
+  ADMITTED: APPLICATION_STATUS.ADMITTED,
+  WITHDRAWN: APPLICATION_STATUS.WITHDRAWN,
+  REJECTED: APPLICATION_STATUS.REJECTED,
 })
 
-export const COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS = [
-  { value: COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED, label: 'Подана' },
-  { value: COMPETITION_REGISTRATION_RECORD_STATUS.REVIEWING, label: 'На проверке' },
-  { value: COMPETITION_REGISTRATION_RECORD_STATUS.NEEDS_FIX, label: 'Нужно исправить' },
-  { value: COMPETITION_REGISTRATION_RECORD_STATUS.APPROVED, label: 'Одобрена' },
-  {
-    value: COMPETITION_REGISTRATION_RECORD_STATUS.PAYMENT_PENDING,
-    label: 'Ожидает оплаты',
-  },
-  { value: COMPETITION_REGISTRATION_RECORD_STATUS.PAID, label: 'Оплачена' },
-  { value: COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN, label: 'Снята' },
-  { value: COMPETITION_REGISTRATION_RECORD_STATUS.REJECTED, label: 'Отклонена' },
-]
+export const COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS =
+  getApplicationStatusOptions({ audience: 'admin' })
 
 export const COMPETITION_REGISTRATION_ACTIVE_STATUSES = [
   COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED,
@@ -77,7 +72,7 @@ export const COMPETITION_REGISTRATION_ACTIVE_STATUSES = [
 ]
 
 export function isCompetitionRegistrationActiveStatus(status) {
-  return COMPETITION_REGISTRATION_ACTIVE_STATUSES.includes(status)
+  return isApplicationStatusActive(status)
 }
 
 export const USER_STATUS_OPTIONS = [

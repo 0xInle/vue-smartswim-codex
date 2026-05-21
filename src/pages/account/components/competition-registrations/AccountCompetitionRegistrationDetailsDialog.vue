@@ -65,6 +65,42 @@
           </span>
         </div>
 
+        <div
+          v-if="lifecycleLabel || lifecycleDescription || lifecycleNextAction"
+          class="account-competition-registration-details__card account-competition-registration-details__card--wide account-competition-registration-details__card--lifecycle"
+        >
+          <div class="account-competition-registration-details__card-head">
+            <span class="account-competition-registration-details__label">Статус заявки</span>
+            <ElTag :type="statusTagType" effect="light" round>
+              {{ lifecycleLabel || statusLabel }}
+            </ElTag>
+          </div>
+          <strong
+            v-if="lifecycleDescription"
+            class="account-competition-registration-details__value"
+          >
+            {{ lifecycleDescription }}
+          </strong>
+          <span
+            v-if="lifecycleNextAction"
+            class="account-competition-registration-details__meta account-competition-registration-details__meta--stacked"
+          >
+            Следующий шаг: {{ lifecycleNextAction }}
+          </span>
+          <span
+            v-if="lifecycleResponsibleLabel"
+            class="account-competition-registration-details__meta"
+          >
+            Ответственный: {{ lifecycleResponsibleLabel }}
+          </span>
+          <span
+            v-if="lifecycleBlocksAdmission"
+            class="account-competition-registration-details__meta account-competition-registration-details__meta--attention"
+          >
+            Блокирует допуск до решения вопроса.
+          </span>
+        </div>
+
         <div class="account-competition-registration-details__pair">
           <div class="account-competition-registration-details__card">
             <span class="account-competition-registration-details__label">Тип заявки</span>
@@ -269,6 +305,26 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  lifecycleLabel: {
+    type: String,
+    default: '',
+  },
+  lifecycleDescription: {
+    type: String,
+    default: '',
+  },
+  lifecycleNextAction: {
+    type: String,
+    default: '',
+  },
+  lifecycleResponsibleLabel: {
+    type: String,
+    default: '',
+  },
+  lifecycleBlocksAdmission: {
+    type: Boolean,
+    default: false,
+  },
   documentsStatusTagType: {
     type: String,
     default: 'info',
@@ -404,6 +460,12 @@ watch(
   background: transparent;
 }
 
+.account-competition-registration-details__card--lifecycle {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.94), rgb(245 251 255 / 0.86)),
+    color-mix(in srgb, var(--aqua) 7%, white);
+}
+
 .account-competition-registration-details__label {
   font-size: 12px;
   font-weight: 900;
@@ -440,6 +502,10 @@ watch(
 
 .account-competition-registration-details__meta--stacked {
   margin-top: 2px;
+}
+
+.account-competition-registration-details__meta--attention {
+  color: #c75f33;
 }
 
 .account-competition-registration-details__status-tag {

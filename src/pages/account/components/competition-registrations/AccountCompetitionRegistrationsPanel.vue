@@ -50,9 +50,14 @@
                   </span>
                 </td>
                 <td class="account__native-table-cell account__native-table-cell--center">
-                  <ElTag :type="getRegistrationStatusTagType(record.status)" effect="light" round>
-                    {{ getRegistrationStatusLabel(record.status) }}
-                  </ElTag>
+                  <div class="account-competition-registrations__status-cell">
+                    <ElTag :type="getRegistrationStatusTagType(record.status)" effect="light" round>
+                      {{ getRegistrationStatusLabel(record.status) }}
+                    </ElTag>
+                    <span class="account-competition-registrations__next-action">
+                      {{ getRegistrationLifecycleSummary(record).nextAction }}
+                    </span>
+                  </div>
                 </td>
                 <td class="account__native-table-cell account__native-table-cell--center">
                   <button
@@ -201,6 +206,11 @@
       :status-label="
         selectedHistoryRegistration ? getRegistrationStatusLabel(selectedHistoryRegistration.status) : ''
       "
+      :lifecycle-label="selectedHistoryRegistrationLifecycle?.label || ''"
+      :lifecycle-description="selectedHistoryRegistrationLifecycle?.description || ''"
+      :lifecycle-next-action="selectedHistoryRegistrationLifecycle?.nextAction || ''"
+      :lifecycle-responsible-label="selectedHistoryRegistrationLifecycle?.responsibleLabel || ''"
+      :lifecycle-blocks-admission="Boolean(selectedHistoryRegistrationLifecycle?.blocksAdmission)"
       :documents-status-tag-type="selectedHistoryRegistrationDocumentsStatus?.tagType || 'info'"
       :documents-status-label="selectedHistoryRegistrationDocumentsStatus?.label || ''"
       :documents-status-description="selectedHistoryRegistrationDocumentsStatus?.description || ''"
@@ -233,7 +243,6 @@ import { useTriStateTextSort } from '@/pages/account/composables/useTriStateText
 import {
   formatCompetitionCalendarDateShort,
   formatCompetitionStageLabel,
-  getAccountDocumentsAdmissionStatus,
 } from '@/pages/account/utils/accountFormatters'
 
 const props = defineProps({
@@ -256,8 +265,6 @@ const selectedHistoryRegistration = ref(null)
 const isHistoryDetailsDialogOpen = ref(false)
 
 const {
-  ownerSnapshot,
-  athleteSnapshots,
   competitionOptions,
   filteredCompetitionRows,
   registrationHistory,
@@ -275,6 +282,8 @@ const {
   updateSelectedRegistration,
   getRegistrationStatusLabel,
   getRegistrationStatusTagType,
+  getRegistrationDocumentsStatus,
+  getRegistrationLifecycleSummary,
   formatParticipantName,
 } = useAccountCompetitionRegistrations({
   currentUser: toRef(props, 'currentUser'),
@@ -301,22 +310,14 @@ const sortedRegistrationHistory = computed(() =>
 )
 
 const selectedHistoryRegistrationDocumentsStatus = computed(() => {
-  const registration = selectedHistoryRegistration.value
-
-  if (!registration) {
-    return null
-  }
-
-  if (registration.participantKind === 'athlete') {
-    const athlete = athleteSnapshots.value.find((item) => item.id === registration.participantId)
-
-    if (athlete) {
-      return getAccountDocumentsAdmissionStatus(athlete.documents || [])
-    }
-  }
-
-  return getAccountDocumentsAdmissionStatus(ownerSnapshot.value.documents || [])
+  return getRegistrationDocumentsStatus(selectedHistoryRegistration.value)
 })
+
+const selectedHistoryRegistrationLifecycle = computed(() =>
+  selectedHistoryRegistration.value
+    ? getRegistrationLifecycleSummary(selectedHistoryRegistration.value)
+    : null,
+)
 
 function handleOpenRegistration(stageId) {
   openRegistrationDialog(stageId)
@@ -647,12 +648,12 @@ watch(
 
 .account__native-table--competition-history th:nth-child(2),
 .account__native-table--competition-history td:nth-child(2) {
-  width: 42%;
+  width: 34%;
 }
 
 .account__native-table--competition-history th:nth-child(3),
 .account__native-table--competition-history td:nth-child(3) {
-  width: 18%;
+  width: 26%;
 }
 
 .account__native-table--competition-history th:nth-child(4),
@@ -670,6 +671,22 @@ watch(
 
 .account-competition-registrations__nowrap {
   white-space: nowrap;
+}
+
+.account-competition-registrations__status-cell {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.account-competition-registrations__next-action {
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #64748b;
+  white-space: normal;
 }
 
 .account__native-table--competition-registrations .account__native-table-cell--center {

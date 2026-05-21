@@ -85,13 +85,18 @@
               </span>
             </td>
             <td class="account__native-table-cell account__native-table-cell--center">
-              <ElTag
-                :type="competitionRegistrationRecordStatusType(registration.status)"
-                effect="light"
-                round
-              >
-                {{ formatCompetitionRegistrationRecordStatus(registration.status) }}
-              </ElTag>
+              <div class="account-competition-registrations-admin__status-cell">
+                <ElTag
+                  :type="competitionRegistrationRecordStatusType(registration.status)"
+                  effect="light"
+                  round
+                >
+                  {{ formatCompetitionRegistrationRecordStatus(registration.status) }}
+                </ElTag>
+                <span class="account-competition-registrations-admin__status-hint">
+                  {{ getRegistrationLifecycleSummary(registration).responsibleLabel }}
+                </span>
+              </div>
             </td>
             <td class="account__native-table-cell account__native-table-cell--center">
               <button
@@ -118,7 +123,7 @@
       :can-edit-status="true"
       :show-save-button="true"
       :show-withdraw-button="false"
-      :status-options="registrationStatusOptions"
+      :status-options="selectedRegistrationStatusOptions"
       :status-tag-type="
         selectedRegistration
           ? competitionRegistrationRecordStatusType(selectedRegistration.status)
@@ -129,6 +134,11 @@
           ? formatCompetitionRegistrationRecordStatus(selectedRegistration.status)
           : ''
       "
+      :lifecycle-label="selectedRegistrationLifecycleSummary?.label || ''"
+      :lifecycle-description="selectedRegistrationLifecycleSummary?.description || ''"
+      :lifecycle-next-action="selectedRegistrationLifecycleSummary?.nextAction || ''"
+      :lifecycle-responsible-label="selectedRegistrationLifecycleSummary?.responsibleLabel || ''"
+      :lifecycle-blocks-admission="Boolean(selectedRegistrationLifecycleSummary?.blocksAdmission)"
       :documents-status-tag-type="selectedRegistrationDocumentsStatus?.tagType || 'info'"
       :documents-status-label="selectedRegistrationDocumentsStatus?.label || ''"
       :documents-status-description="selectedRegistrationDocumentsStatus?.description || ''"
@@ -157,6 +167,9 @@ const {
   openDetailsDialog,
   closeDetailsDialog,
   selectedRegistrationDocumentsStatus,
+  selectedRegistrationLifecycleSummary,
+  selectedRegistrationStatusOptions,
+  getRegistrationLifecycleSummary,
   competitionRegistrationRecordStatusType,
   formatCompetitionRegistrationRecordStatus,
   handleRegistrationSave,
@@ -235,6 +248,20 @@ function getSortAriaLabel(label, columnKey) {
 
 .account-competition-registrations-admin__nowrap {
   white-space: nowrap;
+}
+
+.account-competition-registrations-admin__status-cell {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.account-competition-registrations-admin__status-hint {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #64748b;
 }
 
 .account__native-table--competition-admin-registrations {

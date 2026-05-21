@@ -4,13 +4,17 @@ import {
   getAccountDocumentStatusMeta,
 } from '@/pages/account/utils/accountDocumentTypes'
 import {
+  getApplicationStatusLabel,
+  getApplicationStatusTagType,
+  resolveApplicationLifecycleSummary,
+} from '@/domains/competition-applications/applicationLifecycle'
+import {
   formatCompetitionDateInputValue,
   formatCompetitionDateLabel,
   formatCompetitionDateShortLabel,
   resolveCompetitionRegistrationState,
 } from '@/utils/competitionRegistration'
 import { CONSULTATION_STATUS, TRAINER_BOOKING_STATUS } from '@/pages/account/utils/accountConstants'
-import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
 
 export function getErrorMessage(error, fallback) {
   return error instanceof Error ? error.message : fallback
@@ -466,79 +470,18 @@ export function formatCompetitionRegistrationWindow(registration) {
 }
 
 export function competitionRegistrationRecordStatusType(status) {
-  const normalizedStatus = String(status || '')
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.REVIEWING) {
-    return 'warning'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.NEEDS_FIX) {
-    return 'danger'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.APPROVED) {
-    return 'success'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.PAYMENT_PENDING) {
-    return 'warning'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.PAID) {
-    return 'success'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
-    return 'danger'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED) {
-    return 'primary'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.REJECTED) {
-    return 'danger'
-  }
-
-  return 'info'
+  return getApplicationStatusTagType(status)
 }
 
 export function formatCompetitionRegistrationRecordStatus(status) {
-  const normalizedStatus = String(status || '')
+  return getApplicationStatusLabel(status, { audience: 'user', short: true })
+}
 
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
-    return 'Снята'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.REVIEWING) {
-    return 'На проверке'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.NEEDS_FIX) {
-    return 'Нужно исправить'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.APPROVED) {
-    return 'Одобрена'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.PAYMENT_PENDING) {
-    return 'Ожидает оплаты'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.PAID) {
-    return 'Оплачена'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.REJECTED) {
-    return 'Отклонена'
-  }
-
-  if (normalizedStatus === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED) {
-    return 'Подана'
-  }
-
-  return 'Неизвестно'
+export function resolveCompetitionRegistrationLifecycleSummary(
+  registration,
+  { audience = 'user', documentsStatus = null } = {},
+) {
+  return resolveApplicationLifecycleSummary(registration, { audience, documentsStatus })
 }
 
 function normalizeEmptyDateLabel(value) {

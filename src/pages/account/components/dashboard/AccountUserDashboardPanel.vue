@@ -69,7 +69,10 @@ import {
   readAccountAthletesSnapshot,
   readAccountProfileSnapshot,
 } from '@/pages/account/utils/accountLocalStorage'
-import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
+import {
+  COMPETITION_REGISTRATION_RECORD_STATUS,
+  isCompetitionRegistrationActiveStatus,
+} from '@/pages/account/utils/accountConstants'
 import { resolveAccountAdmissionStatus } from '@/pages/account/utils/accountAdmissions'
 import { readCompetitionRegistrations } from '@/pages/account/utils/accountCompetitionRegistrations'
 
@@ -144,8 +147,8 @@ const admissionHint = computed(() => {
 
 const activeRegistrationsCount = computed(
   () =>
-    registrations.value.filter(
-      (registration) => registration.status === COMPETITION_REGISTRATION_RECORD_STATUS.SUBMITTED,
+    registrations.value.filter((registration) =>
+      isCompetitionRegistrationActiveStatus(registration.status),
     ).length,
 )
 const withdrawnRegistrationsCount = computed(
