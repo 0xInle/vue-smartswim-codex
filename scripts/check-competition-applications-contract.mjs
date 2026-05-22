@@ -4,6 +4,7 @@ import process from 'node:process'
 
 const ENV_PATH = resolve(process.cwd(), '.env.local')
 const PROJECTS_API_BASE_URL = 'https://api.supabase.com/v1/projects'
+const POSTGRES_IDENTIFIER_MAX_LENGTH = 63
 
 const REQUIRED_OBJECTS = {
   table: [
@@ -231,7 +232,7 @@ function normalizeRows(payload) {
 function createFoundSet(rows) {
   return rows.reduce((acc, row) => {
     const objectType = row.object_type || row.objectType || ''
-    const objectName = row.object_name || row.objectName || ''
+    const objectName = normalizePostgresIdentifier(row.object_name || row.objectName || '')
 
     if (!objectType || !objectName) {
       return acc
@@ -251,9 +252,13 @@ function getMissingObjects(foundObjects) {
     const foundNames = foundObjects.get(objectType) || new Set()
 
     return objectNames
-      .filter((objectName) => !foundNames.has(objectName))
+      .filter((objectName) => !foundNames.has(normalizePostgresIdentifier(objectName)))
       .map((objectName) => `${objectType}: ${objectName}`)
   })
+}
+
+function normalizePostgresIdentifier(identifier) {
+  return identifier.slice(0, POSTGRES_IDENTIFIER_MAX_LENGTH)
 }
 
 async function main() {
