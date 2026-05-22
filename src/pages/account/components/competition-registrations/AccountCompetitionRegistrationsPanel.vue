@@ -6,7 +6,21 @@
           <h3 class="account__panel-title">Заявки</h3>
         </div>
 
-        <div v-if="registrationHistory.length" class="account__native-table-wrap">
+        <div
+          v-if="registrationsError"
+          class="account-competition-registrations__notice account-competition-registrations__notice--error"
+        >
+          {{ registrationsError }}
+        </div>
+
+        <div
+          v-else-if="isRegistrationsLoading && !registrationHistory.length"
+          class="account-competition-registrations__notice"
+        >
+          Заявки загружаются...
+        </div>
+
+        <div v-else-if="registrationHistory.length" class="account__native-table-wrap">
           <table class="account__native-table account__native-table--competition-history">
             <thead class="account__native-table-head">
               <tr>
@@ -272,6 +286,8 @@ const {
   selectedStage,
   availableStagesCount,
   openStagesCount,
+  isRegistrationsLoading,
+  registrationsError,
   registrationForm,
   registrationErrors,
   isRegistrationDialogOpen,
@@ -402,7 +418,7 @@ async function handleWithdrawSelectedRegistration() {
   }
 }
 
-function handleUpdateSelectedRegistration(payload) {
+async function handleUpdateSelectedRegistration(payload) {
   const targetId = selectedHistoryRegistration.value?.id
 
   if (!targetId) {
@@ -423,7 +439,7 @@ function handleUpdateSelectedRegistration(payload) {
     patch.status = payload.status
   }
 
-  const updatedRegistration = updateSelectedRegistration(targetId, patch)
+  const updatedRegistration = await updateSelectedRegistration(targetId, patch)
 
   if (updatedRegistration) {
     closeHistoryDetails()
@@ -434,11 +450,11 @@ function handleCloseRegistration() {
   closeRegistrationDialog()
 }
 
-function handleSubmitRegistration() {
+async function handleSubmitRegistration() {
   isSubmitting.value = true
 
   try {
-    const isSaved = handleRegistrationSubmit()
+    const isSaved = await handleRegistrationSubmit()
 
     if (isSaved) {
       isSubmitting.value = false
@@ -505,6 +521,20 @@ watch(
   align-items: end;
   gap: 12px;
   white-space: nowrap;
+}
+
+.account-competition-registrations__notice {
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.9);
+  color: #31526b;
+  font-weight: 800;
+}
+
+.account-competition-registrations__notice--error {
+  border-color: color-mix(in srgb, #d7502f 24%, white);
+  color: #9f341f;
 }
 
 .account-competition-registrations__stat-tag {

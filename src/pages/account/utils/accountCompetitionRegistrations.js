@@ -1,14 +1,20 @@
 import {
   countCompetitionApplicationsByStageId,
   countCompetitionApplicationsForParticipant,
+  createCompetitionApplication,
   createCompetitionApplicationId,
   createCompetitionApplicationRecord,
   getCompetitionApplicationStageNumber,
+  loadAllCompetitionApplicationsForAdmin,
+  loadCompetitionApplicationsForCurrentUser,
+  patchCompetitionApplication,
+  patchCompetitionApplicationByUserKey,
   persistCompetitionApplications,
   persistCompetitionApplicationsByUserKey,
   readAllCompetitionApplications,
   readCompetitionApplications,
   resolveCompetitionApplicationStageId,
+  subscribeToCompetitionApplicationChanges,
   syncCompetitionApplicationAthleteSnapshot,
   syncCompetitionApplicationOwnerSnapshot,
   updateCompetitionApplication,
@@ -34,6 +40,13 @@ export const syncCompetitionRegistrationAthleteSnapshot = syncCompetitionApplica
 export const updateCompetitionRegistrationStatus = updateCompetitionApplicationStatus
 export const updateCompetitionRegistrationByUserKey = updateCompetitionApplicationByUserKey
 export const updateCompetitionRegistrationsByStageId = updateCompetitionApplicationsByStageId
+export const loadCompetitionRegistrationsForCurrentUser =
+  loadCompetitionApplicationsForCurrentUser
+export const loadAllCompetitionRegistrationsForAdmin = loadAllCompetitionApplicationsForAdmin
+export const createCompetitionRegistration = createCompetitionApplication
+export const patchCompetitionRegistration = patchCompetitionApplication
+export const patchCompetitionRegistrationByUserKey = patchCompetitionApplicationByUserKey
+export const subscribeToCompetitionRegistrationChanges = subscribeToCompetitionApplicationChanges
 
 export function buildCompetitionAccountRoute({ competitionSlug = '', stageId = '' } = {}) {
   const url = new URL(import.meta.env.BASE_URL || '/', window.location.origin)

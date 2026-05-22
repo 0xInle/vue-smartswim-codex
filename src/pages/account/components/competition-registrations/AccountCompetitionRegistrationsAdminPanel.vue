@@ -41,7 +41,21 @@
       </div>
     </div>
 
-        <div v-if="filteredRegistrations.length" class="account__native-table-wrap">
+    <div
+      v-if="registrationsError"
+      class="account-competition-registrations-admin__notice account-competition-registrations-admin__notice--error"
+    >
+      {{ registrationsError }}
+    </div>
+
+    <div
+      v-else-if="isRegistrationsLoading && !filteredRegistrations.length"
+      class="account-competition-registrations-admin__notice"
+    >
+      Заявки загружаются...
+    </div>
+
+    <div v-else-if="filteredRegistrations.length" class="account__native-table-wrap">
       <table class="account__native-table account__native-table--competition-admin-registrations">
         <thead class="account__native-table-head">
           <tr>
@@ -161,6 +175,8 @@ const {
   statusFilter,
   filteredRegistrations,
   summary,
+  isRegistrationsLoading,
+  registrationsError,
   stageOptions,
   selectedRegistration,
   isDetailsDialogOpen,
@@ -248,6 +264,21 @@ function getSortAriaLabel(label, columnKey) {
 
 .account-competition-registrations-admin__nowrap {
   white-space: nowrap;
+}
+
+.account-competition-registrations-admin__notice {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.9);
+  color: #31526b;
+  font-weight: 800;
+}
+
+.account-competition-registrations-admin__notice--error {
+  border-color: color-mix(in srgb, #d7502f 24%, white);
+  color: #9f341f;
 }
 
 .account-competition-registrations-admin__status-cell {

@@ -2,11 +2,10 @@ import { computed, reactive, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import {
+  createCompetitionRegistration,
   createCompetitionRegistrationRecord,
-  persistCompetitionRegistrations,
-  readCompetitionRegistrations,
-  updateCompetitionRegistration,
-  updateCompetitionRegistrationStatus,
+  loadCompetitionRegistrationsForCurrentUser,
+  patchCompetitionRegistration,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 import {
   readAccountAthletesSnapshot,
@@ -59,6 +58,8 @@ function formatParticipantLabel(participant) {
 
 export function useAccountCompetitionRegistrations({ currentUser }) {
   const registrations = ref([])
+  const isRegistrationsLoading = ref(false)
+  const registrationsError = ref('')
   const isRegistrationDialogOpen = ref(false)
   const selectedCompetitionStageId = ref('')
   const ownerSnapshot = ref(readAccountProfileSnapshot(currentUser))
@@ -165,8 +166,30 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     athleteSnapshots.value = readAccountAthletesSnapshot(currentUser)
   }
 
-  function loadRegistrations() {
-    registrations.value = readCompetitionRegistrations(currentUser)
+  let loadRequestId = 0
+
+  async function loadRegistrations() {
+    const requestId = loadRequestId + 1
+    loadRequestId = requestId
+    isRegistrationsLoading.value = true
+    registrationsError.value = ''
+
+    try {
+      const nextRegistrations = await loadCompetitionRegistrationsForCurrentUser(currentUser)
+
+      if (requestId === loadRequestId) {
+        registrations.value = nextRegistrations
+      }
+    } catch (error) {
+      if (requestId === loadRequestId) {
+        registrationsError.value =
+          error instanceof Error ? error.message : 'Не удалось загрузить заявки.'
+      }
+    } finally {
+      if (requestId === loadRequestId) {
+        isRegistrationsLoading.value = false
+      }
+    }
   }
 
   function resetRegistrationErrors() {
@@ -274,7 +297,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     return !Object.values(registrationErrors).some(Boolean)
   }
 
-  function handleRegistrationSubmit() {
+  async function handleRegistrationSubmit() {
     if (!validateRegistrationForm() || !selectedStage.value) {
       return false
     }
@@ -310,8 +333,20 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
       statusChangedBy: ownerSnapshot.value.fullName || currentUser?.value?.name || 'user',
     })
 
-    registrations.value = [record, ...registrations.value]
-    persistCompetitionRegistrations(currentUser, registrations.value)
+    try {
+      const savedRecord = await createCompetitionRegistration(currentUser, record)
+
+      registrations.value = [
+        savedRecord,
+        ...registrations.value.filter((registration) => registration.id !== savedRecord.id),
+      ]
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось создать заявку', {
+        type: 'error',
+      })
+      return false
+    }
+
     showToast('Заявка на соревнования создана')
     closeRegistrationDialog()
     return true
@@ -344,14 +379,25 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
       return false
     }
 
-    const updatedRegistration = updateCompetitionRegistrationStatus(
-      currentUser,
-      registrationId,
-      COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN,
-      {
-        statusChangedBy: ownerSnapshot.value.fullName || currentUser?.value?.name || 'user',
-      },
-    )
+    let updatedRegistration = null
+
+    try {
+      updatedRegistration = await patchCompetitionRegistration(
+        currentUser,
+        registrationId,
+        {
+          status: COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN,
+        },
+        {
+          statusChangedBy: ownerSnapshot.value.fullName || currentUser?.value?.name || 'user',
+        },
+      )
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось снять спортсмена', {
+        type: 'error',
+      })
+      return false
+    }
 
     if (!updatedRegistration) {
       return false
@@ -363,6 +409,36 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
 
     showToast('Спортсмен снят с соревнований')
     return true
+  }
+
+  async function updateSelectedRegistration(registrationId, patch = {}) {
+    let updatedRegistration = null
+
+    try {
+      updatedRegistration = await patchCompetitionRegistration(
+        currentUser,
+        registrationId,
+        patch,
+        {
+          statusChangedBy: ownerSnapshot.value.fullName || currentUser?.value?.name || 'user',
+        },
+      )
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось обновить заявку', {
+        type: 'error',
+      })
+      return null
+    }
+
+    if (!updatedRegistration) {
+      return null
+    }
+
+    registrations.value = registrations.value.map((registration) =>
+      registration.id === registrationId ? updatedRegistration : registration,
+    )
+
+    return updatedRegistration
   }
 
   function getRegistrationStatusLabel(status) {
@@ -396,27 +472,6 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     })
   }
 
-  function updateSelectedRegistration(registrationId, patch = {}) {
-    const updatedRegistration = updateCompetitionRegistration(
-      currentUser,
-      registrationId,
-      patch,
-      {
-        statusChangedBy: ownerSnapshot.value.fullName || currentUser?.value?.name || 'user',
-      },
-    )
-
-    if (!updatedRegistration) {
-      return null
-    }
-
-    registrations.value = registrations.value.map((registration) =>
-      registration.id === registrationId ? updatedRegistration : registration,
-    )
-
-    return updatedRegistration
-  }
-
   function formatParticipantName(record) {
     return formatParticipantLabel({
       kind: record.participantKind,
@@ -438,7 +493,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
 
   watch(currentUserKey, () => {
     syncSnapshots()
-    loadRegistrations()
+    void loadRegistrations()
   }, { immediate: true })
 
   return {
@@ -454,6 +509,8 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     openStagesCount,
     registrationsCount,
     activeRegistrationsCount,
+    isRegistrationsLoading,
+    registrationsError,
     registrationForm,
     registrationErrors,
     isRegistrationDialogOpen,

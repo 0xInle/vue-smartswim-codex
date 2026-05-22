@@ -2,9 +2,11 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import {
-  readAllCompetitionRegistrations,
-  updateCompetitionRegistrationByUserKey,
+  loadAllCompetitionRegistrationsForAdmin,
+  patchCompetitionRegistrationByUserKey,
+  subscribeToCompetitionRegistrationChanges,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
+import { isSupabaseCompetitionApplicationSource } from '@/domains/competition-applications/applicationSource'
 import {
   readAccountAthletesSnapshot,
   readAccountProfileSnapshot,
@@ -66,9 +68,33 @@ export function useAccountCompetitionRegistrationsAdmin() {
   const statusFilter = ref('all')
   const selectedRegistrationId = ref('')
   const isDetailsDialogOpen = ref(false)
+  const isRegistrationsLoading = ref(false)
+  const registrationsError = ref('')
+  let loadRequestId = 0
+  let unsubscribeFromCompetitionApplications = null
 
-  function loadRegistrations() {
-    registrations.value = readAllCompetitionRegistrations()
+  async function loadRegistrations() {
+    const requestId = loadRequestId + 1
+    loadRequestId = requestId
+    isRegistrationsLoading.value = true
+    registrationsError.value = ''
+
+    try {
+      const nextRegistrations = await loadAllCompetitionRegistrationsForAdmin()
+
+      if (requestId === loadRequestId) {
+        registrations.value = nextRegistrations
+      }
+    } catch (error) {
+      if (requestId === loadRequestId) {
+        registrationsError.value =
+          error instanceof Error ? error.message : 'Не удалось загрузить заявки.'
+      }
+    } finally {
+      if (requestId === loadRequestId) {
+        isRegistrationsLoading.value = false
+      }
+    }
   }
 
   const stageOptions = computed(() =>
@@ -101,39 +127,63 @@ export function useAccountCompetitionRegistrationsAdmin() {
       return null
     }
 
-    const sourceUser =
-      readAccountUsersSnapshot().find(
-        (item) => item.id === registration.sourceUserKey || item.email === registration.sourceUserKey,
-      ) || {
+    const sourceUser = readAccountUsersSnapshot().find(
+      (item) => item.id === registration.sourceUserKey || item.email === registration.sourceUserKey,
+    )
+
+    if (!sourceUser && isSupabaseCompetitionApplicationSource()) {
+      return {
+        status: 'unknown',
+        label: 'Нет данных',
+        description: 'Проверьте документы в карточке пользователя.',
+        tagType: 'info',
+      }
+    }
+
+    const sourceUserSnapshot =
+      sourceUser || {
         id: registration.sourceUserKey,
         email: registration.ownerEmail || '',
         name: registration.ownerName || '',
         phone: registration.ownerPhone || '',
       }
 
-    if (!sourceUser) {
-      return null
-    }
-
     if (registration.participantKind === 'athlete') {
-      const athlete = readAccountAthletesSnapshot(sourceUser).find(
+      const athlete = readAccountAthletesSnapshot(sourceUserSnapshot).find(
         (item) => item.id === registration.participantId,
       )
 
       if (athlete) {
         return getAccountDocumentsAdmissionStatus(athlete.documents || [])
       }
+
+      if (isSupabaseCompetitionApplicationSource()) {
+        return {
+          status: 'unknown',
+          label: 'Нет данных',
+          description: 'Проверьте документы в карточке пользователя.',
+          tagType: 'info',
+        }
+      }
     }
 
-    const profile = readAccountProfileSnapshot(sourceUser)
+    const profile = readAccountProfileSnapshot(sourceUserSnapshot)
     const profileDocuments = profile.documents || []
-    const sourceUserDocuments = sourceUser.documents || []
+    const sourceUserDocuments = sourceUserSnapshot.documents || []
+    const documents = profileDocuments.some((document) => document.status !== 'missing')
+      ? profileDocuments
+      : sourceUserDocuments
 
-    return getAccountDocumentsAdmissionStatus(
-      profileDocuments.some((document) => document.status !== 'missing')
-        ? profileDocuments
-        : sourceUserDocuments,
-    )
+    if (isSupabaseCompetitionApplicationSource() && !documents.length) {
+      return {
+        status: 'unknown',
+        label: 'Нет данных',
+        description: 'Проверьте документы в карточке пользователя.',
+        tagType: 'info',
+      }
+    }
+
+    return getAccountDocumentsAdmissionStatus(documents)
   })
 
   const selectedRegistrationLifecycleSummary = computed(() =>
@@ -210,7 +260,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     isDetailsDialogOpen.value = false
   }
 
-  function updateSelectedRegistration(
+  async function updateSelectedRegistration(
     patch = {},
     { closeDialog = false, toastMessage = 'Заявка обновлена' } = {},
   ) {
@@ -220,18 +270,27 @@ export function useAccountCompetitionRegistrationsAdmin() {
       return null
     }
 
-    const updatedRegistration = updateCompetitionRegistrationByUserKey(
-      registration.sourceUserKey,
-      registration.id,
-      patch,
-      { statusChangedBy: 'admin' },
-    )
+    let updatedRegistration = null
+
+    try {
+      updatedRegistration = await patchCompetitionRegistrationByUserKey(
+        registration.sourceUserKey,
+        registration.id,
+        patch,
+        { statusChangedBy: 'admin' },
+      )
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось обновить заявку', {
+        type: 'error',
+      })
+      return null
+    }
 
     if (!updatedRegistration) {
       return null
     }
 
-    loadRegistrations()
+    await loadRegistrations()
 
     if (closeDialog) {
       closeDetailsDialog()
@@ -244,7 +303,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     return updatedRegistration
   }
 
-  function handleRegistrationSave(payload) {
+  async function handleRegistrationSave(payload) {
     const stageId = typeof payload === 'string' ? payload : payload?.stageId
     const registrationKind = typeof payload === 'object' && payload ? payload.registrationKind : ''
     const status = typeof payload === 'object' && payload ? payload.status : ''
@@ -270,7 +329,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
       return
     }
 
-    updateSelectedRegistration(patch, {
+    await updateSelectedRegistration(patch, {
       closeDialog: true,
       toastMessage: 'Заявка обновлена',
     })
@@ -303,14 +362,14 @@ export function useAccountCompetitionRegistrationsAdmin() {
       },
     )
       .then(() => {
-        const updatedRegistration = updateSelectedRegistration(
+        void updateSelectedRegistration(
           { status: COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN },
           { closeDialog: true, toastMessage: '' },
-        )
-
-        if (updatedRegistration) {
-          showToast('Участник снят с соревнований')
-        }
+        ).then((updatedRegistration) => {
+          if (updatedRegistration) {
+            showToast('Участник снят с соревнований')
+          }
+        })
       })
       .catch(() => {})
   }
@@ -322,19 +381,32 @@ export function useAccountCompetitionRegistrationsAdmin() {
       return
     }
 
-    loadRegistrations()
+    void loadRegistrations()
   }
 
   onMounted(() => {
+    void loadRegistrations()
+
+    if (isSupabaseCompetitionApplicationSource()) {
+      unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
+        void loadRegistrations()
+      })
+      return
+    }
+
     if (typeof window === 'undefined') {
       return
     }
 
-    loadRegistrations()
     window.addEventListener('storage', handleStorageChange)
   })
 
   onBeforeUnmount(() => {
+    if (unsubscribeFromCompetitionApplications) {
+      unsubscribeFromCompetitionApplications()
+      unsubscribeFromCompetitionApplications = null
+    }
+
     if (typeof window === 'undefined') {
       return
     }
@@ -348,6 +420,8 @@ export function useAccountCompetitionRegistrationsAdmin() {
     statusFilter,
     filteredRegistrations,
     summary,
+    isRegistrationsLoading,
+    registrationsError,
     stageOptions,
     selectedRegistration,
     isDetailsDialogOpen,

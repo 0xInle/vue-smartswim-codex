@@ -1,4 +1,5 @@
 import { isApplicationStatusActive } from './applicationLifecycle.js'
+import { isSupabaseCompetitionApplicationSource } from './applicationSource.js'
 import {
   applyCompetitionApplicationPatch,
   createCompetitionApplicationRecord,
@@ -15,6 +16,13 @@ import {
   readCompetitionApplicationsByStorageKey,
   writeCompetitionApplicationsByStorageKey,
 } from './localApplicationStorage.js'
+import {
+  createSupabaseCompetitionApplication,
+  fetchAllCompetitionApplicationsForAdmin,
+  fetchCompetitionApplicationsForCurrentUser,
+  subscribeToCompetitionApplications,
+  updateSupabaseCompetitionApplication,
+} from './supabaseApplicationAdapter.js'
 
 export {
   createCompetitionApplicationId,
@@ -112,6 +120,78 @@ export function updateCompetitionApplicationStatus(
   { statusChangedBy = 'user' } = {},
 ) {
   return updateCompetitionApplication(currentUser, applicationId, { status }, { statusChangedBy })
+}
+
+export async function loadCompetitionApplicationsForCurrentUser(currentUser) {
+  if (isSupabaseCompetitionApplicationSource()) {
+    return fetchCompetitionApplicationsForCurrentUser()
+  }
+
+  return readCompetitionApplications(currentUser)
+}
+
+export async function loadAllCompetitionApplicationsForAdmin() {
+  if (isSupabaseCompetitionApplicationSource()) {
+    return fetchAllCompetitionApplicationsForAdmin()
+  }
+
+  return readAllCompetitionApplications()
+}
+
+export async function createCompetitionApplication(currentUser, application) {
+  if (isSupabaseCompetitionApplicationSource()) {
+    return createSupabaseCompetitionApplication(application)
+  }
+
+  const applications = readCompetitionApplications(currentUser)
+  const record = normalizeCompetitionApplicationRecord(
+    application,
+    getCompetitionApplicationUserKey(currentUser),
+  )
+
+  persistCompetitionApplications(currentUser, [record, ...applications])
+
+  return record
+}
+
+export async function patchCompetitionApplication(
+  currentUser,
+  applicationId,
+  patch = {},
+  { statusChangedBy = 'user' } = {},
+) {
+  if (isSupabaseCompetitionApplicationSource()) {
+    return updateSupabaseCompetitionApplication(applicationId, {
+      ...patch,
+      statusChangedBy: patch.statusChangedBy || statusChangedBy,
+    })
+  }
+
+  return updateCompetitionApplication(currentUser, applicationId, patch, { statusChangedBy })
+}
+
+export async function patchCompetitionApplicationByUserKey(
+  userKey,
+  applicationId,
+  patch = {},
+  { statusChangedBy = 'admin' } = {},
+) {
+  if (isSupabaseCompetitionApplicationSource()) {
+    return updateSupabaseCompetitionApplication(applicationId, {
+      ...patch,
+      statusChangedBy: patch.statusChangedBy || statusChangedBy,
+    })
+  }
+
+  return updateCompetitionApplicationByUserKey(userKey, applicationId, patch, { statusChangedBy })
+}
+
+export function subscribeToCompetitionApplicationChanges(callback) {
+  if (isSupabaseCompetitionApplicationSource()) {
+    return subscribeToCompetitionApplications(callback)
+  }
+
+  return () => {}
 }
 
 export function updateCompetitionApplicationByUserKey(
