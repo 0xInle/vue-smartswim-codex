@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "supabase:list-tables": "node scripts/list-supabase-tables.mjs",
+    "supabase:check-competition-applications": "node scripts/check-competition-applications-contract.mjs",
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",

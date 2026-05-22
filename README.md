@@ -96,6 +96,7 @@ npm run dev
 4. Откройте `SQL Editor` в Supabase.
 5. Выполните SQL из файла [supabase/crm_users.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/crm_users.sql).
 6. Выполните SQL из файла [supabase/consultation_requests.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/consultation_requests.sql).
+7. Выполните SQL из файла [supabase/competition_applications.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/competition_applications.sql), если включаете Supabase-backed contract для заявок на соревнования.
 
 Этот SQL:
 
@@ -113,6 +114,15 @@ SQL для `consultation_requests`:
 - создает таблицу заявок на консультацию;
 - оставляет публичный `insert` для hero-формы на главной;
 - ограничивает `select/update/delete` по заявкам только ролью `admin`.
+
+SQL для `competition_applications`:
+
+- создает таблицу заявок на соревнования;
+- создает таблицу событий статусов заявок;
+- включает `row level security`;
+- разрешает пользователю читать свои заявки и создавать заявки только от своего `auth.uid()`;
+- разрешает администратору читать и обрабатывать все заявки;
+- добавляет constraints для lifecycle-статусов, индексы и realtime publication guards.
 
 ## Роли
 
@@ -201,6 +211,14 @@ npm run supabase:list-tables
 
 Для этой команды нужен `SUPABASE_ACCESS_TOKEN` с доступом к проекту. Если `SUPABASE_PROJECT_REF` не задан, команда попытается извлечь его из `VITE_SUPABASE_URL`.
 
+Проверить, что Supabase contract для заявок на соревнования применен:
+
+```sh
+npm run supabase:check-competition-applications
+```
+
+Команда read-only и проверяет наличие таблиц, RLS, policies, constraints, triggers и индексов из `supabase/competition_applications.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
+
 ## Проверка после установки
 
 Если хотите быстро проверить, что проект поднялся корректно:
@@ -237,7 +255,9 @@ npm run supabase:list-tables
 - заполнены ли `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY`
 - выполнен ли SQL из `supabase/crm_users.sql`
 - выполнен ли SQL из `supabase/consultation_requests.sql`
+- выполнен ли SQL из `supabase/competition_applications.sql`, если проверяете заявки на соревнования в Supabase
 - для `npm run supabase:list-tables` заполнен ли `SUPABASE_ACCESS_TOKEN`
+- для `npm run supabase:check-competition-applications` заполнен ли `SUPABASE_ACCESS_TOKEN`
 
 ### Открывается `/account`, но нет профиля пользователя
 
