@@ -1,12 +1,16 @@
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { isSupabaseCompetitionApplicationSource } from '@/domains/competition-applications/applicationSource'
 import {
   buildAccountCompetitionStages,
   buildCompetitionSeriesOptions,
 } from '@/pages/account/accountCompetitionStages.data'
 import {
   countCompetitionRegistrationsByStageId,
-  updateCompetitionRegistrationsByStageId,
+  loadAllCompetitionRegistrationsForAdmin,
+  subscribeToCompetitionRegistrationChanges,
+  updateCompetitionRegistrationsByStageIdFromSource,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
+import { isCompetitionRegistrationActiveStatus } from '@/pages/account/utils/accountConstants'
 import { competitionDirections } from '@/pages/competitions/competitionData'
 import { publicAsset } from '@/utils/publicAsset'
 import { showToast } from '@/utils/toast'
@@ -143,6 +147,18 @@ function isCompetitionStageArchived(stage, now = Date.now()) {
   return Number.isFinite(archiveTimestamp) ? now >= archiveTimestamp : false
 }
 
+function getRegistrationStageNumber(registration = {}) {
+  const stageIdMatch = String(registration.stageId || '').match(/stage-(\d+)$/)
+
+  if (stageIdMatch) {
+    return Number(stageIdMatch[1]) || null
+  }
+
+  const stageLabelMatch = String(registration.stageLabel || '').match(/\d+/)
+
+  return stageLabelMatch ? Number(stageLabelMatch[0]) || null : null
+}
+
 export function useCompetitionStages() {
   const competitionStages = ref(
     buildAccountCompetitionStages().map((stage) => ({
@@ -154,6 +170,8 @@ export function useCompetitionStages() {
   )
   const competitionFilter = ref('all')
   const competitionViewFilter = ref('active')
+  const stageActiveRegistrationCounts = ref({})
+  let unsubscribeFromCompetitionApplications = null
 
   const filteredCompetitionSeriesStages = computed(() =>
     competitionStages.value.filter((stage) =>
@@ -198,7 +216,65 @@ export function useCompetitionStages() {
     ).length
   })
 
-  function updateCompetitionStage(
+  function applyStageRegistrationCounts(registrations = []) {
+    const nextCounts = {}
+
+    registrations.forEach((registration) => {
+      if (!registration.stageId || !isCompetitionRegistrationActiveStatus(registration.status)) {
+        return
+      }
+
+      const targetStage = competitionStages.value.find((stage) =>
+        registrationMatchesStage(registration, stage),
+      )
+      const countKey = targetStage?.id || registration.stageId
+
+      nextCounts[countKey] = (nextCounts[countKey] || 0) + 1
+    })
+
+    stageActiveRegistrationCounts.value = nextCounts
+  }
+
+  function registrationMatchesStage(registration = {}, stage = {}) {
+    if (!registration.stageId || !stage.id) {
+      return false
+    }
+
+    if (registration.stageId === stage.id) {
+      return true
+    }
+
+    if (registration.competitionName !== stage.competitionName) {
+      return false
+    }
+
+    return getRegistrationStageNumber(registration) === Number(stage.stage)
+  }
+
+  async function refreshStageRegistrationCounts() {
+    try {
+      applyStageRegistrationCounts(await loadAllCompetitionRegistrationsForAdmin())
+    } catch {
+      stageActiveRegistrationCounts.value = {}
+    }
+  }
+
+  async function countActiveRegistrationsForStage(stage) {
+    if (!isSupabaseCompetitionApplicationSource()) {
+      return countCompetitionRegistrationsByStageId(stage.id)
+    }
+
+    const registrations = await loadAllCompetitionRegistrationsForAdmin()
+    applyStageRegistrationCounts(registrations)
+
+    return registrations.filter(
+      (registration) =>
+        registrationMatchesStage(registration, stage) &&
+        isCompetitionRegistrationActiveStatus(registration.status),
+    ).length
+  }
+
+  async function updateCompetitionStage(
     stageId,
     { competitionName, date, openAt, closeAt, protocolUrl, photoUrl } = {},
   ) {
@@ -261,11 +337,18 @@ export function useCompetitionStages() {
       targetStage.photoUrl = photoUrl
     }
 
-    updateCompetitionRegistrationsByStageId(targetStage.id, {
-      competitionName: targetStage.competitionName,
-      competitionDateLabel: formatCompetitionDateLabel(targetStage.date),
-      competitionWindowLabel: resolveCompetitionWindowLabel(targetStage.registration),
-    })
+    void updateCompetitionRegistrationsByStageIdFromSource(
+      targetStage.id,
+      {
+        competitionName: targetStage.competitionName,
+        competitionDateLabel: formatCompetitionDateLabel(targetStage.date),
+        competitionWindowLabel: resolveCompetitionWindowLabel(targetStage.registration),
+      },
+    )
+      .then(() => refreshStageRegistrationCounts())
+      .catch(() => {
+        showToast('Не удалось обновить связанные заявки этапа', { type: 'error' })
+      })
 
     const direction = findDirectionBySlug(competitionSlug)
 
@@ -316,20 +399,31 @@ export function useCompetitionStages() {
   }
 
   function updateCompetitionStageLinks(stageId, { protocolUrl, photoUrl } = {}) {
-    updateCompetitionStage(stageId, { protocolUrl, photoUrl })
+    void updateCompetitionStage(stageId, { protocolUrl, photoUrl })
   }
 
-  function deleteCompetitionStage(stageId) {
+  async function deleteCompetitionStage(stageId) {
     const targetStage = competitionStages.value.find((stage) => stage.id === stageId)
 
     if (!targetStage) {
       return
     }
 
-    const activeRegistrationsCount = countCompetitionRegistrationsByStageId(stageId)
+    let activeRegistrationsCount = 0
+
+    try {
+      activeRegistrationsCount = await countActiveRegistrationsForStage(targetStage)
+    } catch {
+      showToast('Не удалось проверить заявки этапа. Этап не удалён.', { type: 'error' })
+      return
+    }
 
     if (activeRegistrationsCount > 0) {
       showToast('Нельзя удалить этап: на него есть активные заявки', { type: 'error' })
+      stageActiveRegistrationCounts.value = {
+        ...stageActiveRegistrationCounts.value,
+        [stageId]: activeRegistrationsCount,
+      }
       return
     }
 
@@ -348,9 +442,14 @@ export function useCompetitionStages() {
     }
 
     direction.cards.splice(directionCardIndex, 1)
+    void refreshStageRegistrationCounts()
   }
 
   function getStageActiveRegistrationsCount(stageId) {
+    if (isSupabaseCompetitionApplicationSource()) {
+      return stageActiveRegistrationCounts.value[stageId] || 0
+    }
+
     return countCompetitionRegistrationsByStageId(stageId)
   }
 
@@ -472,6 +571,23 @@ export function useCompetitionStages() {
 
     competitionStages.value.push(row)
   }
+
+  onMounted(() => {
+    void refreshStageRegistrationCounts()
+
+    if (isSupabaseCompetitionApplicationSource()) {
+      unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
+        void refreshStageRegistrationCounts()
+      })
+    }
+  })
+
+  onBeforeUnmount(() => {
+    if (unsubscribeFromCompetitionApplications) {
+      unsubscribeFromCompetitionApplications()
+      unsubscribeFromCompetitionApplications = null
+    }
+  })
 
   return {
     competitionStages,

@@ -84,6 +84,69 @@ export function countCompetitionApplicationsByStageId(stageId, { status = 'activ
   }).length
 }
 
+function countApplicationsByStageId(applications, stageId, { status = 'active' } = {}) {
+  if (!stageId) {
+    return 0
+  }
+
+  return applications.filter((application) => {
+    if (application.stageId !== stageId) {
+      return false
+    }
+
+    if (status === 'all') {
+      return true
+    }
+
+    if (status === 'active') {
+      return isApplicationStatusActive(application.status)
+    }
+
+    return application.status === status
+  }).length
+}
+
+function countApplicationsForParticipant(
+  applications,
+  { participantKind = '', participantId = '', status = 'active' } = {},
+) {
+  if (!participantKind || !participantId) {
+    return 0
+  }
+
+  return applications.filter((application) => {
+    if (
+      application.participantKind !== participantKind ||
+      application.participantId !== participantId
+    ) {
+      return false
+    }
+
+    if (status === 'all') {
+      return true
+    }
+
+    if (status === 'active') {
+      return isApplicationStatusActive(application.status)
+    }
+
+    return application.status === status
+  }).length
+}
+
+export async function countCompetitionApplicationsByStageIdFromSource(
+  stageId,
+  { status = 'active' } = {},
+) {
+  if (isSupabaseCompetitionApplicationSource()) {
+    const applications = await fetchAllCompetitionApplicationsForAdmin()
+
+    return countApplicationsByStageId(applications, stageId, { status })
+  }
+
+  return countCompetitionApplicationsByStageId(stageId, { status })
+}
+
 export function updateCompetitionApplication(
   currentUser,
   applicationId,
@@ -281,6 +344,35 @@ export function updateCompetitionApplicationsByStageId(
   return updatedCount
 }
 
+export async function updateCompetitionApplicationsByStageIdFromSource(
+  stageId,
+  patch = {},
+  { statusChangedBy = 'admin' } = {},
+) {
+  if (isSupabaseCompetitionApplicationSource()) {
+    if (!stageId) {
+      return 0
+    }
+
+    const applications = await fetchAllCompetitionApplicationsForAdmin()
+    const targetApplications = applications.filter((application) => application.stageId === stageId)
+
+    await Promise.all(
+      targetApplications.map((application) =>
+        updateSupabaseCompetitionApplication(application.id, {
+          ...patch,
+          stageId,
+          statusChangedBy: patch.statusChangedBy || statusChangedBy,
+        }),
+      ),
+    )
+
+    return targetApplications.length
+  }
+
+  return updateCompetitionApplicationsByStageId(stageId, patch, { statusChangedBy })
+}
+
 export function countCompetitionApplicationsForParticipant(
   currentUser,
   { participantKind = '', participantId = '', status = 'active' } = {},
@@ -307,6 +399,23 @@ export function countCompetitionApplicationsForParticipant(
 
     return application.status === status
   }).length
+}
+
+export async function countCompetitionApplicationsForParticipantFromSource(
+  currentUser,
+  { participantKind = '', participantId = '', status = 'active' } = {},
+) {
+  if (isSupabaseCompetitionApplicationSource()) {
+    const applications = await fetchCompetitionApplicationsForCurrentUser()
+
+    return countApplicationsForParticipant(applications, { participantKind, participantId, status })
+  }
+
+  return countCompetitionApplicationsForParticipant(currentUser, {
+    participantKind,
+    participantId,
+    status,
+  })
 }
 
 export function syncCompetitionApplicationOwnerSnapshot(currentUser, profile = {}) {
@@ -351,6 +460,14 @@ export function syncCompetitionApplicationOwnerSnapshot(currentUser, profile = {
   return updatedCount
 }
 
+export async function syncCompetitionApplicationOwnerSnapshotFromSource(currentUser, profile = {}) {
+  if (isSupabaseCompetitionApplicationSource()) {
+    return 0
+  }
+
+  return syncCompetitionApplicationOwnerSnapshot(currentUser, profile)
+}
+
 export function syncCompetitionApplicationAthleteSnapshot(currentUser, athlete = {}) {
   if (!athlete?.id) {
     return 0
@@ -380,4 +497,15 @@ export function syncCompetitionApplicationAthleteSnapshot(currentUser, athlete =
   }
 
   return updatedCount
+}
+
+export async function syncCompetitionApplicationAthleteSnapshotFromSource(
+  currentUser,
+  athlete = {},
+) {
+  if (isSupabaseCompetitionApplicationSource()) {
+    return 0
+  }
+
+  return syncCompetitionApplicationAthleteSnapshot(currentUser, athlete)
 }

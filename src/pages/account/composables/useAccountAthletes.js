@@ -14,8 +14,8 @@ import {
 } from '@/pages/account/utils/accountDocumentRegistry'
 import { stripAccountDocumentFileData } from '@/pages/account/utils/accountLocalStorage'
 import {
-  countCompetitionRegistrationsForParticipant,
-  syncCompetitionRegistrationAthleteSnapshot,
+  countCompetitionRegistrationsForParticipantFromSource,
+  syncCompetitionRegistrationAthleteSnapshotFromSource,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 
 const ATHLETES_STORAGE_KEY = 'smartswim:account-athletes:v1'
@@ -259,11 +259,23 @@ export function useAccountAthletes({ currentUser }) {
         closeOnPressEscape: true,
       },
     )
-      .then(() => {
-        const activeRegistrationsCount = countCompetitionRegistrationsForParticipant(currentUser, {
-          participantKind: 'athlete',
-          participantId: athleteId,
-        })
+      .then(async () => {
+        let activeRegistrationsCount = 0
+
+        try {
+          activeRegistrationsCount = await countCompetitionRegistrationsForParticipantFromSource(
+            currentUser,
+            {
+              participantKind: 'athlete',
+              participantId: athleteId,
+            },
+          )
+        } catch {
+          showToast('Не удалось проверить заявки спортсмена. Спортсмен не удалён.', {
+            type: 'error',
+          })
+          return
+        }
 
         if (activeRegistrationsCount > 0) {
           showToast('Нельзя удалить спортсмена: есть активные заявки на соревнования', {
@@ -354,7 +366,7 @@ export function useAccountAthletes({ currentUser }) {
     }
 
     syncAthleteDocumentReviews(payload)
-    syncCompetitionRegistrationAthleteSnapshot(currentUser, payload)
+    void syncCompetitionRegistrationAthleteSnapshotFromSource(currentUser, payload)
 
     showToast(editingAthleteId.value ? 'Спортсмен сохранён' : 'Спортсмен добавлен')
     resetForm()

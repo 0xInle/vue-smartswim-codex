@@ -114,7 +114,7 @@ import {
   readAccountProfileSnapshot,
   writeAccountProfileSnapshot,
 } from '@/pages/account/utils/accountLocalStorage'
-import { syncCompetitionRegistrationOwnerSnapshot } from '@/pages/account/utils/accountCompetitionRegistrations'
+import { syncCompetitionRegistrationOwnerSnapshotFromSource } from '@/pages/account/utils/accountCompetitionRegistrations'
 
 const props = defineProps({
   currentUser: {
@@ -353,7 +353,7 @@ function handleSubmit() {
   }
 
   syncProfileDocumentReviews()
-  syncCompetitionRegistrationOwnerSnapshot(currentUserRef, profile)
+  void syncCompetitionRegistrationOwnerSnapshotFromSource(currentUserRef, profile)
   showToast('Профиль сохранён')
 }
 
