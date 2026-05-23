@@ -1,9 +1,28 @@
 import { getSupabaseClient, getSupabaseConfigError } from '@/utils/supabaseClient'
 
 export const SUPABASE_MIN_PASSWORD_LENGTH = 6
+const SUPABASE_AUTH_REQUEST_TIMEOUT_MS = 15000
+const SUPABASE_AUTH_TIMEOUT_MESSAGE =
+  'Запрос к Supabase занял слишком много времени. Проверьте соединение и попробуйте снова.'
 
 function toError(message, fallback = 'Не удалось выполнить запрос к Supabase.') {
   return new Error(message || fallback)
+}
+
+async function withAuthTimeout(request) {
+  let timeoutId = 0
+
+  const timeout = new Promise((_, reject) => {
+    timeoutId = globalThis.setTimeout(() => {
+      reject(toError(SUPABASE_AUTH_TIMEOUT_MESSAGE))
+    }, SUPABASE_AUTH_REQUEST_TIMEOUT_MS)
+  })
+
+  try {
+    return await Promise.race([request, timeout])
+  } finally {
+    globalThis.clearTimeout(timeoutId)
+  }
 }
 
 function isObfuscatedSignUpUser(user) {
@@ -34,16 +53,18 @@ export function normalizeAuthUser(user) {
 }
 
 export async function signUpWithPassword({ email, password, name, emailRedirectTo }) {
-  const { data, error } = await getSupabaseClient().auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo,
-      data: {
-        name,
+  const { data, error } = await withAuthTimeout(
+    getSupabaseClient().auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo,
+        data: {
+          name,
+        },
       },
-    },
-  })
+    }),
+  )
 
   if (error) {
     throw toError(error.message, 'Не удалось зарегистрироваться.')
@@ -57,10 +78,12 @@ export async function signUpWithPassword({ email, password, name, emailRedirectT
 }
 
 export async function signInWithPassword({ email, password }) {
-  const { data, error } = await getSupabaseClient().auth.signInWithPassword({
-    email,
-    password,
-  })
+  const { data, error } = await withAuthTimeout(
+    getSupabaseClient().auth.signInWithPassword({
+      email,
+      password,
+    }),
+  )
 
   if (error) {
     throw toError(error.message, 'Не удалось войти в личный кабинет.')
@@ -70,9 +93,11 @@ export async function signInWithPassword({ email, password }) {
 }
 
 export async function requestPasswordReset({ email, redirectTo }) {
-  const { data, error } = await getSupabaseClient().auth.resetPasswordForEmail(email, {
-    redirectTo,
-  })
+  const { data, error } = await withAuthTimeout(
+    getSupabaseClient().auth.resetPasswordForEmail(email, {
+      redirectTo,
+    }),
+  )
 
   if (error) {
     throw toError(error.message, 'Не удалось отправить письмо для восстановления пароля.')
@@ -82,9 +107,11 @@ export async function requestPasswordReset({ email, redirectTo }) {
 }
 
 export async function updateCurrentUserPassword({ password }) {
-  const { data, error } = await getSupabaseClient().auth.updateUser({
-    password,
-  })
+  const { data, error } = await withAuthTimeout(
+    getSupabaseClient().auth.updateUser({
+      password,
+    }),
+  )
 
   if (error) {
     throw toError(error.message, 'Не удалось обновить пароль.')
@@ -94,7 +121,7 @@ export async function updateCurrentUserPassword({ password }) {
 }
 
 export async function signOutCurrentUser() {
-  const { error } = await getSupabaseClient().auth.signOut()
+  const { error } = await withAuthTimeout(getSupabaseClient().auth.signOut())
 
   if (error) {
     throw toError(error.message, 'Не удалось завершить сессию.')
@@ -102,7 +129,7 @@ export async function signOutCurrentUser() {
 }
 
 export async function getCurrentSession() {
-  const { data, error } = await getSupabaseClient().auth.getSession()
+  const { data, error } = await withAuthTimeout(getSupabaseClient().auth.getSession())
 
   if (error) {
     throw toError(error.message, getSupabaseConfigError())
@@ -112,7 +139,7 @@ export async function getCurrentSession() {
 }
 
 export async function getCurrentUser() {
-  const { data, error } = await getSupabaseClient().auth.getUser()
+  const { data, error } = await withAuthTimeout(getSupabaseClient().auth.getUser())
 
   if (error) {
     throw toError(error.message, 'Не удалось получить данные пользователя.')
