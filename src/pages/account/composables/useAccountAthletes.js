@@ -17,6 +17,12 @@ import {
   countCompetitionRegistrationsForParticipantFromSource,
   syncCompetitionRegistrationAthleteSnapshotFromSource,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
+import {
+  isSupabaseAccountDocumentsSource,
+  loadAccountDocumentsForCurrentUser,
+  saveAccountDocumentForCurrentUser,
+  subscribeToAccountDocumentChanges,
+} from '@/domains/account-documents/documentRepository'
 
 const ATHLETES_STORAGE_KEY = 'smartswim:account-athletes:v1'
 
@@ -28,6 +34,8 @@ const GENDER_OPTIONS = [
 export function useAccountAthletes({ currentUser }) {
   const athletes = ref([])
   const editingAthleteId = ref('')
+  const isSupabaseDocumentsSource = isSupabaseAccountDocumentsSource()
+  let unsubscribeFromSupabaseDocuments = null
 
   const form = reactive({
     fullName: '',
@@ -87,6 +95,41 @@ export function useAccountAthletes({ currentUser }) {
     }
   }
 
+  async function loadSupabaseDocumentsForAthlete(athlete) {
+    const sourceDocuments = await loadAccountDocumentsForCurrentUser({
+      scope: 'athlete',
+      scopeId: athlete.id,
+    })
+
+    return normalizeAccountDocumentsState(sourceDocuments)
+  }
+
+  async function syncAthleteDocumentsFromSource() {
+    try {
+      const nextAthletes = await Promise.all(
+        athletes.value.map(async (athlete) => ({
+          ...athlete,
+          documents: await loadSupabaseDocumentsForAthlete(athlete),
+        })),
+      )
+
+      athletes.value = nextAthletes
+
+      if (editingAthleteId.value) {
+        const editedAthlete = nextAthletes.find((athlete) => athlete.id === editingAthleteId.value)
+
+        if (editedAthlete) {
+          form.documents = normalizeAccountDocumentsState(editedAthlete.documents)
+        }
+      }
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : 'Не удалось загрузить документы спортсменов',
+        { type: 'error' },
+      )
+    }
+  }
+
   function syncFromStorage() {
     if (typeof window === 'undefined') {
       return
@@ -108,31 +151,39 @@ export function useAccountAthletes({ currentUser }) {
       const parsedAthletes = JSON.parse(serializedAthletes)
       const nextAthletes = Array.isArray(parsedAthletes) ? parsedAthletes.map(normalizeAthlete) : []
 
-      nextAthletes.forEach((athlete) => {
-        seedAccountDocumentReviewRecords({
-          currentUser,
-          ownerName: currentUser.value?.name || '',
-          ownerEmail: currentUser.value?.email || '',
-          ownerPhone: currentUser.value?.phone || '',
-          scope: 'athlete',
-          scopeId: athlete.id,
-          participantName: athlete.fullName || '',
-          participantBirthDate: athlete.birthDate || '',
-          participantClub: athlete.club || '',
-          participantKind: 'athlete',
-          documents: athlete.documents || [],
+      if (isSupabaseDocumentsSource) {
+        athletes.value = nextAthletes.map((athlete) => ({
+          ...athlete,
+          documents: createAccountDocumentsState(),
+        }))
+        void syncAthleteDocumentsFromSource()
+      } else {
+        nextAthletes.forEach((athlete) => {
+          seedAccountDocumentReviewRecords({
+            currentUser,
+            ownerName: currentUser.value?.name || '',
+            ownerEmail: currentUser.value?.email || '',
+            ownerPhone: currentUser.value?.phone || '',
+            scope: 'athlete',
+            scopeId: athlete.id,
+            participantName: athlete.fullName || '',
+            participantBirthDate: athlete.birthDate || '',
+            participantClub: athlete.club || '',
+            participantKind: 'athlete',
+            documents: athlete.documents || [],
+          })
         })
-      })
 
-      athletes.value = nextAthletes.map((athlete) => ({
-        ...athlete,
-        documents: mergeDocumentsWithReviewRecords({
-          currentUser,
-          scope: 'athlete',
-          scopeId: athlete.id,
-          documents: athlete.documents,
-        }),
-      }))
+        athletes.value = nextAthletes.map((athlete) => ({
+          ...athlete,
+          documents: mergeDocumentsWithReviewRecords({
+            currentUser,
+            scope: 'athlete',
+            scopeId: athlete.id,
+            documents: athlete.documents,
+          }),
+        }))
+      }
 
       if (!ownSerializedAthletes && fallbackSerializedAthletes) {
         persistAthletes()
@@ -164,6 +215,10 @@ export function useAccountAthletes({ currentUser }) {
   }
 
   function syncAthleteDocumentReviews(athlete) {
+    if (isSupabaseDocumentsSource) {
+      return
+    }
+
     syncAccountDocumentReviewRecords({
       currentUser,
       ownerName: currentUser.value?.name || '',
@@ -177,6 +232,35 @@ export function useAccountAthletes({ currentUser }) {
       participantKind: 'athlete',
       documents: athlete.documents,
     })
+  }
+
+  async function persistSupabaseAthleteDocument(athlete, document) {
+    return saveAccountDocumentForCurrentUser({
+      currentUser,
+      scope: 'athlete',
+      scopeId: athlete.id,
+      document: {
+        ...document,
+        ownerName: currentUser.value?.name || '',
+        ownerEmail: currentUser.value?.email || '',
+        ownerPhone: currentUser.value?.phone || '',
+        participantKind: 'athlete',
+        participantId: athlete.id,
+        participantName: athlete.fullName,
+        participantBirthDate: athlete.birthDate,
+        participantClub: athlete.club,
+      },
+    })
+  }
+
+  async function persistSupabaseAthleteDocuments(athlete) {
+    const loadedDocuments = normalizeAccountDocumentsState(athlete.documents).filter(
+      (document) => document.status !== 'missing',
+    )
+
+    await Promise.all(
+      loadedDocuments.map((document) => persistSupabaseAthleteDocument(athlete, document)),
+    )
   }
 
   function persistEditedAthleteDocuments() {
@@ -204,6 +288,15 @@ export function useAccountAthletes({ currentUser }) {
     }
 
     syncAthleteDocumentReviews(nextAthlete)
+
+    if (isSupabaseDocumentsSource) {
+      void persistSupabaseAthleteDocuments(nextAthlete).catch((error) => {
+        showToast(error instanceof Error ? error.message : 'Не удалось сохранить документы', {
+          type: 'error',
+        })
+      })
+    }
+
     return persistAthletes()
   }
 
@@ -284,11 +377,13 @@ export function useAccountAthletes({ currentUser }) {
           return
         }
 
-        removeAccountDocumentReviewRecords({
-          currentUser,
-          scope: 'athlete',
-          scopeId: athleteId,
-        })
+        if (!isSupabaseDocumentsSource) {
+          removeAccountDocumentReviewRecords({
+            currentUser,
+            scope: 'athlete',
+            scopeId: athleteId,
+          })
+        }
 
         athletes.value = athletes.value.filter((athlete) => athlete.id !== athleteId)
         persistAthletes()
@@ -366,6 +461,15 @@ export function useAccountAthletes({ currentUser }) {
     }
 
     syncAthleteDocumentReviews(payload)
+
+    if (isSupabaseDocumentsSource) {
+      void persistSupabaseAthleteDocuments(payload).catch((error) => {
+        showToast(error instanceof Error ? error.message : 'Не удалось сохранить документы', {
+          type: 'error',
+        })
+      })
+    }
+
     void syncCompetitionRegistrationAthleteSnapshotFromSource(currentUser, payload)
 
     showToast(editingAthleteId.value ? 'Спортсмен сохранён' : 'Спортсмен добавлен')
@@ -444,6 +548,10 @@ export function useAccountAthletes({ currentUser }) {
     )
   }
 
+  function getEditingAthlete() {
+    return athletes.value.find((athlete) => athlete.id === editingAthleteId.value) || null
+  }
+
   function handleDocumentUploadSubmit({ file, fileDataUrl = '', fileType = '', expiresAt }) {
     if (!documentUploadState.documentType || !file) {
       return
@@ -463,6 +571,30 @@ export function useAccountAthletes({ currentUser }) {
     })
 
     persistEditedAthleteDocuments()
+
+    if (isSupabaseDocumentsSource && editingAthleteId.value) {
+      const editedAthlete = getEditingAthlete()
+      const nextDocument = form.documents.find(
+        (document) => document.type === documentUploadState.documentType,
+      )
+
+      if (editedAthlete && nextDocument) {
+        void persistSupabaseAthleteDocument(
+          {
+            ...editedAthlete,
+            documents: form.documents,
+          },
+          nextDocument,
+        )
+          .then(() => syncAthleteDocumentsFromSource())
+          .catch((error) => {
+            showToast(error instanceof Error ? error.message : 'Не удалось сохранить документ', {
+              type: 'error',
+            })
+          })
+      }
+    }
+
     closeDocumentUploadDialog()
   }
 
@@ -503,6 +635,27 @@ export function useAccountAthletes({ currentUser }) {
         })
 
         persistEditedAthleteDocuments()
+
+        if (isSupabaseDocumentsSource && editingAthleteId.value) {
+          const editedAthlete = getEditingAthlete()
+          const nextDocument = form.documents.find((document) => document.type === documentType)
+
+          if (editedAthlete && nextDocument) {
+            void persistSupabaseAthleteDocument(
+              {
+                ...editedAthlete,
+                documents: form.documents,
+              },
+              nextDocument,
+            )
+              .then(() => syncAthleteDocumentsFromSource())
+              .catch((error) => {
+                showToast(error instanceof Error ? error.message : 'Не удалось удалить документ', {
+                  type: 'error',
+                })
+              })
+          }
+        }
       })
       .catch(() => {})
   }
@@ -532,6 +685,13 @@ export function useAccountAthletes({ currentUser }) {
   }
 
   onMounted(() => {
+    if (isSupabaseDocumentsSource) {
+      unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
+        void syncAthleteDocumentsFromSource()
+      })
+      return
+    }
+
     if (typeof window === 'undefined') {
       return
     }
@@ -540,6 +700,11 @@ export function useAccountAthletes({ currentUser }) {
   })
 
   onBeforeUnmount(() => {
+    if (unsubscribeFromSupabaseDocuments) {
+      unsubscribeFromSupabaseDocuments()
+      unsubscribeFromSupabaseDocuments = null
+    }
+
     if (typeof window === 'undefined') {
       return
     }

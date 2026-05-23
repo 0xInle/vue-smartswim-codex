@@ -66,7 +66,11 @@ export function useAccountDocumentReviews({ currentUser }) {
     isLoading.value = true
 
     try {
-      records.value = await loadAllAccountDocumentReviewsForAdmin()
+      const sourceRecords = await loadAllAccountDocumentReviewsForAdmin()
+
+      records.value = sourceRecords.filter(
+        (record) => record.status !== ACCOUNT_DOCUMENT_STATUS.MISSING,
+      )
       users.value = []
       profileSnapshots.value = []
       athleteSnapshots.value = []

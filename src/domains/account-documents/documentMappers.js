@@ -24,6 +24,7 @@ const DOCUMENT_INSERT_FIELD_MAP = Object.freeze({
   uploadedAt: 'uploaded_at',
   expiresAt: 'expires_at',
   reviewedAt: 'reviewed_at',
+  reviewedBy: 'reviewed_by',
   reviewedByName: 'reviewed_by_name',
   rejectionReason: 'rejection_reason',
 })
@@ -179,6 +180,7 @@ export function mapAccountDocumentUpsertPayload(
       uploadedAt: normalizedDocument.uploadedAt || null,
       expiresAt: normalizeDateOnly(normalizedDocument.expiresAt),
       reviewedAt: document.reviewedAt || normalizedDocument.verifiedAt || null,
+      reviewedBy: document.reviewedBy || null,
       reviewedByName: document.reviewedByName || normalizedDocument.verifiedBy || '',
       rejectionReason: normalizedDocument.rejectionReason || '',
     },

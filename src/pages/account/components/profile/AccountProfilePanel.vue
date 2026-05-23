@@ -98,7 +98,7 @@
 </template>
 
 <script setup>
-import { reactive, toRef, watch } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, toRef, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { ElCard } from 'element-plus'
 import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
@@ -115,6 +115,12 @@ import {
   writeAccountProfileSnapshot,
 } from '@/pages/account/utils/accountLocalStorage'
 import { syncCompetitionRegistrationOwnerSnapshotFromSource } from '@/pages/account/utils/accountCompetitionRegistrations'
+import {
+  isSupabaseAccountDocumentsSource,
+  loadAccountDocumentsForCurrentUser,
+  saveAccountDocumentForCurrentUser,
+  subscribeToAccountDocumentChanges,
+} from '@/domains/account-documents/documentRepository'
 
 const props = defineProps({
   currentUser: {
@@ -149,6 +155,8 @@ const uploadDialogState = reactive({
   fileSize: 0,
   expiresAt: '',
 })
+const isSupabaseDocumentsSource = isSupabaseAccountDocumentsSource()
+let unsubscribeFromSupabaseDocuments = null
 
 function resetErrors() {
   errors.fullName = ''
@@ -156,6 +164,23 @@ function resetErrors() {
   errors.club = ''
   errors.phone = ''
   errors.email = ''
+}
+
+async function syncProfileDocumentsFromSource() {
+  try {
+    const sourceDocuments = await loadAccountDocumentsForCurrentUser({
+      scope: 'profile',
+      scopeId: 'profile',
+    })
+
+    profile.documents = normalizeAccountDocumentsState(sourceDocuments)
+  } catch (error) {
+    showToast(
+      error instanceof Error ? error.message : 'Не удалось загрузить документы из Supabase',
+      { type: 'error' },
+    )
+    profile.documents = createAccountDocumentsState()
+  }
 }
 
 function syncFromStorage() {
@@ -166,6 +191,13 @@ function syncFromStorage() {
   profile.club = snapshot.club || ''
   profile.phone = snapshot.phone || props.currentUser?.phone || ''
   profile.email = snapshot.email || props.currentUser?.email || ''
+
+  if (isSupabaseDocumentsSource) {
+    profile.documents = createAccountDocumentsState()
+    void syncProfileDocumentsFromSource()
+    return
+  }
+
   profile.documents = normalizeAccountDocumentsState(snapshot.documents || createAccountDocumentsState())
 }
 
@@ -274,7 +306,26 @@ function upsertDocument(documentType, patch) {
   )
 }
 
-function handleUploadSubmit(payload) {
+async function persistProfileDocument(document) {
+  return saveAccountDocumentForCurrentUser({
+    currentUser: currentUserRef,
+    scope: 'profile',
+    scopeId: 'profile',
+    document: {
+      ...document,
+      ownerName: profile.fullName,
+      ownerEmail: profile.email,
+      ownerPhone: profile.phone,
+      participantKind: 'owner',
+      participantId: 'profile',
+      participantName: profile.fullName,
+      participantBirthDate: profile.birthDate,
+      participantClub: profile.club,
+    },
+  })
+}
+
+async function handleUploadSubmit(payload) {
   if (!uploadDialogState.documentType || !payload.file) {
     return
   }
@@ -291,6 +342,25 @@ function handleUploadSubmit(payload) {
     verifiedBy: '',
     rejectionReason: '',
   })
+
+  if (isSupabaseDocumentsSource) {
+    const nextDocument = profile.documents.find(
+      (document) => document.type === uploadDialogState.documentType,
+    )
+
+    try {
+      await persistProfileDocument(nextDocument)
+      await syncProfileDocumentsFromSource()
+      showToast('Документ загружен и отправлен на проверку')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось сохранить документ', {
+        type: 'error',
+      })
+    }
+
+    closeUploadDialog()
+    return
+  }
 
   if (persistProfile()) {
     syncProfileDocumentReviews()
@@ -322,7 +392,7 @@ function handleDocumentRemove(documentType) {
       closeOnPressEscape: true,
     },
   )
-    .then(() => {
+    .then(async () => {
       upsertDocument(documentType, {
         status: 'missing',
         fileName: '',
@@ -335,6 +405,20 @@ function handleDocumentRemove(documentType) {
         verifiedBy: '',
         rejectionReason: '',
       })
+
+      if (isSupabaseDocumentsSource) {
+        const nextDocument = profile.documents.find((document) => document.type === documentType)
+
+        try {
+          await persistProfileDocument(nextDocument)
+          await syncProfileDocumentsFromSource()
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : 'Не удалось удалить документ', {
+            type: 'error',
+          })
+        }
+        return
+      }
 
       if (persistProfile()) {
         syncProfileDocumentReviews()
@@ -364,6 +448,38 @@ watch(
   },
   { immediate: true },
 )
+
+watch(
+  () => [profile.fullName, profile.birthDate, profile.club, profile.phone, profile.email],
+  () => {
+    if (!isSupabaseDocumentsSource) {
+      return
+    }
+
+    const loadedDocuments = profile.documents.filter((document) => document.status !== 'missing')
+
+    loadedDocuments.forEach((document) => {
+      void persistProfileDocument(document)
+    })
+  },
+)
+
+onMounted(() => {
+  if (!isSupabaseDocumentsSource) {
+    return
+  }
+
+  unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
+    void syncProfileDocumentsFromSource()
+  })
+})
+
+onBeforeUnmount(() => {
+  if (unsubscribeFromSupabaseDocuments) {
+    unsubscribeFromSupabaseDocuments()
+    unsubscribeFromSupabaseDocuments = null
+  }
+})
 </script>
 
 <style scoped>
