@@ -64,7 +64,7 @@
 
 <script setup>
 import { ElCard } from 'element-plus'
-import { computed, toRef } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 import {
   readAccountAthletesSnapshot,
   readAccountProfileSnapshot,
@@ -74,7 +74,7 @@ import {
   isCompetitionRegistrationActiveStatus,
 } from '@/pages/account/utils/accountConstants'
 import { resolveAccountAdmissionStatus } from '@/pages/account/utils/accountAdmissions'
-import { readCompetitionRegistrations } from '@/pages/account/utils/accountCompetitionRegistrations'
+import { loadCompetitionRegistrationsForCurrentUser } from '@/pages/account/utils/accountCompetitionRegistrations'
 
 const props = defineProps({
   currentUser: {
@@ -91,7 +91,14 @@ const currentUserRef = toRef(props, 'currentUser')
 
 const profileSnapshot = computed(() => readAccountProfileSnapshot(currentUserRef))
 const athleteSnapshots = computed(() => readAccountAthletesSnapshot(currentUserRef))
-const registrations = computed(() => readCompetitionRegistrations(currentUserRef))
+const registrations = ref([])
+let registrationsLoadRequestId = 0
+
+const currentUserKey = computed(() => {
+  const user = currentUserRef.value || null
+
+  return user?.id || user?.email || 'anonymous'
+})
 
 const profileAdmission = computed(() =>
   resolveAccountAdmissionStatus({
@@ -201,6 +208,27 @@ function formatCount(value, forms) {
 
   return `${value} ${forms[2]}`
 }
+
+async function loadRegistrations() {
+  const requestId = registrationsLoadRequestId + 1
+  registrationsLoadRequestId = requestId
+
+  try {
+    const nextRegistrations = await loadCompetitionRegistrationsForCurrentUser(currentUserRef)
+
+    if (requestId === registrationsLoadRequestId) {
+      registrations.value = nextRegistrations
+    }
+  } catch {
+    if (requestId === registrationsLoadRequestId) {
+      registrations.value = []
+    }
+  }
+}
+
+watch(currentUserKey, () => {
+  void loadRegistrations()
+}, { immediate: true })
 </script>
 
 <style scoped>

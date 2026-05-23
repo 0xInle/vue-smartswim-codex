@@ -16,7 +16,7 @@ export function getCompetitionApplicationSource() {
     return source
   }
 
-  return APPLICATION_SOURCE_LOCAL
+  return APPLICATION_SOURCE_SUPABASE
 }
 
 export function isSupabaseCompetitionApplicationSource() {

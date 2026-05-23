@@ -76,6 +76,7 @@ npm run dev
 - маршрут `/account`
 - загрузка данных CRM-профиля
 - отправка hero-формы консультации
+- заявки на соревнования в личном кабинете и CRM
 
 Если Supabase не настроен, приложение покажет ошибки только в соответствующих сценариях.
 
@@ -96,7 +97,7 @@ npm run dev
 4. Откройте `SQL Editor` в Supabase.
 5. Выполните SQL из файла [supabase/crm_users.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/crm_users.sql).
 6. Выполните SQL из файла [supabase/consultation_requests.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/consultation_requests.sql).
-7. Выполните SQL из файла [supabase/competition_applications.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/competition_applications.sql), если включаете Supabase-backed contract для заявок на соревнования.
+7. Выполните SQL из файла [supabase/competition_applications.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/competition_applications.sql), чтобы включить заявки на соревнования в личном кабинете и CRM.
 
 Этот SQL:
 
@@ -123,6 +124,14 @@ SQL для `competition_applications`:
 - разрешает пользователю читать свои заявки и создавать заявки только от своего `auth.uid()`;
 - разрешает администратору читать и обрабатывать все заявки;
 - добавляет constraints для lifecycle-статусов, индексы и realtime publication guards.
+
+По умолчанию заявки на соревнования читаются и сохраняются в Supabase. Для локального rollback или проверки старого прототипа можно явно вернуть localStorage-источник:
+
+```env
+VITE_COMPETITION_APPLICATIONS_SOURCE=local
+```
+
+Значение `supabase` также поддерживается явно, но без этой переменной Supabase уже используется как default source.
 
 ## Роли
 
@@ -255,9 +264,10 @@ npm run supabase:check-competition-applications
 - заполнены ли `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY`
 - выполнен ли SQL из `supabase/crm_users.sql`
 - выполнен ли SQL из `supabase/consultation_requests.sql`
-- выполнен ли SQL из `supabase/competition_applications.sql`, если проверяете заявки на соревнования в Supabase
+- выполнен ли SQL из `supabase/competition_applications.sql`, потому что заявки на соревнования по умолчанию используют Supabase
 - для `npm run supabase:list-tables` заполнен ли `SUPABASE_ACCESS_TOKEN`
 - для `npm run supabase:check-competition-applications` заполнен ли `SUPABASE_ACCESS_TOKEN`
+- если нужно временно проверить старый localStorage-flow заявок, задан ли `VITE_COMPETITION_APPLICATIONS_SOURCE=local`
 
 ### Открывается `/account`, но нет профиля пользователя
 
