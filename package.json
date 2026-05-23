@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "supabase:list-tables": "node scripts/list-supabase-tables.mjs",
     "supabase:check-competition-applications": "node scripts/check-competition-applications-contract.mjs",
+    "supabase:check-account-documents": "node scripts/check-account-documents-contract.mjs",
     "supabase:check-competition-fixture": "node scripts/check-competition-application-fixture.mjs",
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint . --fix",

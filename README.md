@@ -98,6 +98,7 @@ npm run dev
 5. Выполните SQL из файла [supabase/crm_users.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/crm_users.sql).
 6. Выполните SQL из файла [supabase/consultation_requests.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/consultation_requests.sql).
 7. Выполните SQL из файла [supabase/competition_applications.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/competition_applications.sql), чтобы включить заявки на соревнования в личном кабинете и CRM.
+8. Выполните SQL из файла [supabase/account_documents.sql](/Users/sergeybiryukov/Documents/Frontend/Vue/vue-smartswim/supabase/account_documents.sql), чтобы подготовить backend contract для документов аккаунта и админской проверки документов.
 
 Этот SQL:
 
@@ -126,6 +127,17 @@ SQL для `competition_applications`:
 - добавляет constraints для lifecycle-статусов, индексы и realtime publication guards.
 
 Заявки на соревнования читаются и сохраняются только в Supabase. Старый localStorage-источник удален и больше не поддерживается как runtime fallback.
+
+SQL для `account_documents`:
+
+- создает таблицу документов аккаунта;
+- создает таблицу событий статусов документов;
+- включает `row level security`;
+- разрешает пользователю читать и загружать свои документы;
+- разрешает администратору читать и проверять документы всех пользователей;
+- добавляет constraints для типов/статусов документов, индексы, triggers и realtime publication guards.
+
+Документы аккаунта пока не переключены на Supabase в runtime UI. Этот SQL подготавливает проверяемый backend contract для следующего этапа миграции.
 
 ## Роли
 
@@ -221,6 +233,14 @@ npm run supabase:check-competition-applications
 ```
 
 Команда read-only и проверяет наличие таблиц, RLS, policies, constraints, triggers и индексов из `supabase/competition_applications.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
+
+Проверить, что Supabase contract для документов аккаунта применен:
+
+```sh
+npm run supabase:check-account-documents
+```
+
+Команда read-only и проверяет наличие таблиц, RLS, policies, constraints, triggers, индексов и realtime publication из `supabase/account_documents.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
 
 Проверить, что тестовая Supabase-заявка для regression smoke существует и находится в ожидаемом статусе:
 
