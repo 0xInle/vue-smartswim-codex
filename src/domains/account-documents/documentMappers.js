@@ -117,6 +117,7 @@ export function mapSupabaseAccountDocumentRow(row = {}) {
     ...document,
     id: row.id || '',
     ownerUserId: row.owner_user_id || '',
+    ownerUserKey: row.owner_user_id || '',
     ownerEmail: row.owner_email || '',
     ownerName: row.owner_name || '',
     ownerPhone: row.owner_phone || '',

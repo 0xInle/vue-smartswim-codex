@@ -27,6 +27,12 @@ import {
   resolveAccountAdmissionStatus,
 } from '@/pages/account/utils/accountAdmissions'
 import { showToast } from '@/utils/toast'
+import {
+  isSupabaseAccountDocumentsSource,
+  loadAllAccountDocumentReviewsForAdmin,
+  reviewAccountDocument,
+  subscribeToAccountDocumentChanges,
+} from '@/domains/account-documents/documentRepository'
 
 function normalizeSearchValue(value) {
   return String(value || '')
@@ -53,8 +59,32 @@ export function useAccountDocumentReviews({ currentUser }) {
     action: '',
     reason: '',
   })
+  const isSupabaseSource = isSupabaseAccountDocumentsSource()
+  let unsubscribeFromSupabaseDocuments = null
 
-  function loadRecords() {
+  async function loadSupabaseRecords() {
+    isLoading.value = true
+
+    try {
+      records.value = await loadAllAccountDocumentReviewsForAdmin()
+      users.value = []
+      profileSnapshots.value = []
+      athleteSnapshots.value = []
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : 'Не удалось загрузить документы из Supabase',
+        { type: 'error' },
+      )
+      records.value = []
+      users.value = []
+      profileSnapshots.value = []
+      athleteSnapshots.value = []
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  function loadLocalRecords() {
     isLoading.value = true
 
     try {
@@ -65,6 +95,15 @@ export function useAccountDocumentReviews({ currentUser }) {
     } finally {
       isLoading.value = false
     }
+  }
+
+  function loadRecords() {
+    if (isSupabaseSource) {
+      void loadSupabaseRecords()
+      return
+    }
+
+    loadLocalRecords()
   }
 
   function getUserKey(user) {
@@ -520,12 +559,31 @@ export function useAccountDocumentReviews({ currentUser }) {
     reviewDialogError.value = ''
   }
 
-  function applyReviewAction({ record, status, reason = '' }) {
+  async function applyReviewAction({ record, status, reason = '' }) {
     if (!record) {
       return
     }
 
     const reviewerName = resolveReviewerName(currentUser)
+
+    if (isSupabaseSource) {
+      try {
+        await reviewAccountDocument(record.id, {
+          status,
+          rejectionReason:
+            status === ACCOUNT_DOCUMENT_STATUS.VERIFIED ? '' : String(reason || '').trim(),
+          reviewerName,
+        })
+        await loadSupabaseRecords()
+      } catch (error) {
+        showToast(
+          error instanceof Error ? error.message : 'Не удалось обновить статус документа',
+          { type: 'error' },
+        )
+      }
+      return
+    }
+
     const nextRecord = {
       ...record,
       status,
@@ -542,7 +600,7 @@ export function useAccountDocumentReviews({ currentUser }) {
   }
 
   function handleApprove(record) {
-    applyReviewAction({ record, status: ACCOUNT_DOCUMENT_STATUS.VERIFIED })
+    void applyReviewAction({ record, status: ACCOUNT_DOCUMENT_STATUS.VERIFIED })
   }
 
   function handleAdmit(group) {
@@ -583,7 +641,7 @@ export function useAccountDocumentReviews({ currentUser }) {
         ? ACCOUNT_DOCUMENT_STATUS.REJECTED
         : ACCOUNT_DOCUMENT_STATUS.NEEDS_REUPLOAD
 
-    applyReviewAction({
+    void applyReviewAction({
       record: reviewRecord.value,
       status: nextStatus,
       reason: nextReason,
@@ -621,6 +679,13 @@ export function useAccountDocumentReviews({ currentUser }) {
   )
 
   onMounted(() => {
+    if (isSupabaseSource) {
+      unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
+        void loadSupabaseRecords()
+      })
+      return
+    }
+
     if (typeof window === 'undefined') {
       return
     }
@@ -629,6 +694,11 @@ export function useAccountDocumentReviews({ currentUser }) {
   })
 
   onBeforeUnmount(() => {
+    if (unsubscribeFromSupabaseDocuments) {
+      unsubscribeFromSupabaseDocuments()
+      unsubscribeFromSupabaseDocuments = null
+    }
+
     if (typeof window === 'undefined') {
       return
     }

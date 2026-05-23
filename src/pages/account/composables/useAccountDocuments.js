@@ -14,6 +14,12 @@ import {
 } from '@/pages/account/utils/accountDocumentRegistry'
 import { getAccountDocumentsAdmissionStatus } from '@/pages/account/utils/accountFormatters'
 import { readAccountProfileSnapshot } from '@/pages/account/utils/accountLocalStorage'
+import {
+  isSupabaseAccountDocumentsSource,
+  loadAccountDocumentsForCurrentUser,
+  saveAccountDocumentForCurrentUser,
+  subscribeToAccountDocumentChanges,
+} from '@/domains/account-documents/documentRepository'
 
 const ACCOUNT_DOCUMENT_STORAGE_PREFIX = 'smartswim:account-documents:v1'
 const ACCOUNT_DOCUMENT_SHARED_STORAGE_PREFIX = 'smartswim:account-documents:shared:v1'
@@ -86,6 +92,8 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
   const hasRejectedDocuments = computed(
     () => documents.value.some((document) => document.status === 'rejected'),
   )
+  const isSupabaseSource = isSupabaseAccountDocumentsSource()
+  let unsubscribeFromSupabaseDocuments = null
 
   function createInitialDocuments() {
     return ACCOUNT_DOCUMENT_TYPES.map((definition) => createAccountDocumentState(definition))
@@ -125,7 +133,28 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
     })
   }
 
-  function loadDocuments() {
+  function mergeLoadedDocuments(documentsSource) {
+    return normalizeDocumentList(documentsSource)
+  }
+
+  async function loadSupabaseDocuments() {
+    try {
+      const sourceDocuments = await loadAccountDocumentsForCurrentUser({
+        scope: resolvedScope.value,
+        scopeId: resolvedScopeId.value,
+      })
+
+      documents.value = mergeLoadedDocuments(sourceDocuments)
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : 'Не удалось загрузить документы из Supabase',
+        { type: 'error' },
+      )
+      documents.value = createInitialDocuments()
+    }
+  }
+
+  function loadLocalDocuments() {
     if (typeof window === 'undefined') {
       documents.value = createInitialDocuments()
       return
@@ -174,7 +203,20 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
     persistDocuments()
   }
 
+  function loadDocuments() {
+    if (isSupabaseSource) {
+      void loadSupabaseDocuments()
+      return
+    }
+
+    loadLocalDocuments()
+  }
+
   function persistDocuments() {
+    if (isSupabaseSource) {
+      return
+    }
+
     if (typeof window === 'undefined') {
       return
     }
@@ -222,13 +264,22 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
     }
   }
 
-  function handleUploadSubmit({ file, fileDataUrl = '', fileType = '', expiresAt }) {
+  async function persistSupabaseDocument(document) {
+    return saveAccountDocumentForCurrentUser({
+      currentUser,
+      scope: resolvedScope.value,
+      scopeId: resolvedScopeId.value,
+      document,
+    })
+  }
+
+  async function handleUploadSubmit({ file, fileDataUrl = '', fileType = '', expiresAt }) {
     if (!uploadDialogState.documentType || !file) {
       return
     }
 
     try {
-      upsertDocument(uploadDialogState.documentType, {
+      const nextPatch = {
         status: 'uploaded',
         fileName: file.name,
         fileSize: file.size,
@@ -239,19 +290,33 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
         verifiedAt: '',
         verifiedBy: '',
         rejectionReason: '',
+      }
+
+      upsertDocument(uploadDialogState.documentType, {
+        ...nextPatch,
       })
 
-      syncAccountDocumentReviewRecords({
-        currentUser,
-        ownerName: currentUser?.value?.name || currentUser?.name || '',
-        ownerEmail: currentUser?.value?.email || currentUser?.email || '',
-        ownerPhone: currentUser?.value?.phone || currentUser?.phone || '',
-        scope: resolvedScope.value,
-        scopeId: resolvedScopeId.value,
-        documents: documents.value,
-      })
+      if (isSupabaseSource) {
+        const nextDocument = documents.value.find(
+          (document) => document.type === uploadDialogState.documentType,
+        )
 
-      persistDocuments()
+        await persistSupabaseDocument(nextDocument)
+        await loadSupabaseDocuments()
+      } else {
+        syncAccountDocumentReviewRecords({
+          currentUser,
+          ownerName: currentUser?.value?.name || currentUser?.name || '',
+          ownerEmail: currentUser?.value?.email || currentUser?.email || '',
+          ownerPhone: currentUser?.value?.phone || currentUser?.phone || '',
+          scope: resolvedScope.value,
+          scopeId: resolvedScopeId.value,
+          documents: documents.value,
+        })
+
+        persistDocuments()
+      }
+
       showToast('Документ загружен и отправлен на проверку')
     } catch {
       showToast('Не удалось сохранить документ', { type: 'error' })
@@ -282,8 +347,8 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
         closeOnPressEscape: true,
       },
     )
-      .then(() => {
-        upsertDocument(documentType, {
+      .then(async () => {
+        const nextPatch = {
           status: 'missing',
           fileName: '',
           fileSize: 0,
@@ -294,7 +359,17 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
           verifiedAt: '',
           verifiedBy: '',
           rejectionReason: '',
-        })
+        }
+
+        upsertDocument(documentType, nextPatch)
+
+        if (isSupabaseSource) {
+          const nextDocument = documents.value.find((document) => document.type === documentType)
+
+          await persistSupabaseDocument(nextDocument)
+          await loadSupabaseDocuments()
+          return
+        }
 
         syncAccountDocumentReviewRecords({
           currentUser,
@@ -370,6 +445,13 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
   )
 
   onMounted(() => {
+    if (isSupabaseSource) {
+      unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
+        void loadSupabaseDocuments()
+      })
+      return
+    }
+
     if (typeof window === 'undefined') {
       return
     }
@@ -378,6 +460,11 @@ export function useAccountDocuments({ currentUser, scope, scopeId }) {
   })
 
   onBeforeUnmount(() => {
+    if (unsubscribeFromSupabaseDocuments) {
+      unsubscribeFromSupabaseDocuments()
+      unsubscribeFromSupabaseDocuments = null
+    }
+
     if (typeof window === 'undefined') {
       return
     }
