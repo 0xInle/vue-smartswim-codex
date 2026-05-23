@@ -245,6 +245,10 @@ with check (
   and participant_kind in ('owner', 'athlete', 'user')
   and scope in ('profile', 'athlete', 'user')
   and status in ('missing', 'uploaded')
+  and reviewed_at is null
+  and reviewed_by is null
+  and nullif(trim(coalesce(reviewed_by_name, '')), '') is null
+  and nullif(trim(coalesce(rejection_reason, '')), '') is null
 );
 
 create policy "Allow authenticated users to read own account documents"
@@ -264,6 +268,10 @@ using (owner_user_id = auth.uid())
 with check (
   owner_user_id = auth.uid()
   and status in ('missing', 'uploaded')
+  and reviewed_at is null
+  and reviewed_by is null
+  and nullif(trim(coalesce(reviewed_by_name, '')), '') is null
+  and nullif(trim(coalesce(rejection_reason, '')), '') is null
 );
 
 create policy "Allow admin read account documents"
