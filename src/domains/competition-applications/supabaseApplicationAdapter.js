@@ -8,6 +8,7 @@ import { getSupabaseClient } from '@/utils/supabaseClient'
 
 const COMPETITION_APPLICATIONS_TABLE = 'competition_applications'
 const COMPETITION_APPLICATIONS_SQL_PATH = 'supabase/competition_applications.sql'
+let competitionApplicationsSubscriptionId = 0
 const COMPETITION_APPLICATION_SELECT = [
   'id',
   'owner_user_id',
@@ -149,8 +150,10 @@ export async function updateSupabaseCompetitionApplication(applicationId, patch 
 
 export function subscribeToCompetitionApplications(callback) {
   const client = getSupabaseClient()
+  competitionApplicationsSubscriptionId += 1
+
   const channel = client
-    .channel('competition-applications-feed')
+    .channel(`competition-applications-feed-${competitionApplicationsSubscriptionId}`)
     .on(
       'postgres_changes',
       {

@@ -149,6 +149,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElButton, ElCard, ElTag } from 'element-plus'
+import { isSupabaseCompetitionApplicationSource } from '@/domains/competition-applications/applicationSource'
 import { CRM_ROLE } from '@/utils/crmRoles'
 import {
   competitionRegistrationRecordStatusType,
@@ -160,7 +161,10 @@ import {
   getAccountDocumentsAdmissionStatus,
 } from '@/pages/account/utils/accountFormatters'
 import { CONSULTATION_STATUS, TRAINER_BOOKING_STATUS } from '@/pages/account/utils/accountConstants'
-import { readAllCompetitionRegistrations } from '@/pages/account/utils/accountCompetitionRegistrations'
+import {
+  loadAllCompetitionRegistrationsForAdmin,
+  subscribeToCompetitionRegistrationChanges,
+} from '@/pages/account/utils/accountCompetitionRegistrations'
 
 const props = defineProps({
   consultationRequests: {
@@ -208,9 +212,24 @@ function formatRelativeShortDate(record) {
 }
 
 const competitionRegistrations = ref([])
+let competitionRegistrationsLoadRequestId = 0
+let unsubscribeFromCompetitionApplications = null
 
-function loadCompetitionRegistrations() {
-  competitionRegistrations.value = readAllCompetitionRegistrations()
+async function loadCompetitionRegistrations() {
+  const requestId = competitionRegistrationsLoadRequestId + 1
+  competitionRegistrationsLoadRequestId = requestId
+
+  try {
+    const nextRegistrations = await loadAllCompetitionRegistrationsForAdmin()
+
+    if (requestId === competitionRegistrationsLoadRequestId) {
+      competitionRegistrations.value = nextRegistrations
+    }
+  } catch {
+    if (requestId === competitionRegistrationsLoadRequestId) {
+      competitionRegistrations.value = []
+    }
+  }
 }
 
 const latestConsultation = computed(
@@ -390,19 +409,33 @@ function handleStorageChange(event) {
     return
   }
 
-  loadCompetitionRegistrations()
+  void loadCompetitionRegistrations()
 }
 
 onMounted(() => {
+  void loadCompetitionRegistrations()
+
+  if (isSupabaseCompetitionApplicationSource()) {
+    unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
+      void loadCompetitionRegistrations()
+    })
+
+    return
+  }
+
   if (typeof window === 'undefined') {
     return
   }
 
-  loadCompetitionRegistrations()
   window.addEventListener('storage', handleStorageChange)
 })
 
 onBeforeUnmount(() => {
+  if (unsubscribeFromCompetitionApplications) {
+    unsubscribeFromCompetitionApplications()
+    unsubscribeFromCompetitionApplications = null
+  }
+
   if (typeof window === 'undefined') {
     return
   }
