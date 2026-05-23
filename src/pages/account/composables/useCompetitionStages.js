@@ -1,11 +1,9 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { isSupabaseCompetitionApplicationSource } from '@/domains/competition-applications/applicationSource'
 import {
   buildAccountCompetitionStages,
   buildCompetitionSeriesOptions,
 } from '@/pages/account/accountCompetitionStages.data'
 import {
-  countCompetitionRegistrationsByStageId,
   loadAllCompetitionRegistrationsForAdmin,
   subscribeToCompetitionRegistrationChanges,
   updateCompetitionRegistrationsByStageIdFromSource,
@@ -260,10 +258,6 @@ export function useCompetitionStages() {
   }
 
   async function countActiveRegistrationsForStage(stage) {
-    if (!isSupabaseCompetitionApplicationSource()) {
-      return countCompetitionRegistrationsByStageId(stage.id)
-    }
-
     const registrations = await loadAllCompetitionRegistrationsForAdmin()
     applyStageRegistrationCounts(registrations)
 
@@ -446,11 +440,7 @@ export function useCompetitionStages() {
   }
 
   function getStageActiveRegistrationsCount(stageId) {
-    if (isSupabaseCompetitionApplicationSource()) {
-      return stageActiveRegistrationCounts.value[stageId] || 0
-    }
-
-    return countCompetitionRegistrationsByStageId(stageId)
+    return stageActiveRegistrationCounts.value[stageId] || 0
   }
 
   function updateCompetitionStageDistances(stageId, description = '') {
@@ -575,11 +565,9 @@ export function useCompetitionStages() {
   onMounted(() => {
     void refreshStageRegistrationCounts()
 
-    if (isSupabaseCompetitionApplicationSource()) {
-      unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
-        void refreshStageRegistrationCounts()
-      })
-    }
+    unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
+      void refreshStageRegistrationCounts()
+    })
   })
 
   onBeforeUnmount(() => {

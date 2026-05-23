@@ -149,7 +149,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElButton, ElCard, ElTag } from 'element-plus'
-import { isSupabaseCompetitionApplicationSource } from '@/domains/competition-applications/applicationSource'
 import { CRM_ROLE } from '@/utils/crmRoles'
 import {
   competitionRegistrationRecordStatusType,
@@ -402,32 +401,12 @@ const latestActivityItems = computed(() => {
   })
 })
 
-function handleStorageChange(event) {
-  const storageKeyValue = String(event?.key || '')
-
-  if (!storageKeyValue.includes('account-competition-registrations')) {
-    return
-  }
-
-  void loadCompetitionRegistrations()
-}
-
 onMounted(() => {
   void loadCompetitionRegistrations()
 
-  if (isSupabaseCompetitionApplicationSource()) {
-    unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
-      void loadCompetitionRegistrations()
-    })
-
-    return
-  }
-
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.addEventListener('storage', handleStorageChange)
+  unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
+    void loadCompetitionRegistrations()
+  })
 })
 
 onBeforeUnmount(() => {
@@ -436,10 +415,5 @@ onBeforeUnmount(() => {
     unsubscribeFromCompetitionApplications = null
   }
 
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.removeEventListener('storage', handleStorageChange)
 })
 </script>

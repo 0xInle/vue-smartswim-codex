@@ -125,15 +125,7 @@ SQL для `competition_applications`:
 - разрешает администратору читать и обрабатывать все заявки;
 - добавляет constraints для lifecycle-статусов, индексы и realtime publication guards.
 
-По умолчанию заявки на соревнования читаются и сохраняются в Supabase. Для локального rollback или проверки старого прототипа можно явно вернуть localStorage-источник:
-
-```env
-VITE_COMPETITION_APPLICATIONS_SOURCE=local
-```
-
-Значение `supabase` также поддерживается явно, но без этой переменной Supabase уже используется как default source.
-
-`local` считается deprecated rollback/debug path: новые проверки, пользовательские сценарии и CRM-сценарии заявок должны опираться на Supabase. Не удаляйте localStorage fallback без отдельного removal-этапа. Перед удалением нужно подтвердить, что user/admin Supabase smoke стабильно проходит, локальный rollback не нужен для текущего релиза, судьба тестовой Supabase-заявки зафиксирована, а свежий audit больше не находит production UI, завязанный на localStorage source.
+Заявки на соревнования читаются и сохраняются только в Supabase. Старый localStorage-источник удален и больше не поддерживается как runtime fallback.
 
 ## Роли
 
@@ -278,7 +270,6 @@ npm run supabase:check-competition-fixture
 - для `npm run supabase:list-tables` заполнен ли `SUPABASE_ACCESS_TOKEN`
 - для `npm run supabase:check-competition-applications` заполнен ли `SUPABASE_ACCESS_TOKEN`
 - для `npm run supabase:check-competition-fixture` заполнен ли `SUPABASE_ACCESS_TOKEN`, если проверяете smoke fixture
-- если нужно временно проверить старый localStorage-flow заявок, задан ли `VITE_COMPETITION_APPLICATIONS_SOURCE=local`
 
 ### Открывается `/account`, но нет профиля пользователя
 

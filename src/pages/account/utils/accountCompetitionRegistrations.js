@@ -1,5 +1,4 @@
 import {
-  countCompetitionApplicationsByStageId,
   countCompetitionApplicationsByStageIdFromSource,
   countCompetitionApplicationsForParticipantFromSource,
   createCompetitionApplication,
@@ -20,7 +19,6 @@ import {
 export const createCompetitionRegistrationId = createCompetitionApplicationId
 export const getCompetitionCardStageNumber = getCompetitionApplicationStageNumber
 export const resolveCompetitionStageId = resolveCompetitionApplicationStageId
-export const countCompetitionRegistrationsByStageId = countCompetitionApplicationsByStageId
 export const countCompetitionRegistrationsByStageIdFromSource =
   countCompetitionApplicationsByStageIdFromSource
 export const createCompetitionRegistrationRecord = createCompetitionApplicationRecord

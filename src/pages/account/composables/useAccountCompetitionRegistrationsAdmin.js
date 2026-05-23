@@ -6,7 +6,6 @@ import {
   patchCompetitionRegistrationByUserKey,
   subscribeToCompetitionRegistrationChanges,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
-import { isSupabaseCompetitionApplicationSource } from '@/domains/competition-applications/applicationSource'
 import {
   readAccountAthletesSnapshot,
   readAccountProfileSnapshot,
@@ -131,7 +130,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
       (item) => item.id === registration.sourceUserKey || item.email === registration.sourceUserKey,
     )
 
-    if (!sourceUser && isSupabaseCompetitionApplicationSource()) {
+    if (!sourceUser) {
       return {
         status: 'unknown',
         label: 'Нет данных',
@@ -157,13 +156,11 @@ export function useAccountCompetitionRegistrationsAdmin() {
         return getAccountDocumentsAdmissionStatus(athlete.documents || [])
       }
 
-      if (isSupabaseCompetitionApplicationSource()) {
-        return {
-          status: 'unknown',
-          label: 'Нет данных',
-          description: 'Проверьте документы в карточке пользователя.',
-          tagType: 'info',
-        }
+      return {
+        status: 'unknown',
+        label: 'Нет данных',
+        description: 'Проверьте документы в карточке пользователя.',
+        tagType: 'info',
       }
     }
 
@@ -174,7 +171,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
       ? profileDocuments
       : sourceUserDocuments
 
-    if (isSupabaseCompetitionApplicationSource() && !documents.length) {
+    if (!documents.length) {
       return {
         status: 'unknown',
         label: 'Нет данных',
@@ -374,31 +371,12 @@ export function useAccountCompetitionRegistrationsAdmin() {
       .catch(() => {})
   }
 
-  function handleStorageChange(event) {
-    const storageKeyValue = String(event?.key || '')
-
-    if (!storageKeyValue.includes('account-competition-registrations')) {
-      return
-    }
-
-    void loadRegistrations()
-  }
-
   onMounted(() => {
     void loadRegistrations()
 
-    if (isSupabaseCompetitionApplicationSource()) {
-      unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
-        void loadRegistrations()
-      })
-      return
-    }
-
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    window.addEventListener('storage', handleStorageChange)
+    unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
+      void loadRegistrations()
+    })
   })
 
   onBeforeUnmount(() => {
@@ -407,11 +385,6 @@ export function useAccountCompetitionRegistrationsAdmin() {
       unsubscribeFromCompetitionApplications = null
     }
 
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    window.removeEventListener('storage', handleStorageChange)
   })
 
   return {
