@@ -1,7 +1,6 @@
 import {
   countCompetitionApplicationsByStageId,
   countCompetitionApplicationsByStageIdFromSource,
-  countCompetitionApplicationsForParticipant,
   countCompetitionApplicationsForParticipantFromSource,
   createCompetitionApplication,
   createCompetitionApplicationId,
@@ -11,48 +10,26 @@ import {
   loadCompetitionApplicationsForCurrentUser,
   patchCompetitionApplication,
   patchCompetitionApplicationByUserKey,
-  persistCompetitionApplications,
-  persistCompetitionApplicationsByUserKey,
-  readAllCompetitionApplications,
-  readCompetitionApplications,
   resolveCompetitionApplicationStageId,
   subscribeToCompetitionApplicationChanges,
-  syncCompetitionApplicationAthleteSnapshot,
   syncCompetitionApplicationAthleteSnapshotFromSource,
-  syncCompetitionApplicationOwnerSnapshot,
   syncCompetitionApplicationOwnerSnapshotFromSource,
-  updateCompetitionApplication,
-  updateCompetitionApplicationByUserKey,
-  updateCompetitionApplicationStatus,
-  updateCompetitionApplicationsByStageId,
   updateCompetitionApplicationsByStageIdFromSource,
 } from '@/domains/competition-applications/applicationRepository'
 
 export const createCompetitionRegistrationId = createCompetitionApplicationId
 export const getCompetitionCardStageNumber = getCompetitionApplicationStageNumber
 export const resolveCompetitionStageId = resolveCompetitionApplicationStageId
-export const readCompetitionRegistrations = readCompetitionApplications
-export const readAllCompetitionRegistrations = readAllCompetitionApplications
 export const countCompetitionRegistrationsByStageId = countCompetitionApplicationsByStageId
 export const countCompetitionRegistrationsByStageIdFromSource =
   countCompetitionApplicationsByStageIdFromSource
-export const persistCompetitionRegistrations = persistCompetitionApplications
-export const persistCompetitionRegistrationsByUserKey = persistCompetitionApplicationsByUserKey
 export const createCompetitionRegistrationRecord = createCompetitionApplicationRecord
-export const updateCompetitionRegistration = updateCompetitionApplication
-export const countCompetitionRegistrationsForParticipant =
-  countCompetitionApplicationsForParticipant
 export const countCompetitionRegistrationsForParticipantFromSource =
   countCompetitionApplicationsForParticipantFromSource
-export const syncCompetitionRegistrationOwnerSnapshot = syncCompetitionApplicationOwnerSnapshot
 export const syncCompetitionRegistrationOwnerSnapshotFromSource =
   syncCompetitionApplicationOwnerSnapshotFromSource
-export const syncCompetitionRegistrationAthleteSnapshot = syncCompetitionApplicationAthleteSnapshot
 export const syncCompetitionRegistrationAthleteSnapshotFromSource =
   syncCompetitionApplicationAthleteSnapshotFromSource
-export const updateCompetitionRegistrationStatus = updateCompetitionApplicationStatus
-export const updateCompetitionRegistrationByUserKey = updateCompetitionApplicationByUserKey
-export const updateCompetitionRegistrationsByStageId = updateCompetitionApplicationsByStageId
 export const updateCompetitionRegistrationsByStageIdFromSource =
   updateCompetitionApplicationsByStageIdFromSource
 export const loadCompetitionRegistrationsForCurrentUser =
