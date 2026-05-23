@@ -133,6 +133,8 @@ VITE_COMPETITION_APPLICATIONS_SOURCE=local
 
 Значение `supabase` также поддерживается явно, но без этой переменной Supabase уже используется как default source.
 
+`local` считается deprecated rollback/debug path: новые проверки, пользовательские сценарии и CRM-сценарии заявок должны опираться на Supabase. Не удаляйте localStorage fallback без отдельного removal-этапа. Перед удалением нужно подтвердить, что user/admin Supabase smoke стабильно проходит, локальный rollback не нужен для текущего релиза, судьба тестовой Supabase-заявки зафиксирована, а свежий audit больше не находит production UI, завязанный на localStorage source.
+
 ## Роли
 
 - `admin` — полный доступ к CRM и заявкам.
