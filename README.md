@@ -230,6 +230,14 @@ npm run supabase:check-competition-applications
 
 Команда read-only и проверяет наличие таблиц, RLS, policies, constraints, triggers и индексов из `supabase/competition_applications.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
 
+Проверить, что тестовая Supabase-заявка для regression smoke существует и находится в ожидаемом статусе:
+
+```sh
+npm run supabase:check-competition-fixture
+```
+
+Команда read-only и по умолчанию проверяет заявку `5e38dfd0-03f8-45f2-88ec-4e3d8f683d23` со статусом `reviewing`. Если fixture меняется, можно переопределить `SUPABASE_COMPETITION_APPLICATION_FIXTURE_ID` и `SUPABASE_COMPETITION_APPLICATION_FIXTURE_STATUS` в `.env.local`.
+
 ## Проверка после установки
 
 Если хотите быстро проверить, что проект поднялся корректно:
@@ -269,6 +277,7 @@ npm run supabase:check-competition-applications
 - выполнен ли SQL из `supabase/competition_applications.sql`, потому что заявки на соревнования по умолчанию используют Supabase
 - для `npm run supabase:list-tables` заполнен ли `SUPABASE_ACCESS_TOKEN`
 - для `npm run supabase:check-competition-applications` заполнен ли `SUPABASE_ACCESS_TOKEN`
+- для `npm run supabase:check-competition-fixture` заполнен ли `SUPABASE_ACCESS_TOKEN`, если проверяете smoke fixture
 - если нужно временно проверить старый localStorage-flow заявок, задан ли `VITE_COMPETITION_APPLICATIONS_SOURCE=local`
 
 ### Открывается `/account`, но нет профиля пользователя
