@@ -8,10 +8,6 @@ import {
   patchCompetitionRegistration,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 import {
-  readAccountAthletesSnapshot,
-  readAccountProfileSnapshot,
-} from '@/pages/account/utils/accountLocalStorage'
-import {
   COMPETITION_REGISTRATION_RECORD_STATUS,
   isCompetitionRegistrationActiveStatus,
 } from '@/pages/account/utils/accountConstants'
@@ -26,6 +22,12 @@ import {
   getAccountDocumentsAdmissionStatus,
   resolveCompetitionRegistrationLifecycleSummary,
 } from '@/pages/account/utils/accountFormatters'
+import {
+  loadAccountAthletesForCurrentUser,
+  loadAccountProfileForCurrentUser,
+} from '@/domains/account-data/accountDataRepository'
+import { loadAccountDocumentsForCurrentUser } from '@/domains/account-documents/documentRepository'
+import { createEmptyAccountProfile } from '@/domains/account-data/accountDataMappers'
 
 const DEFAULT_PARTICIPANT_KIND = 'owner'
 const DEFAULT_REGISTRATION_KIND = 'individual'
@@ -62,8 +64,8 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
   const registrationsError = ref('')
   const isRegistrationDialogOpen = ref(false)
   const selectedCompetitionStageId = ref('')
-  const ownerSnapshot = ref(readAccountProfileSnapshot(currentUser))
-  const athleteSnapshots = ref(readAccountAthletesSnapshot(currentUser))
+  const ownerSnapshot = ref(createEmptyAccountProfile(currentUser?.value || currentUser || null))
+  const athleteSnapshots = ref([])
   const registrationForm = reactive(createDefaultForm())
   const registrationErrors = reactive({
     participantId: '',
@@ -161,9 +163,32 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     () => registrations.value.filter((registration) => isCompetitionRegistrationActiveStatus(registration.status)).length,
   )
 
-  function syncSnapshots() {
-    ownerSnapshot.value = readAccountProfileSnapshot(currentUser)
-    athleteSnapshots.value = readAccountAthletesSnapshot(currentUser)
+  async function syncSnapshots() {
+    try {
+      const [profile, profileDocuments, sourceAthletes] = await Promise.all([
+        loadAccountProfileForCurrentUser({ currentUser }),
+        loadAccountDocumentsForCurrentUser({ scope: 'profile', scopeId: 'profile' }),
+        loadAccountAthletesForCurrentUser(),
+      ])
+      const athletesWithDocuments = await Promise.all(
+        sourceAthletes.map(async (athlete) => ({
+          ...athlete,
+          documents: await loadAccountDocumentsForCurrentUser({
+            scope: 'athlete',
+            scopeId: athlete.id,
+          }),
+        })),
+      )
+
+      ownerSnapshot.value = {
+        ...profile,
+        documents: profileDocuments,
+      }
+      athleteSnapshots.value = athletesWithDocuments
+    } catch {
+      ownerSnapshot.value = createEmptyAccountProfile(currentUser?.value || currentUser || null)
+      athleteSnapshots.value = []
+    }
   }
 
   let loadRequestId = 0
@@ -242,7 +267,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     }
 
     selectedCompetitionStageId.value = stageId
-    syncSnapshots()
+    void syncSnapshots()
     resetRegistrationForm()
     isRegistrationDialogOpen.value = true
 
@@ -492,7 +517,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
   }
 
   watch(currentUserKey, () => {
-    syncSnapshots()
+    void syncSnapshots()
     void loadRegistrations()
   }, { immediate: true })
 

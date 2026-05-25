@@ -275,7 +275,7 @@ const consultationForm = ref({
 const consultationErrors = ref(getEmptyConsultationErrors())
 const isSubmitting = ref(false)
 const CONSULTATION_SUBMIT_COOLDOWN_MS = 60_000
-const CONSULTATION_SUBMIT_STORAGE_KEY = 'smartswim-consultation-submit-at'
+let lastConsultationSubmitAt = 0
 
 const timeOptions = computed(() => {
   const times = []
@@ -420,9 +420,7 @@ async function handleConsultationSubmit() {
     return
   }
 
-  const lastSubmitAt = Number(window.localStorage.getItem(CONSULTATION_SUBMIT_STORAGE_KEY) || 0)
-
-  if (Date.now() - lastSubmitAt < CONSULTATION_SUBMIT_COOLDOWN_MS) {
+  if (Date.now() - lastConsultationSubmitAt < CONSULTATION_SUBMIT_COOLDOWN_MS) {
     showToast('Повторная отправка временно ограничена. Попробуйте через минуту.', {
       type: 'error',
     })
@@ -443,7 +441,7 @@ async function handleConsultationSubmit() {
       consultationTime: selectedTime.value,
     })
 
-    window.localStorage.setItem(CONSULTATION_SUBMIT_STORAGE_KEY, String(Date.now()))
+    lastConsultationSubmitAt = Date.now()
     resetConsultationForm()
     showToast('Заявка отправлена. Мы свяжемся с вами для подтверждения консультации.')
   } catch (error) {

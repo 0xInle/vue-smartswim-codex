@@ -64,17 +64,27 @@
 
 <script setup>
 import { ElCard } from 'element-plus'
-import { computed, ref, toRef, watch } from 'vue'
-import {
-  readAccountAthletesSnapshot,
-  readAccountProfileSnapshot,
-} from '@/pages/account/utils/accountLocalStorage'
+import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
 import {
   COMPETITION_REGISTRATION_RECORD_STATUS,
   isCompetitionRegistrationActiveStatus,
 } from '@/pages/account/utils/accountConstants'
-import { resolveAccountAdmissionStatus } from '@/pages/account/utils/accountAdmissions'
+import {
+  refreshAccountAdmissionWorkflowForCurrentUser,
+  resolveAccountAdmissionStatus,
+} from '@/pages/account/utils/accountAdmissions'
 import { loadCompetitionRegistrationsForCurrentUser } from '@/pages/account/utils/accountCompetitionRegistrations'
+import {
+  loadAccountAthletesForCurrentUser,
+  loadAccountProfileForCurrentUser,
+  subscribeToAccountProfileAthleteChanges,
+} from '@/domains/account-data/accountDataRepository'
+import {
+  loadAccountDocumentsForCurrentUser,
+  subscribeToAccountDocumentChanges,
+} from '@/domains/account-documents/documentRepository'
+import { createEmptyAccountProfile } from '@/domains/account-data/accountDataMappers'
+import { subscribeToAccountAdmissionWorkflowChanges } from '@/domains/account-admissions/accountAdmissionRepository'
 
 const props = defineProps({
   currentUser: {
@@ -89,10 +99,14 @@ const props = defineProps({
 
 const currentUserRef = toRef(props, 'currentUser')
 
-const profileSnapshot = computed(() => readAccountProfileSnapshot(currentUserRef))
-const athleteSnapshots = computed(() => readAccountAthletesSnapshot(currentUserRef))
+const profileSnapshot = ref(createEmptyAccountProfile(props.currentUser))
+const athleteSnapshots = ref([])
 const registrations = ref([])
 let registrationsLoadRequestId = 0
+let dashboardDataLoadRequestId = 0
+let unsubscribeFromAccountData = null
+let unsubscribeFromAccountDocuments = null
+let unsubscribeFromAdmissionWorkflow = null
 
 const currentUserKey = computed(() => {
   const user = currentUserRef.value || null
@@ -226,9 +240,77 @@ async function loadRegistrations() {
   }
 }
 
+async function loadDashboardData() {
+  const requestId = dashboardDataLoadRequestId + 1
+  dashboardDataLoadRequestId = requestId
+
+  try {
+    const [profile, profileDocuments, sourceAthletes] = await Promise.all([
+      loadAccountProfileForCurrentUser({ currentUser: currentUserRef }),
+      loadAccountDocumentsForCurrentUser({ scope: 'profile', scopeId: 'profile' }),
+      loadAccountAthletesForCurrentUser(),
+      refreshAccountAdmissionWorkflowForCurrentUser(),
+    ])
+    const athletesWithDocuments = await Promise.all(
+      sourceAthletes.map(async (athlete) => ({
+        ...athlete,
+        documents: await loadAccountDocumentsForCurrentUser({
+          scope: 'athlete',
+          scopeId: athlete.id,
+        }),
+      })),
+    )
+
+    if (requestId !== dashboardDataLoadRequestId) {
+      return
+    }
+
+    profileSnapshot.value = {
+      ...profile,
+      documents: profileDocuments,
+    }
+    athleteSnapshots.value = athletesWithDocuments
+  } catch {
+    if (requestId === dashboardDataLoadRequestId) {
+      profileSnapshot.value = createEmptyAccountProfile(props.currentUser)
+      athleteSnapshots.value = []
+    }
+  }
+}
+
 watch(currentUserKey, () => {
+  void loadDashboardData()
   void loadRegistrations()
 }, { immediate: true })
+
+onMounted(() => {
+  unsubscribeFromAccountData = subscribeToAccountProfileAthleteChanges(() => {
+    void loadDashboardData()
+  })
+  unsubscribeFromAccountDocuments = subscribeToAccountDocumentChanges(() => {
+    void loadDashboardData()
+  })
+  unsubscribeFromAdmissionWorkflow = subscribeToAccountAdmissionWorkflowChanges(() => {
+    void loadDashboardData()
+  })
+})
+
+onBeforeUnmount(() => {
+  if (unsubscribeFromAccountData) {
+    unsubscribeFromAccountData()
+    unsubscribeFromAccountData = null
+  }
+
+  if (unsubscribeFromAccountDocuments) {
+    unsubscribeFromAccountDocuments()
+    unsubscribeFromAccountDocuments = null
+  }
+
+  if (unsubscribeFromAdmissionWorkflow) {
+    unsubscribeFromAdmissionWorkflow()
+    unsubscribeFromAdmissionWorkflow = null
+  }
+})
 </script>
 
 <style scoped>

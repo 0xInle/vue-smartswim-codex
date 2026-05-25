@@ -295,7 +295,7 @@ function getApplicationRecord(group) {
   })
 }
 
-function persistApplication(group, patch = {}) {
+async function persistApplication(group, patch = {}) {
   const existingApplication = getApplicationRecord(group)
 
   return upsertAccountAthleteApplication({
@@ -338,12 +338,21 @@ function closeGroupDialog() {
   isSaving.value = false
 }
 
-function handleStatusChange(group, nextStatus) {
+async function handleStatusChange(group, nextStatus) {
   if (!group || !nextStatus || nextStatus === group.statusMeta.status) {
     return
   }
 
-  const updated = persistApplication(group, { status: nextStatus })
+  let updated = null
+
+  try {
+    updated = await persistApplication(group, { status: nextStatus })
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Не удалось обновить статус заявки.', {
+      type: 'error',
+    })
+    return
+  }
 
   if (!updated) {
     showToast('Не удалось обновить статус заявки.', { type: 'error' })
@@ -358,24 +367,34 @@ function handleStatusChange(group, nextStatus) {
   })
 }
 
-function handleSaveComment() {
+async function handleSaveComment() {
   if (!selectedGroup.value) {
     return
   }
 
   isSaving.value = true
 
-  const updated = persistApplication(selectedGroup.value, {
-    note: form.comment.trim(),
-  })
+  let updated = null
 
-  isSaving.value = false
-
-  if (!updated) {
-    showToast('Не удалось сохранить комментарий.', { type: 'error' })
+  try {
+    updated = await persistApplication(selectedGroup.value, {
+      note: form.comment.trim(),
+    })
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Не удалось сохранить комментарий.', {
+      type: 'error',
+    })
+    isSaving.value = false
     return
   }
 
+  if (!updated) {
+    showToast('Не удалось сохранить комментарий.', { type: 'error' })
+    isSaving.value = false
+    return
+  }
+
+  isSaving.value = false
   showToast('Комментарий сохранён')
   refresh()
   closeGroupDialog()

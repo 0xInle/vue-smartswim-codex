@@ -109,18 +109,17 @@ import {
   createAccountDocumentsState,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
-import { syncAccountDocumentReviewRecords } from '@/pages/account/utils/accountDocumentRegistry'
-import {
-  readAccountProfileSnapshot,
-  writeAccountProfileSnapshot,
-} from '@/pages/account/utils/accountLocalStorage'
 import { syncCompetitionRegistrationOwnerSnapshotFromSource } from '@/pages/account/utils/accountCompetitionRegistrations'
 import {
-  isSupabaseAccountDocumentsSource,
   loadAccountDocumentsForCurrentUser,
   saveAccountDocumentForCurrentUser,
   subscribeToAccountDocumentChanges,
 } from '@/domains/account-documents/documentRepository'
+import {
+  loadAccountProfileForCurrentUser,
+  saveAccountProfileForCurrentUser,
+  subscribeToAccountProfileAthleteChanges,
+} from '@/domains/account-data/accountDataRepository'
 
 const props = defineProps({
   currentUser: {
@@ -155,8 +154,8 @@ const uploadDialogState = reactive({
   fileSize: 0,
   expiresAt: '',
 })
-const isSupabaseDocumentsSource = isSupabaseAccountDocumentsSource()
 let unsubscribeFromSupabaseDocuments = null
+let unsubscribeFromSupabaseAccountData = null
 
 function resetErrors() {
   errors.fullName = ''
@@ -183,50 +182,29 @@ async function syncProfileDocumentsFromSource() {
   }
 }
 
-function syncFromStorage() {
-  const snapshot = readAccountProfileSnapshot(currentUserRef)
+async function syncProfileFromSource() {
+  try {
+    const snapshot = await loadAccountProfileForCurrentUser({ currentUser: currentUserRef })
 
-  profile.fullName = snapshot.fullName || props.currentUser?.name || ''
-  profile.birthDate = snapshot.birthDate || ''
-  profile.club = snapshot.club || ''
-  profile.phone = snapshot.phone || props.currentUser?.phone || ''
-  profile.email = snapshot.email || props.currentUser?.email || ''
-
-  if (isSupabaseDocumentsSource) {
+    profile.fullName = snapshot.fullName || props.currentUser?.name || ''
+    profile.birthDate = snapshot.birthDate || ''
+    profile.club = snapshot.club || ''
+    profile.phone = snapshot.phone || props.currentUser?.phone || ''
+    profile.email = snapshot.email || props.currentUser?.email || ''
     profile.documents = createAccountDocumentsState()
-    void syncProfileDocumentsFromSource()
-    return
-  }
-
-  profile.documents = normalizeAccountDocumentsState(snapshot.documents || createAccountDocumentsState())
-}
-
-function persistProfile() {
-  const isSaved = writeAccountProfileSnapshot(currentUserRef, profile)
-
-  if (!isSaved) {
-    showToast('Не удалось сохранить профиль. Проверьте размер загруженных файлов.', {
+    await syncProfileDocumentsFromSource()
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Не удалось загрузить профиль', {
       type: 'error',
     })
+
+    profile.fullName = props.currentUser?.name || ''
+    profile.birthDate = ''
+    profile.club = ''
+    profile.phone = props.currentUser?.phone || ''
+    profile.email = props.currentUser?.email || ''
+    profile.documents = createAccountDocumentsState()
   }
-
-  return isSaved
-}
-
-function syncProfileDocumentReviews() {
-  syncAccountDocumentReviewRecords({
-    currentUser: currentUserRef,
-    ownerName: profile.fullName,
-    ownerEmail: profile.email,
-    ownerPhone: profile.phone,
-    scope: 'profile',
-    scopeId: 'profile',
-    participantName: profile.fullName,
-    participantBirthDate: profile.birthDate,
-    participantClub: profile.club,
-    participantKind: 'owner',
-    documents: profile.documents,
-  })
 }
 
 function validateProfile() {
@@ -343,28 +321,18 @@ async function handleUploadSubmit(payload) {
     rejectionReason: '',
   })
 
-  if (isSupabaseDocumentsSource) {
-    const nextDocument = profile.documents.find(
-      (document) => document.type === uploadDialogState.documentType,
-    )
+  const nextDocument = profile.documents.find(
+    (document) => document.type === uploadDialogState.documentType,
+  )
 
-    try {
-      await persistProfileDocument(nextDocument)
-      await syncProfileDocumentsFromSource()
-      showToast('Документ загружен и отправлен на проверку')
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Не удалось сохранить документ', {
-        type: 'error',
-      })
-    }
-
-    closeUploadDialog()
-    return
-  }
-
-  if (persistProfile()) {
-    syncProfileDocumentReviews()
+  try {
+    await persistProfileDocument(nextDocument)
+    await syncProfileDocumentsFromSource()
     showToast('Документ загружен и отправлен на проверку')
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Не удалось сохранить документ', {
+      type: 'error',
+    })
   }
 
   closeUploadDialog()
@@ -406,37 +374,43 @@ function handleDocumentRemove(documentType) {
         rejectionReason: '',
       })
 
-      if (isSupabaseDocumentsSource) {
-        const nextDocument = profile.documents.find((document) => document.type === documentType)
+      const nextDocument = profile.documents.find((document) => document.type === documentType)
 
-        try {
-          await persistProfileDocument(nextDocument)
-          await syncProfileDocumentsFromSource()
-        } catch (error) {
-          showToast(error instanceof Error ? error.message : 'Не удалось удалить документ', {
-            type: 'error',
-          })
-        }
-        return
-      }
-
-      if (persistProfile()) {
-        syncProfileDocumentReviews()
+      try {
+        await persistProfileDocument(nextDocument)
+        await syncProfileDocumentsFromSource()
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Не удалось удалить документ', {
+          type: 'error',
+        })
       }
     })
     .catch(() => {})
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!validateProfile()) {
     return
   }
 
-  if (!persistProfile()) {
+  try {
+    const savedProfile = await saveAccountProfileForCurrentUser({
+      currentUser: currentUserRef,
+      profile,
+    })
+
+    profile.fullName = savedProfile.fullName
+    profile.birthDate = savedProfile.birthDate
+    profile.club = savedProfile.club
+    profile.phone = savedProfile.phone
+    profile.email = savedProfile.email
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Не удалось сохранить профиль', {
+      type: 'error',
+    })
     return
   }
 
-  syncProfileDocumentReviews()
   void syncCompetitionRegistrationOwnerSnapshotFromSource(currentUserRef, profile)
   showToast('Профиль сохранён')
 }
@@ -444,7 +418,7 @@ function handleSubmit() {
 watch(
   () => props.currentUser,
   () => {
-    syncFromStorage()
+    void syncProfileFromSource()
   },
   { immediate: true },
 )
@@ -452,10 +426,6 @@ watch(
 watch(
   () => [profile.fullName, profile.birthDate, profile.club, profile.phone, profile.email],
   () => {
-    if (!isSupabaseDocumentsSource) {
-      return
-    }
-
     const loadedDocuments = profile.documents.filter((document) => document.status !== 'missing')
 
     loadedDocuments.forEach((document) => {
@@ -465,12 +435,11 @@ watch(
 )
 
 onMounted(() => {
-  if (!isSupabaseDocumentsSource) {
-    return
-  }
-
   unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
     void syncProfileDocumentsFromSource()
+  })
+  unsubscribeFromSupabaseAccountData = subscribeToAccountProfileAthleteChanges(() => {
+    void syncProfileFromSource()
   })
 })
 
@@ -478,6 +447,11 @@ onBeforeUnmount(() => {
   if (unsubscribeFromSupabaseDocuments) {
     unsubscribeFromSupabaseDocuments()
     unsubscribeFromSupabaseDocuments = null
+  }
+
+  if (unsubscribeFromSupabaseAccountData) {
+    unsubscribeFromSupabaseAccountData()
+    unsubscribeFromSupabaseAccountData = null
   }
 })
 </script>

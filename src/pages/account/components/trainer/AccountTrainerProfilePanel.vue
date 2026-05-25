@@ -73,9 +73,9 @@ import { ElCard } from 'element-plus'
 import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
 import { showToast } from '@/utils/toast'
 import {
-  readTrainerProfileSnapshot,
-  writeTrainerProfileSnapshot,
-} from '@/pages/account/utils/accountTrainerProfileStorage'
+  loadAccountProfileForCurrentUser,
+  saveAccountProfileForCurrentUser,
+} from '@/domains/account-data/accountDataRepository'
 
 const props = defineProps({
   currentUser: {
@@ -107,13 +107,19 @@ function resetErrors() {
   errors.email = ''
 }
 
-function syncFromStorage() {
-  const snapshot = readTrainerProfileSnapshot(currentUserRef)
+async function syncFromSource() {
+  try {
+    const snapshot = await loadAccountProfileForCurrentUser({ currentUser: currentUserRef })
 
-  profile.fullName = snapshot.fullName || props.currentUser?.name || ''
-  profile.birthDate = snapshot.birthDate || ''
-  profile.phone = snapshot.phone || props.currentUser?.phone || ''
-  profile.email = snapshot.email || props.currentUser?.email || ''
+    profile.fullName = snapshot.fullName || props.currentUser?.name || ''
+    profile.birthDate = snapshot.birthDate || ''
+    profile.phone = snapshot.phone || props.currentUser?.phone || ''
+    profile.email = snapshot.email || props.currentUser?.email || ''
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Не удалось загрузить профиль тренера.', {
+      type: 'error',
+    })
+  }
 }
 
 function validateProfile() {
@@ -150,23 +156,28 @@ function handlePhoneInput(event) {
   errors.phone = ''
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!validateProfile()) {
     return
   }
 
-  if (!writeTrainerProfileSnapshot(currentUserRef, profile)) {
-    showToast('Не удалось сохранить профиль тренера.', { type: 'error' })
-    return
+  try {
+    await saveAccountProfileForCurrentUser({
+      currentUser: currentUserRef,
+      profile,
+    })
+    showToast('Профиль тренера сохранён')
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Не удалось сохранить профиль тренера.', {
+      type: 'error',
+    })
   }
-
-  showToast('Профиль тренера сохранён')
 }
 
 watch(
   () => props.currentUser,
   () => {
-    syncFromStorage()
+    void syncFromSource()
   },
   { immediate: true },
 )

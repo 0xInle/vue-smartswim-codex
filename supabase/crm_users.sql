@@ -3,6 +3,7 @@ create table if not exists public.crm_users (
   email text not null unique,
   name text,
   role text not null default 'user',
+  account_status text not null default 'paid',
   registered_at timestamptz not null default timezone('utc', now())
 );
 
@@ -38,6 +39,9 @@ set
 alter table public.crm_users
   add column if not exists role text;
 
+alter table public.crm_users
+  add column if not exists account_status text not null default 'paid';
+
 update public.crm_users
 set role = case
   when exists (
@@ -62,6 +66,17 @@ alter table public.crm_users
 alter table public.crm_users
   alter column role set not null;
 
+update public.crm_users
+set account_status = 'paid'
+where account_status is null
+   or account_status not in ('paid', 'unpaid');
+
+alter table public.crm_users
+  alter column account_status set default 'paid';
+
+alter table public.crm_users
+  alter column account_status set not null;
+
 do $$
 begin
   if not exists (
@@ -77,18 +92,64 @@ begin
 end;
 $$;
 
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'crm_users_account_status_check'
+      and conrelid = 'public.crm_users'::regclass
+  ) then
+    alter table public.crm_users
+      add constraint crm_users_account_status_check
+      check (account_status in ('paid', 'unpaid'));
+  end if;
+end;
+$$;
+
+create index if not exists crm_users_role_idx
+  on public.crm_users (role);
+
+create index if not exists crm_users_account_status_idx
+  on public.crm_users (account_status);
+
+create index if not exists crm_users_registered_at_idx
+  on public.crm_users (registered_at desc);
+
 alter table public.crm_users enable row level security;
 alter table public.allowed_admin_emails enable row level security;
 alter table public.trainers enable row level security;
 
 drop policy if exists "Allow public read crm users" on public.crm_users;
 drop policy if exists "Allow authenticated users to read own crm profile" on public.crm_users;
+drop policy if exists "Allow admin read crm users" on public.crm_users;
+drop policy if exists "Allow admin update crm users" on public.crm_users;
+drop policy if exists "Allow admin delete crm users" on public.crm_users;
 
 create policy "Allow authenticated users to read own crm profile"
 on public.crm_users
 for select
 to authenticated
 using (auth.uid() = id);
+
+create policy "Allow admin read crm users"
+on public.crm_users
+for select
+to authenticated
+using (public.current_crm_role() = 'admin');
+
+create policy "Allow admin update crm users"
+on public.crm_users
+for update
+to authenticated
+using (public.current_crm_role() = 'admin')
+with check (public.current_crm_role() = 'admin');
+
+create policy "Allow admin delete crm users"
+on public.crm_users
+for delete
+to authenticated
+using (public.current_crm_role() = 'admin');
 
 create or replace function public.resolve_crm_role(user_email text)
 returns text
@@ -138,12 +199,13 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.crm_users (id, email, name, role, registered_at)
+  insert into public.crm_users (id, email, name, role, account_status, registered_at)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data ->> 'name', ''),
     public.resolve_crm_role(new.email),
+    'paid',
     coalesce(new.created_at, timezone('utc', now()))
   )
   on conflict (id) do update
@@ -162,12 +224,13 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_auth_user_created();
 
-insert into public.crm_users (id, email, name, role, registered_at)
+insert into public.crm_users (id, email, name, role, account_status, registered_at)
 select
   users.id,
   users.email,
   coalesce(users.raw_user_meta_data ->> 'name', ''),
   public.resolve_crm_role(users.email),
+  'paid',
   coalesce(users.created_at, timezone('utc', now()))
 from auth.users as users
 on conflict (id) do update
@@ -176,3 +239,17 @@ set
   name = excluded.name,
   role = public.resolve_crm_role(excluded.email),
   registered_at = excluded.registered_at;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'crm_users'
+  ) then
+    alter publication supabase_realtime add table public.crm_users;
+  end if;
+end;
+$$;

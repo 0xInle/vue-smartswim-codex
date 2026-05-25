@@ -7,35 +7,49 @@ import {
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
 import {
-  mergeDocumentsWithReviewRecords,
-  seedAccountDocumentReviewRecords,
-  removeAccountDocumentReviewRecords,
-  syncAccountDocumentReviewRecords,
-} from '@/pages/account/utils/accountDocumentRegistry'
-import { stripAccountDocumentFileData } from '@/pages/account/utils/accountLocalStorage'
-import {
   countCompetitionRegistrationsForParticipantFromSource,
   syncCompetitionRegistrationAthleteSnapshotFromSource,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 import {
-  isSupabaseAccountDocumentsSource,
   loadAccountDocumentsForCurrentUser,
   saveAccountDocumentForCurrentUser,
   subscribeToAccountDocumentChanges,
 } from '@/domains/account-documents/documentRepository'
-
-const ATHLETES_STORAGE_KEY = 'smartswim:account-athletes:v1'
+import {
+  loadAccountAthletesForCurrentUser,
+  removeAccountAthleteForCurrentUser,
+  saveAccountAthleteForCurrentUser,
+  subscribeToAccountProfileAthleteChanges,
+} from '@/domains/account-data/accountDataRepository'
+import {
+  refreshAccountAdmissionWorkflowForCurrentUser,
+} from '@/pages/account/utils/accountAdmissions'
+import { subscribeToAccountAdmissionWorkflowChanges } from '@/domains/account-admissions/accountAdmissionRepository'
 
 const GENDER_OPTIONS = [
   { value: 'male', label: 'Мужской' },
   { value: 'female', label: 'Женский' },
 ]
 
+function createClientUuid() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID()
+  }
+
+  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (character) =>
+    (
+      Number(character) ^
+      (globalThis.crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (Number(character) / 4)))
+    ).toString(16),
+  )
+}
+
 export function useAccountAthletes({ currentUser }) {
   const athletes = ref([])
   const editingAthleteId = ref('')
-  const isSupabaseDocumentsSource = isSupabaseAccountDocumentsSource()
   let unsubscribeFromSupabaseDocuments = null
+  let unsubscribeFromSupabaseAccountData = null
+  let unsubscribeFromSupabaseAdmissionWorkflow = null
 
   const form = reactive({
     fullName: '',
@@ -66,14 +80,6 @@ export function useAccountAthletes({ currentUser }) {
     })),
   )
 
-  const storageKey = computed(() => {
-    const userKey = currentUser.value?.id || currentUser.value?.email || 'anonymous'
-
-    return `${ATHLETES_STORAGE_KEY}:${userKey}`
-  })
-
-  const anonymousStorageKey = computed(() => `${ATHLETES_STORAGE_KEY}:anonymous`)
-
   function resetErrors() {
     errors.fullName = ''
     errors.birthDate = ''
@@ -84,7 +90,7 @@ export function useAccountAthletes({ currentUser }) {
 
   function normalizeAthlete(rawAthlete) {
     return {
-      id: rawAthlete?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: rawAthlete?.id || createClientUuid(),
       fullName: rawAthlete?.fullName || '',
       birthDate: rawAthlete?.birthDate || '',
       gender: rawAthlete?.gender || '',
@@ -130,108 +136,25 @@ export function useAccountAthletes({ currentUser }) {
     }
   }
 
-  function syncFromStorage() {
-    if (typeof window === 'undefined') {
-      return
-    }
-
+  async function syncAthletesFromSource() {
     try {
-      const ownSerializedAthletes = window.localStorage.getItem(storageKey.value)
-      const fallbackSerializedAthletes =
-        storageKey.value === anonymousStorageKey.value
-          ? ''
-          : window.localStorage.getItem(anonymousStorageKey.value)
-      const serializedAthletes = ownSerializedAthletes || fallbackSerializedAthletes
+      const [sourceAthletes] = await Promise.all([
+        loadAccountAthletesForCurrentUser(),
+        refreshAccountAdmissionWorkflowForCurrentUser(),
+      ])
+      const nextAthletes = sourceAthletes.map(normalizeAthlete)
 
-      if (!serializedAthletes) {
-        athletes.value = []
-        return
-      }
-
-      const parsedAthletes = JSON.parse(serializedAthletes)
-      const nextAthletes = Array.isArray(parsedAthletes) ? parsedAthletes.map(normalizeAthlete) : []
-
-      if (isSupabaseDocumentsSource) {
-        athletes.value = nextAthletes.map((athlete) => ({
-          ...athlete,
-          documents: createAccountDocumentsState(),
-        }))
-        void syncAthleteDocumentsFromSource()
-      } else {
-        nextAthletes.forEach((athlete) => {
-          seedAccountDocumentReviewRecords({
-            currentUser,
-            ownerName: currentUser.value?.name || '',
-            ownerEmail: currentUser.value?.email || '',
-            ownerPhone: currentUser.value?.phone || '',
-            scope: 'athlete',
-            scopeId: athlete.id,
-            participantName: athlete.fullName || '',
-            participantBirthDate: athlete.birthDate || '',
-            participantClub: athlete.club || '',
-            participantKind: 'athlete',
-            documents: athlete.documents || [],
-          })
-        })
-
-        athletes.value = nextAthletes.map((athlete) => ({
-          ...athlete,
-          documents: mergeDocumentsWithReviewRecords({
-            currentUser,
-            scope: 'athlete',
-            scopeId: athlete.id,
-            documents: athlete.documents,
-          }),
-        }))
-      }
-
-      if (!ownSerializedAthletes && fallbackSerializedAthletes) {
-        persistAthletes()
-      }
-    } catch {
+      athletes.value = nextAthletes.map((athlete) => ({
+        ...athlete,
+        documents: createAccountDocumentsState(),
+      }))
+      await syncAthleteDocumentsFromSource()
+    } catch (error) {
       athletes.value = []
-    }
-  }
-
-  function persistAthletes() {
-    if (typeof window === 'undefined') {
-      return true
-    }
-
-    const storageAthletes = athletes.value.map((athlete) => ({
-      ...athlete,
-      documents: stripAccountDocumentFileData(athlete.documents),
-    }))
-
-    try {
-      window.localStorage.setItem(storageKey.value, JSON.stringify(storageAthletes))
-      return true
-    } catch {
-      showToast('Не удалось сохранить спортсменов. Проверьте размер загруженных файлов.', {
+      showToast(error instanceof Error ? error.message : 'Не удалось загрузить спортсменов', {
         type: 'error',
       })
-      return false
     }
-  }
-
-  function syncAthleteDocumentReviews(athlete) {
-    if (isSupabaseDocumentsSource) {
-      return
-    }
-
-    syncAccountDocumentReviewRecords({
-      currentUser,
-      ownerName: currentUser.value?.name || '',
-      ownerEmail: currentUser.value?.email || '',
-      ownerPhone: currentUser.value?.phone || '',
-      scope: 'athlete',
-      scopeId: athlete.id,
-      participantName: athlete.fullName,
-      participantBirthDate: athlete.birthDate,
-      participantClub: athlete.club,
-      participantKind: 'athlete',
-      documents: athlete.documents,
-    })
   }
 
   async function persistSupabaseAthleteDocument(athlete, document) {
@@ -287,17 +210,17 @@ export function useAccountAthletes({ currentUser }) {
       return false
     }
 
-    syncAthleteDocumentReviews(nextAthlete)
+    athletes.value = athletes.value.map((athlete) =>
+      athlete.id === nextAthlete.id ? nextAthlete : athlete,
+    )
 
-    if (isSupabaseDocumentsSource) {
-      void persistSupabaseAthleteDocuments(nextAthlete).catch((error) => {
-        showToast(error instanceof Error ? error.message : 'Не удалось сохранить документы', {
-          type: 'error',
-        })
+    void persistSupabaseAthleteDocuments(nextAthlete).catch((error) => {
+      showToast(error instanceof Error ? error.message : 'Не удалось сохранить документы', {
+        type: 'error',
       })
-    }
+    })
 
-    return persistAthletes()
+    return true
   }
 
   function resetForm() {
@@ -377,16 +300,16 @@ export function useAccountAthletes({ currentUser }) {
           return
         }
 
-        if (!isSupabaseDocumentsSource) {
-          removeAccountDocumentReviewRecords({
-            currentUser,
-            scope: 'athlete',
-            scopeId: athleteId,
+        try {
+          await removeAccountAthleteForCurrentUser(athleteId)
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : 'Не удалось удалить спортсмена', {
+            type: 'error',
           })
+          return
         }
 
         athletes.value = athletes.value.filter((athlete) => athlete.id !== athleteId)
-        persistAthletes()
 
         if (editingAthleteId.value === athleteId) {
           resetForm()
@@ -432,7 +355,7 @@ export function useAccountAthletes({ currentUser }) {
     return !Object.values(errors).some(Boolean)
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!validateForm()) {
       return false
     }
@@ -448,29 +371,37 @@ export function useAccountAthletes({ currentUser }) {
       documents: form.documents,
     })
 
-    if (editingAthleteId.value) {
-      athletes.value = athletes.value.map((athlete) =>
-        athlete.id === editingAthleteId.value ? payload : athlete,
-      )
-    } else {
-      athletes.value = [payload, ...athletes.value]
-    }
+    let savedAthlete = null
 
-    if (!persistAthletes()) {
+    try {
+      savedAthlete = await saveAccountAthleteForCurrentUser({ athlete: payload })
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось сохранить спортсмена', {
+        type: 'error',
+      })
       return false
     }
 
-    syncAthleteDocumentReviews(payload)
-
-    if (isSupabaseDocumentsSource) {
-      void persistSupabaseAthleteDocuments(payload).catch((error) => {
-        showToast(error instanceof Error ? error.message : 'Не удалось сохранить документы', {
-          type: 'error',
-        })
-      })
+    savedAthlete = {
+      ...savedAthlete,
+      documents: normalizeAccountDocumentsState(payload.documents),
     }
 
-    void syncCompetitionRegistrationAthleteSnapshotFromSource(currentUser, payload)
+    if (editingAthleteId.value) {
+      athletes.value = athletes.value.map((athlete) =>
+        athlete.id === editingAthleteId.value ? savedAthlete : athlete,
+      )
+    } else {
+      athletes.value = [savedAthlete, ...athletes.value]
+    }
+
+    void persistSupabaseAthleteDocuments(payload).catch((error) => {
+      showToast(error instanceof Error ? error.message : 'Не удалось сохранить документы', {
+        type: 'error',
+      })
+    })
+
+    void syncCompetitionRegistrationAthleteSnapshotFromSource(currentUser, savedAthlete)
 
     showToast(editingAthleteId.value ? 'Спортсмен сохранён' : 'Спортсмен добавлен')
     resetForm()
@@ -572,7 +503,7 @@ export function useAccountAthletes({ currentUser }) {
 
     persistEditedAthleteDocuments()
 
-    if (isSupabaseDocumentsSource && editingAthleteId.value) {
+    if (editingAthleteId.value) {
       const editedAthlete = getEditingAthlete()
       const nextDocument = form.documents.find(
         (document) => document.type === documentUploadState.documentType,
@@ -636,7 +567,7 @@ export function useAccountAthletes({ currentUser }) {
 
         persistEditedAthleteDocuments()
 
-        if (isSupabaseDocumentsSource && editingAthleteId.value) {
+        if (editingAthleteId.value) {
           const editedAthlete = getEditingAthlete()
           const nextDocument = form.documents.find((document) => document.type === documentType)
 
@@ -663,40 +594,22 @@ export function useAccountAthletes({ currentUser }) {
   watch(
     currentUser,
     () => {
-      syncFromStorage()
+      void syncAthletesFromSource()
       resetForm()
     },
     { immediate: true },
   )
 
-  watch(storageKey, () => {
-    syncFromStorage()
-    resetForm()
-  })
-
-  function handleStorageChange(event) {
-    const storageKeyValue = String(event?.key || '')
-
-    if (!storageKeyValue.includes(ATHLETES_STORAGE_KEY) && !storageKeyValue.includes('account-document-reviews')) {
-      return
-    }
-
-    syncFromStorage()
-  }
-
   onMounted(() => {
-    if (isSupabaseDocumentsSource) {
-      unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
-        void syncAthleteDocumentsFromSource()
-      })
-      return
-    }
-
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    window.addEventListener('storage', handleStorageChange)
+    unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
+      void syncAthleteDocumentsFromSource()
+    })
+    unsubscribeFromSupabaseAccountData = subscribeToAccountProfileAthleteChanges(() => {
+      void syncAthletesFromSource()
+    })
+    unsubscribeFromSupabaseAdmissionWorkflow = subscribeToAccountAdmissionWorkflowChanges(() => {
+      void syncAthletesFromSource()
+    })
   })
 
   onBeforeUnmount(() => {
@@ -705,11 +618,15 @@ export function useAccountAthletes({ currentUser }) {
       unsubscribeFromSupabaseDocuments = null
     }
 
-    if (typeof window === 'undefined') {
-      return
+    if (unsubscribeFromSupabaseAccountData) {
+      unsubscribeFromSupabaseAccountData()
+      unsubscribeFromSupabaseAccountData = null
     }
 
-    window.removeEventListener('storage', handleStorageChange)
+    if (unsubscribeFromSupabaseAdmissionWorkflow) {
+      unsubscribeFromSupabaseAdmissionWorkflow()
+      unsubscribeFromSupabaseAdmissionWorkflow = null
+    }
   })
 
   return {

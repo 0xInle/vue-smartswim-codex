@@ -1,4 +1,4 @@
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import {
   createDefaultUserEditForm,
@@ -8,22 +8,25 @@ import {
   createAccountDocumentsState,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
-import {
-  removeAccountDocumentReviewRecords,
-  syncAccountDocumentReviewRecords,
-} from '@/pages/account/utils/accountDocumentRegistry'
 import { formatUserStatus } from '@/pages/account/utils/accountFormatters'
 import { formatRussianPhone, getRussianPhoneSearchValue } from '@/utils/phone'
 import { getCrmRoleLabel } from '@/utils/crmRoles'
 import { showToast } from '@/utils/toast'
 import {
-  readAccountUsersSnapshot,
-  writeAccountUsersSnapshot,
-} from '@/pages/account/utils/accountUsersStorage'
+  loadAllAccountUsersForAdmin,
+  removeAccountUserFromCrmForAdmin,
+  saveAccountUserForAdmin,
+  subscribeToAccountUsersChanges,
+} from '@/domains/account-users/accountUsersRepository'
+import {
+  subscribeToAccountProfileAthleteChanges,
+} from '@/domains/account-data/accountDataRepository'
+import { subscribeToAccountDocumentChanges } from '@/domains/account-documents/documentRepository'
+import { subscribeToAccountAdmissionWorkflowChanges } from '@/domains/account-admissions/accountAdmissionRepository'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 
 export function useAccountUsers() {
-  const users = ref(readAccountUsersSnapshot())
+  const users = ref([])
   const usersPage = ref(1)
   const usersSearch = ref('')
   const usersRoleFilter = ref('all')
@@ -31,6 +34,12 @@ export function useAccountUsers() {
   const isUserEditDialogOpen = ref(false)
   const isUserDeleteDialogOpen = ref(false)
   const userPendingDelete = ref(null)
+  const usersError = ref('')
+  let usersLoadRequestId = 0
+  let unsubscribeFromUsers = null
+  let unsubscribeFromAccountData = null
+  let unsubscribeFromDocuments = null
+  let unsubscribeFromAdmissions = null
   const userEditForm = reactive(createDefaultUserEditForm())
   const documentUploadState = reactive({
     isOpen: false,
@@ -39,6 +48,26 @@ export function useAccountUsers() {
     fileSize: 0,
     expiresAt: '',
   })
+
+  async function loadUsers() {
+    const requestId = usersLoadRequestId + 1
+    usersLoadRequestId = requestId
+    usersError.value = ''
+
+    try {
+      const nextUsers = await loadAllAccountUsersForAdmin()
+
+      if (requestId === usersLoadRequestId) {
+        users.value = nextUsers
+      }
+    } catch (error) {
+      if (requestId === usersLoadRequestId) {
+        users.value = []
+        usersError.value = error instanceof Error ? error.message : 'Не удалось загрузить пользователей.'
+        showToast(usersError.value, { type: 'error' })
+      }
+    }
+  }
 
   const filteredUsers = computed(() => {
     const normalizedSearch = usersSearch.value.trim().toLowerCase()
@@ -105,22 +134,6 @@ export function useAccountUsers() {
     Object.assign(userEditForm, createDefaultUserEditForm())
   }
 
-  function syncUserDocumentReviews(user) {
-    syncAccountDocumentReviewRecords({
-      currentUser: user,
-      ownerName: user?.name || '',
-      ownerEmail: user?.email || '',
-      ownerPhone: user?.phone || '',
-      scope: 'user',
-      scopeId: user?.id || '',
-      participantName: user?.name || '',
-      participantBirthDate: '',
-      participantClub: '',
-      participantKind: 'owner',
-      documents: user?.documents || [],
-    })
-  }
-
   function handleOpenUserEdit(user) {
     Object.assign(userEditForm, {
       id: user.id,
@@ -131,6 +144,7 @@ export function useAccountUsers() {
       status: user.status,
       registeredAt: user.registeredAt || null,
       documents: normalizeAccountDocumentsState(user.documents || createAccountDocumentsState()),
+      athletes: Array.isArray(user.athletes) ? user.athletes : [],
     })
 
     isUserEditDialogOpen.value = true
@@ -249,7 +263,7 @@ export function useAccountUsers() {
       .catch(() => {})
   }
 
-  function handleUserEditSubmit() {
+  async function handleUserEditSubmit() {
     const userIndex = users.value.findIndex((item) => item.id === userEditForm.id)
 
     if (userIndex === -1) {
@@ -257,21 +271,17 @@ export function useAccountUsers() {
       return
     }
 
-    users.value[userIndex] = {
-      ...users.value[userIndex],
-      name: userEditForm.name.trim(),
-      email: userEditForm.email.trim(),
-      phone: formatRussianPhone(userEditForm.phone.trim()),
-      role: userEditForm.role,
-      status: userEditForm.status,
-      registeredAt: userEditForm.registeredAt,
-      documents: normalizeAccountDocumentsState(userEditForm.documents || createAccountDocumentsState()),
-    }
-
-    syncUserDocumentReviews(users.value[userIndex])
-
-    if (!writeAccountUsersSnapshot(users.value)) {
-      showToast('Не удалось сохранить пользователя', { type: 'error' })
+    try {
+      await saveAccountUserForAdmin(userEditForm.id, {
+        name: userEditForm.name.trim(),
+        role: userEditForm.role,
+        status: userEditForm.status,
+      })
+      await loadUsers()
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось сохранить пользователя', {
+        type: 'error',
+      })
       handleCloseUserEdit()
       return
     }
@@ -290,28 +300,63 @@ export function useAccountUsers() {
     userPendingDelete.value = null
   }
 
-  function handleConfirmUserDelete() {
+  async function handleConfirmUserDelete() {
     if (!userPendingDelete.value) {
       return
     }
 
-    removeAccountDocumentReviewRecords({
-      currentUser: userPendingDelete.value,
-      scope: 'user',
-      scopeId: userPendingDelete.value.id,
-    })
-
-    users.value = users.value.filter((item) => item.id !== userPendingDelete.value.id)
-
-    if (!writeAccountUsersSnapshot(users.value)) {
-      showToast('Не удалось сохранить список пользователей', { type: 'error' })
+    try {
+      await removeAccountUserFromCrmForAdmin(userPendingDelete.value.id)
+      users.value = users.value.filter((item) => item.id !== userPendingDelete.value.id)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось удалить пользователя из CRM', {
+        type: 'error',
+      })
       handleCloseUserDelete()
       return
     }
 
-    showToast('Пользователь удалён')
+    showToast('Пользователь удалён из CRM')
     handleCloseUserDelete()
   }
+
+  onMounted(() => {
+    void loadUsers()
+    unsubscribeFromUsers = subscribeToAccountUsersChanges(() => {
+      void loadUsers()
+    })
+    unsubscribeFromAccountData = subscribeToAccountProfileAthleteChanges(() => {
+      void loadUsers()
+    })
+    unsubscribeFromDocuments = subscribeToAccountDocumentChanges(() => {
+      void loadUsers()
+    })
+    unsubscribeFromAdmissions = subscribeToAccountAdmissionWorkflowChanges(() => {
+      void loadUsers()
+    })
+  })
+
+  onBeforeUnmount(() => {
+    if (unsubscribeFromUsers) {
+      unsubscribeFromUsers()
+      unsubscribeFromUsers = null
+    }
+
+    if (unsubscribeFromAccountData) {
+      unsubscribeFromAccountData()
+      unsubscribeFromAccountData = null
+    }
+
+    if (unsubscribeFromDocuments) {
+      unsubscribeFromDocuments()
+      unsubscribeFromDocuments = null
+    }
+
+    if (unsubscribeFromAdmissions) {
+      unsubscribeFromAdmissions()
+      unsubscribeFromAdmissions = null
+    }
+  })
 
   watch(
     usersPageCount,
@@ -330,6 +375,7 @@ export function useAccountUsers() {
     usersPage,
     usersSearch,
     usersRoleFilter,
+    usersError,
     filteredUsersTotal,
     usersPageCount,
     paginatedUsers,

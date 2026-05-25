@@ -137,15 +137,39 @@ SQL для `account_documents`:
 - разрешает администратору читать и проверять документы всех пользователей;
 - добавляет constraints для типов/статусов документов, индексы, triggers и realtime publication guards.
 
-Документы аккаунта пока не переключены на Supabase в runtime UI. Этот SQL подготавливает проверяемый backend contract для следующего этапа миграции.
+Документы аккаунта используют Supabase как runtime source по умолчанию.
 
-Runtime source для документов аккаунта по умолчанию остается локальным. Supabase-путь подготавливается поэтапно и включается только через:
+Локальный source/fallback для документов удален. Document status/review source больше не должен писаться в `localStorage`.
 
-```sh
-VITE_ACCOUNT_DOCUMENTS_SOURCE=supabase
-```
+SQL для `account_profiles` и `account_athletes`:
 
-Не включайте этот флаг для обычной разработки, пока UI документов не пройдет отдельный source-switch stage.
+- создает таблицу профилей аккаунта;
+- создает таблицу спортсменов аккаунта;
+- включает `row level security`;
+- разрешает пользователю читать и менять только свои профиль и список спортсменов;
+- разрешает администратору читать profile/athlete rows для будущего CRM users cleanup;
+- добавляет constraints, индексы, triggers и realtime publication guards.
+
+Профиль и спортсмены в пользовательском кабинете читаются и сохраняются через Supabase.
+
+SQL для `account_athlete_applications` и `account_admissions`:
+
+- создает таблицу рабочих статусов заявок спортсменов;
+- создает таблицу финальных допусков;
+- включает `row level security`;
+- разрешает пользователю читать только свои workflow rows;
+- разрешает `admin` и `trainer` читать и менять workflow rows;
+- добавляет constraints, индексы, triggers и realtime publication guards.
+
+Статусы заявок спортсменов и финальные допуски читаются и сохраняются через Supabase-backed cache. Старые localStorage-ключи `smartswim:account-athlete-applications:v1` и `smartswim:account-admissions:v1` удалены из runtime.
+
+CRM users, профиль тренера и competition catalog тоже используют Supabase:
+
+- `crm_users` содержит реальные auth-linked users, роль и account status для CRM;
+- профиль тренера сохраняется в `account_profiles`;
+- `competition_catalog` хранит редактируемый JSON-каталог соревнований.
+
+Runtime `localStorage` / `sessionStorage` в `src` не используется.
 
 ## Роли
 
@@ -234,6 +258,14 @@ npm run supabase:list-tables
 
 Для этой команды нужен `SUPABASE_ACCESS_TOKEN` с доступом к проекту. Если `SUPABASE_PROJECT_REF` не задан, команда попытается извлечь его из `VITE_SUPABASE_URL`.
 
+Проверить, что Supabase contract для CRM users применен:
+
+```sh
+npm run supabase:check-crm-users
+```
+
+Команда read-only и проверяет наличие таблиц, RLS, policies, constraints, functions, triggers, индексов и realtime publication из `supabase/crm_users.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
+
 Проверить, что Supabase contract для заявок на соревнования применен:
 
 ```sh
@@ -250,13 +282,29 @@ npm run supabase:check-account-documents
 
 Команда read-only и проверяет наличие таблиц, RLS, policies, constraints, triggers, индексов и realtime publication из `supabase/account_documents.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
 
+Проверить, что Supabase contract для workflow допусков спортсменов применен:
+
+```sh
+npm run supabase:check-account-athlete-admissions
+```
+
+Команда read-only и проверяет наличие таблиц, RLS, policies, constraints, triggers, индексов и realtime publication из `supabase/account_athlete_admissions.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
+
+Проверить, что Supabase contract для редактируемого каталога соревнований применен:
+
+```sh
+npm run supabase:check-competition-catalog
+```
+
+Команда read-only и проверяет наличие таблицы, RLS, policies, constraints, trigger, индексов и realtime publication из `supabase/competition_catalog.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
+
 Проверить, что тестовая Supabase-заявка для regression smoke существует и находится в ожидаемом статусе:
 
 ```sh
 npm run supabase:check-competition-fixture
 ```
 
-Команда read-only и по умолчанию проверяет заявку `5e38dfd0-03f8-45f2-88ec-4e3d8f683d23` со статусом `reviewing`. Если fixture меняется, можно переопределить `SUPABASE_COMPETITION_APPLICATION_FIXTURE_ID` и `SUPABASE_COMPETITION_APPLICATION_FIXTURE_STATUS` в `.env.local`.
+Команда read-only и по умолчанию проверяет заявку `5e38dfd0-03f8-45f2-88ec-4e3d8f683d23` со статусом `withdrawn`. Если fixture меняется, можно переопределить `SUPABASE_COMPETITION_APPLICATION_FIXTURE_ID` и `SUPABASE_COMPETITION_APPLICATION_FIXTURE_STATUS` в `.env.local`.
 
 ## Проверка после установки
 
@@ -295,8 +343,13 @@ npm run supabase:check-competition-fixture
 - выполнен ли SQL из `supabase/crm_users.sql`
 - выполнен ли SQL из `supabase/consultation_requests.sql`
 - выполнен ли SQL из `supabase/competition_applications.sql`, потому что заявки на соревнования по умолчанию используют Supabase
+- выполнен ли SQL из `supabase/account_athlete_admissions.sql`, если проверяете статусы заявок спортсменов и допуски
+- выполнен ли SQL из `supabase/competition_catalog.sql`, если проверяете редактируемый каталог соревнований
 - для `npm run supabase:list-tables` заполнен ли `SUPABASE_ACCESS_TOKEN`
+- для `npm run supabase:check-crm-users` заполнен ли `SUPABASE_ACCESS_TOKEN`
 - для `npm run supabase:check-competition-applications` заполнен ли `SUPABASE_ACCESS_TOKEN`
+- для `npm run supabase:check-account-athlete-admissions` заполнен ли `SUPABASE_ACCESS_TOKEN`
+- для `npm run supabase:check-competition-catalog` заполнен ли `SUPABASE_ACCESS_TOKEN`
 - для `npm run supabase:check-competition-fixture` заполнен ли `SUPABASE_ACCESS_TOKEN`, если проверяете smoke fixture
 
 ### Открывается `/account`, но нет профиля пользователя

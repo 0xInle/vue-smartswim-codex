@@ -3,64 +3,44 @@ import {
   ATHLETE_APPLICATION_STATUS,
   CONSULTATION_STATUS,
 } from '@/pages/account/utils/accountConstants'
-import { readAccountAthleteApplication } from '@/pages/account/utils/accountAthleteApplications'
+import {
+  getAccountWorkflowId,
+  normalizeAccountWorkflowStatus,
+} from '@/domains/account-admissions/accountAdmissionMappers'
+import {
+  loadAccountAdmissionWorkflowForCurrentUser,
+  loadAllAccountAdmissionWorkflowForStaff,
+  saveAccountAdmission,
+} from '@/domains/account-admissions/accountAdmissionRepository'
+import {
+  readAccountAthleteApplication,
+  setCachedAccountAthleteApplications,
+} from '@/pages/account/utils/accountAthleteApplications'
 
-const ACCOUNT_ADMISSIONS_STORAGE_KEY = 'smartswim:account-admissions:v1'
-
-function readJsonStorage(storageKey, fallback) {
-  if (typeof window === 'undefined') {
-    return fallback
-  }
-
-  try {
-    const serializedValue = window.localStorage.getItem(storageKey)
-    return serializedValue ? JSON.parse(serializedValue) : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function writeJsonStorage(storageKey, value) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  try {
-    window.localStorage.setItem(storageKey, JSON.stringify(value))
-  } catch {
-    // Ignore storage errors in the temporary local workflow.
-  }
-}
-
-export function getAccountAdmissionId({ ownerUserKey, scope, scopeId }) {
-  return [ownerUserKey || 'anonymous', scope || 'profile', scopeId || 'profile'].join(':')
-}
+let cachedAdmissions = []
 
 function normalizeAdmission(record) {
   if (!record || typeof record !== 'object') {
     return null
   }
 
-  const allowedStatuses = new Set([
-    ...Object.values(ATHLETE_APPLICATION_STATUS),
-    ...Object.values(CONSULTATION_STATUS),
-  ])
-  const normalizedStatus = allowedStatuses.has(record.status)
-    ? record.status
-    : CONSULTATION_STATUS.NEW
+  const ownerUserKey = record.ownerUserKey || record.ownerUserId || 'anonymous'
+  const scope = record.scope || 'profile'
+  const scopeId = record.scopeId || 'profile'
 
   return {
-    id: record.id || getAccountAdmissionId(record),
-    ownerUserKey: record.ownerUserKey || 'anonymous',
+    id: record.id || getAccountWorkflowId({ ownerUserKey, scope, scopeId }),
+    ownerUserId: record.ownerUserId || ownerUserKey,
+    ownerUserKey,
     ownerName: record.ownerName || '',
     ownerEmail: record.ownerEmail || '',
-    scope: record.scope || 'profile',
-    scopeId: record.scopeId || 'profile',
+    scope,
+    scopeId,
     participantName: record.participantName || '',
     participantBirthDate: record.participantBirthDate || '',
     participantClub: record.participantClub || '',
     participantKind: record.participantKind || 'owner',
-    status: normalizedStatus,
+    status: normalizeAccountWorkflowStatus(record.status),
     note: record.note || '',
     admittedAt: record.admittedAt || '',
     admittedBy: record.admittedBy || '',
@@ -71,30 +51,73 @@ function normalizeAdmission(record) {
   }
 }
 
-export function readAccountAdmissions() {
-  const records = readJsonStorage(ACCOUNT_ADMISSIONS_STORAGE_KEY, [])
-  return Array.isArray(records) ? records.map(normalizeAdmission).filter(Boolean) : []
-}
-
-export function readAccountAdmission({ ownerUserKey, scope, scopeId }) {
-  const admissionId = getAccountAdmissionId({ ownerUserKey, scope, scopeId })
-  return readAccountAdmissions().find((record) => record.id === admissionId) || null
-}
-
-export function upsertAccountAdmission(record) {
+function replaceCachedAdmission(record) {
   const normalizedRecord = normalizeAdmission(record)
 
   if (!normalizedRecord) {
     return null
   }
 
-  const records = readAccountAdmissions().filter((item) => item.id !== normalizedRecord.id)
-  records.unshift(normalizedRecord)
-  writeJsonStorage(ACCOUNT_ADMISSIONS_STORAGE_KEY, records)
+  cachedAdmissions = [
+    normalizedRecord,
+    ...cachedAdmissions.filter((item) => item.id !== normalizedRecord.id),
+  ]
+
   return normalizedRecord
 }
 
-export function createAccountAdmission({
+function setCachedAccountAdmissions(records = []) {
+  cachedAdmissions = Array.isArray(records) ? records.map(normalizeAdmission).filter(Boolean) : []
+}
+
+function setCachedAdmissionWorkflow(workflow = {}) {
+  setCachedAccountAthleteApplications(workflow.applications || [])
+  setCachedAccountAdmissions(workflow.admissions || [])
+}
+
+export function getAccountAdmissionId({ ownerUserKey, scope, scopeId }) {
+  return getAccountWorkflowId({ ownerUserKey, scope, scopeId })
+}
+
+export async function refreshAccountAdmissionWorkflowForCurrentUser() {
+  const workflow = await loadAccountAdmissionWorkflowForCurrentUser()
+  setCachedAdmissionWorkflow(workflow)
+  return {
+    applications: workflow.applications || [],
+    admissions: workflow.admissions || [],
+  }
+}
+
+export async function refreshAllAccountAdmissionWorkflowForStaff() {
+  const workflow = await loadAllAccountAdmissionWorkflowForStaff()
+  setCachedAdmissionWorkflow(workflow)
+  return {
+    applications: workflow.applications || [],
+    admissions: workflow.admissions || [],
+  }
+}
+
+export function readAccountAdmissions() {
+  return cachedAdmissions
+}
+
+export function readAccountAdmission({ ownerUserKey, scope, scopeId }) {
+  const admissionId = getAccountWorkflowId({ ownerUserKey, scope, scopeId })
+  return cachedAdmissions.find((record) => record.id === admissionId) || null
+}
+
+export async function upsertAccountAdmission(record) {
+  const normalizedRecord = normalizeAdmission(record)
+
+  if (!normalizedRecord) {
+    return null
+  }
+
+  const savedRecord = await saveAccountAdmission(normalizedRecord)
+  return replaceCachedAdmission(savedRecord)
+}
+
+export async function createAccountAdmission({
   ownerUserKey,
   ownerName = '',
   ownerEmail = '',
@@ -111,7 +134,8 @@ export function createAccountAdmission({
   const now = new Date().toISOString()
 
   return upsertAccountAdmission({
-    id: getAccountAdmissionId({ ownerUserKey, scope, scopeId }),
+    id: getAccountWorkflowId({ ownerUserKey, scope, scopeId }),
+    ownerUserId: ownerUserKey,
     ownerUserKey,
     ownerName,
     ownerEmail,

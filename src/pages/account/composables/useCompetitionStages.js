@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
   buildAccountCompetitionStages,
   buildCompetitionSeriesOptions,
@@ -158,14 +158,16 @@ function getRegistrationStageNumber(registration = {}) {
 }
 
 export function useCompetitionStages() {
-  const competitionStages = ref(
-    buildAccountCompetitionStages().map((stage) => ({
+  function buildCompetitionStageRows() {
+    return buildAccountCompetitionStages().map((stage) => ({
       ...stage,
       registration: { ...stage.registration },
       protocolUrl: stage.protocolUrl || '',
       photoUrl: stage.photoUrl || '',
-    })),
-  )
+    }))
+  }
+
+  const competitionStages = ref(buildCompetitionStageRows())
   const competitionFilter = ref('all')
   const competitionViewFilter = ref('active')
   const stageActiveRegistrationCounts = ref({})
@@ -576,6 +578,15 @@ export function useCompetitionStages() {
       unsubscribeFromCompetitionApplications = null
     }
   })
+
+  watch(
+    competitionDirections,
+    () => {
+      competitionStages.value = buildCompetitionStageRows()
+      void refreshStageRegistrationCounts()
+    },
+    { deep: true },
+  )
 
   return {
     competitionStages,

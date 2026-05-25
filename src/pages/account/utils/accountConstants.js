@@ -161,5 +161,6 @@ export function createDefaultUserEditForm() {
     status: 'paid',
     registeredAt: null,
     documents: createAccountDocumentsState(),
+    athletes: [],
   }
 }

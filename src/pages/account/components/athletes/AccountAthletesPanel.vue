@@ -127,8 +127,8 @@ function handleDialogClosed() {
   isAthleteDialogOpen.value = false
 }
 
-function handleFormSubmit() {
-  const isSaved = handleSubmit()
+async function handleFormSubmit() {
+  const isSaved = await handleSubmit()
 
   if (isSaved) {
     isAthleteDialogOpen.value = false

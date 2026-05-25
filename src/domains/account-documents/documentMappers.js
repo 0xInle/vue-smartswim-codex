@@ -53,7 +53,10 @@ const DOCUMENT_UPDATE_FIELD_MAP = Object.freeze({
 
 function assignMappedFields(target, source, fieldMap) {
   Object.entries(fieldMap).forEach(([sourceKey, targetKey]) => {
-    if (Object.prototype.hasOwnProperty.call(source, sourceKey)) {
+    if (
+      Object.prototype.hasOwnProperty.call(source, sourceKey) &&
+      source[sourceKey] !== undefined
+    ) {
       target[targetKey] = source[sourceKey] ?? null
     }
   })

@@ -92,8 +92,6 @@ export function buildAccountCompetitionStages() {
   return competitionDirections.flatMap((direction) => buildCompetitionSeriesStages(direction))
 }
 
-export const accountMockCompetitionStages = buildAccountCompetitionStages()
-
 export function buildCompetitionSeriesOptions() {
   return [
     { value: 'all', label: 'Все соревнования' },

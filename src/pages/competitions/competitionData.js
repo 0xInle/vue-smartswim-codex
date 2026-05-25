@@ -1,7 +1,11 @@
 import { reactive, toRaw, watch } from 'vue'
 import { publicAsset } from '@/utils/publicAsset'
+import { getSupabaseClient } from '@/utils/supabaseClient'
 
-const COMPETITION_CATALOG_STORAGE_KEY = 'smartswim:competition-catalog:v1'
+const COMPETITION_CATALOG_TABLE = 'competition_catalog'
+const COMPETITION_CATALOG_ID = 'default'
+let competitionCatalogRemoteStateApplying = false
+let competitionCatalogSkipNextPersist = false
 
 const block = (...lines) => lines.join('\n')
 
@@ -79,40 +83,51 @@ function mergeCompetitionDirectionsState(sourceState, persistedState) {
 }
 
 function loadCompetitionDirectionsState() {
-  const baseState = cloneCompetitionDirections(competitionDirectionsSource)
+  return cloneCompetitionDirections(competitionDirectionsSource)
+}
 
-  if (typeof window === 'undefined') {
-    return baseState
-  }
-
+async function loadCompetitionDirectionsStateFromSupabase() {
   try {
-    const serializedState = window.localStorage.getItem(COMPETITION_CATALOG_STORAGE_KEY)
+    const { data, error } = await getSupabaseClient()
+      .from(COMPETITION_CATALOG_TABLE)
+      .select('state')
+      .eq('id', COMPETITION_CATALOG_ID)
+      .maybeSingle()
 
-    if (!serializedState) {
-      return baseState
+    if (error || !Array.isArray(data?.state)) {
+      return
     }
 
-    const parsedState = JSON.parse(serializedState)
-
-    if (!Array.isArray(parsedState)) {
-      return baseState
-    }
-
-    return mergeCompetitionDirectionsState(baseState, parsedState)
+    competitionCatalogRemoteStateApplying = true
+    competitionCatalogSkipNextPersist = true
+    replaceCompetitionDirectionsState(
+      mergeCompetitionDirectionsState(competitionDirectionsSource, data.state),
+    )
   } catch {
-    return baseState
+    // Keep bundled catalog when Supabase catalog is unavailable.
+  } finally {
+    competitionCatalogRemoteStateApplying = false
   }
 }
 
-function persistCompetitionDirectionsState(state) {
-  if (typeof window === 'undefined') {
+async function persistCompetitionDirectionsState(state) {
+  if (competitionCatalogRemoteStateApplying || competitionCatalogSkipNextPersist) {
+    competitionCatalogSkipNextPersist = false
     return
   }
 
   try {
-    window.localStorage.setItem(COMPETITION_CATALOG_STORAGE_KEY, JSON.stringify(state))
+    await getSupabaseClient()
+      .from(COMPETITION_CATALOG_TABLE)
+      .upsert(
+        {
+          id: COMPETITION_CATALOG_ID,
+          state,
+        },
+        { onConflict: 'id' },
+      )
   } catch {
-    // Ignore storage quota and serialization errors.
+    // Public users can read the catalog but cannot persist admin edits.
   }
 }
 
@@ -753,36 +768,34 @@ const competitionDirectionsSource = [
 
 export const competitionDirections = reactive(loadCompetitionDirectionsState())
 
+void loadCompetitionDirectionsStateFromSupabase()
+
 watch(
   competitionDirections,
   () => {
-    persistCompetitionDirectionsState(toRaw(competitionDirections))
+    void persistCompetitionDirectionsState(toRaw(competitionDirections))
   },
-  { deep: true, immediate: true },
+  { deep: true },
 )
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
-    if (event.key !== COMPETITION_CATALOG_STORAGE_KEY) {
-      return
-    }
-
-    if (!event.newValue) {
-      return
-    }
-
-    try {
-      const nextState = JSON.parse(event.newValue)
-
-      if (!Array.isArray(nextState)) {
-        return
-      }
-
-      replaceCompetitionDirectionsState(nextState)
-    } catch {
-      // Ignore malformed external updates.
-    }
-  })
+try {
+  getSupabaseClient()
+    .channel('competition-catalog-feed')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: COMPETITION_CATALOG_TABLE,
+        filter: `id=eq.${COMPETITION_CATALOG_ID}`,
+      },
+      () => {
+        void loadCompetitionDirectionsStateFromSupabase()
+      },
+    )
+    .subscribe()
+} catch {
+  // Keep bundled catalog when realtime cannot be initialized.
 }
 
 export function getCompetitionBySlug(slug) {

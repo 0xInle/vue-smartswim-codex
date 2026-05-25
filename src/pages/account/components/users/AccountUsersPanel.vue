@@ -246,7 +246,7 @@
           >?
         </p>
         <p class="account__dialog-hint">
-          Запись исчезнет из текущего мокового списка сразу после подтверждения.
+          Запись будет удалена из CRM-списка. Учетная запись Supabase Auth не удаляется клиентским интерфейсом.
         </p>
       </div>
 
@@ -283,7 +283,6 @@ import {
   formatUserRole,
   formatUserStatus,
 } from '@/pages/account/utils/accountFormatters'
-import { readAccountAthletesSnapshot } from '@/pages/account/utils/accountLocalStorage'
 
 const props = defineProps({
   users: {
@@ -386,8 +385,9 @@ function getSortAriaLabel(label, columnKey) {
 
 const viewedAthleteAdmissions = computed(() => {
   const ownerUserKey = props.editForm?.id || props.editForm?.email || 'anonymous'
+  const athletes = Array.isArray(props.editForm?.athletes) ? props.editForm.athletes : []
 
-  return readAccountAthletesSnapshot(props.editForm).map((athlete) => ({
+  return athletes.map((athlete) => ({
     ...athlete,
     admission: resolveAccountAdmissionStatus({
       ownerUserKey,

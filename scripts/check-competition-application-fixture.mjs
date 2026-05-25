@@ -5,7 +5,7 @@ import process from 'node:process'
 const ENV_PATH = resolve(process.cwd(), '.env.local')
 const PROJECTS_API_BASE_URL = 'https://api.supabase.com/v1/projects'
 const DEFAULT_FIXTURE_ID = '5e38dfd0-03f8-45f2-88ec-4e3d8f683d23'
-const DEFAULT_FIXTURE_STATUS = 'reviewing'
+const DEFAULT_FIXTURE_STATUS = 'withdrawn'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const STATUS_PATTERN = /^[a-z_]+$/
 

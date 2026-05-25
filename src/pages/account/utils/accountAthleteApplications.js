@@ -1,10 +1,15 @@
 import {
-  ATHLETE_APPLICATION_STATUS,
-  CONSULTATION_STATUS,
-} from '@/pages/account/utils/accountConstants'
-import { readAccountAthleteSnapshots } from '@/pages/account/utils/accountLocalStorage'
+  getAccountWorkflowId,
+  normalizeAccountWorkflowStatus,
+} from '@/domains/account-admissions/accountAdmissionMappers'
+import {
+  loadAccountAdmissionWorkflowForCurrentUser,
+  loadAllAccountAdmissionWorkflowForStaff,
+  removeAccountAthleteApplicationRecord,
+  saveAccountAthleteApplication,
+} from '@/domains/account-admissions/accountAdmissionRepository'
 
-const ACCOUNT_ATHLETE_APPLICATIONS_STORAGE_KEY = 'smartswim:account-athlete-applications:v1'
+let cachedApplications = []
 
 function resolveCurrentUser(currentUser) {
   return currentUser?.value || currentUser || null
@@ -20,68 +25,25 @@ function getCurrentUserKey(currentUser) {
   return resolvedUser?.id || resolvedUser?.email || 'anonymous'
 }
 
-function readJsonStorage(storageKey, fallback) {
-  if (typeof window === 'undefined') {
-    return fallback
-  }
-
-  try {
-    const serializedValue = window.localStorage.getItem(storageKey)
-
-    if (!serializedValue) {
-      return fallback
-    }
-
-    return JSON.parse(serializedValue)
-  } catch {
-    return fallback
-  }
-}
-
-function writeJsonStorage(storageKey, value) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  try {
-    window.localStorage.setItem(storageKey, JSON.stringify(value))
-  } catch {
-    // Ignore temporary storage failures in the local workflow.
-  }
-}
-
-function getApplicationId({ ownerUserKey, scope, scopeId }) {
-  return [ownerUserKey || 'anonymous', scope || 'athlete', scopeId || 'profile'].join(':')
-}
-
-function normalizeApplicationStatus(status) {
-  const allowedStatuses = new Set([
-    ...Object.values(ATHLETE_APPLICATION_STATUS),
-    ...Object.values(CONSULTATION_STATUS),
-  ])
-
-  if (allowedStatuses.has(status)) {
-    return status
-  }
-
-  return CONSULTATION_STATUS.NEW
-}
-
 function normalizeApplication(record) {
   if (!record || typeof record !== 'object') {
     return null
   }
 
   const createdAt = record.createdAt || record.updatedAt || new Date().toISOString()
+  const ownerUserKey = record.ownerUserKey || record.ownerUserId || 'anonymous'
+  const scope = record.scope || 'athlete'
+  const scopeId = record.scopeId || 'profile'
 
   return {
-    id: record.id || getApplicationId(record),
-    ownerUserKey: record.ownerUserKey || 'anonymous',
+    id: record.id || getAccountWorkflowId({ ownerUserKey, scope, scopeId }),
+    ownerUserId: record.ownerUserId || ownerUserKey,
+    ownerUserKey,
     ownerName: record.ownerName || '',
     ownerEmail: record.ownerEmail || '',
     ownerPhone: record.ownerPhone || '',
-    scope: record.scope || 'athlete',
-    scopeId: record.scopeId || 'profile',
+    scope,
+    scopeId,
     participantName: record.participantName || '',
     participantBirthDate: record.participantBirthDate || '',
     participantClub: record.participantClub || '',
@@ -94,90 +56,85 @@ function normalizeApplication(record) {
   }
 }
 
-function getApplicationCreatedAtFromAthlete(athlete) {
-  const timestamps = (athlete?.documents || [])
-    .flatMap((document) => [document?.uploadedAt, document?.reviewedAt, document?.verifiedAt])
-    .filter(Boolean)
-
-  return timestamps[0] || new Date().toISOString()
-}
-
-export function getAccountAthleteApplicationId({ ownerUserKey, scope, scopeId }) {
-  return getApplicationId({ ownerUserKey, scope, scopeId })
-}
-
-export function readAccountAthleteApplications() {
-  const records = readJsonStorage(ACCOUNT_ATHLETE_APPLICATIONS_STORAGE_KEY, [])
-  const storedRecords = Array.isArray(records) ? records.map(normalizeApplication).filter(Boolean) : []
-  const storedIds = new Set(storedRecords.map((record) => record.id))
-  const syntheticRecords = readAccountAthleteSnapshots().flatMap((athlete) => {
-    const applicationId = getApplicationId({
-      ownerUserKey: athlete.ownerUserKey || 'anonymous',
-      scope: 'athlete',
-      scopeId: athlete.id,
-    })
-
-    if (storedIds.has(applicationId)) {
-      return []
-    }
-
-    return [
-      normalizeApplication({
-        id: applicationId,
-        ownerUserKey: athlete.ownerUserKey || 'anonymous',
-        ownerName: athlete.ownerName || '',
-        ownerEmail: athlete.ownerEmail || '',
-        ownerPhone: athlete.ownerPhone || '',
-        scope: 'athlete',
-        scopeId: athlete.id,
-        participantName: athlete.fullName || '',
-        participantBirthDate: athlete.birthDate || '',
-        participantClub: athlete.club || '',
-        participantKind: 'athlete',
-        status: CONSULTATION_STATUS.NEW,
-        note: '',
-        createdAt: getApplicationCreatedAtFromAthlete(athlete),
-        updatedAt: getApplicationCreatedAtFromAthlete(athlete),
-      }),
-    ]
-  })
-
-  return [...storedRecords, ...syntheticRecords].filter(Boolean)
-}
-
-export function readAccountAthleteApplication({ ownerUserKey, scope, scopeId }) {
-  const applicationId = getApplicationId({ ownerUserKey, scope, scopeId })
-  return readAccountAthleteApplications().find((record) => record.id === applicationId) || null
-}
-
-export function upsertAccountAthleteApplication(record) {
+function replaceCachedApplication(record) {
   const normalizedRecord = normalizeApplication(record)
 
   if (!normalizedRecord) {
     return null
   }
 
-  const records = readAccountAthleteApplications().filter((item) => item.id !== normalizedRecord.id)
-  records.unshift(normalizedRecord)
-  writeJsonStorage(ACCOUNT_ATHLETE_APPLICATIONS_STORAGE_KEY, records)
+  cachedApplications = [
+    normalizedRecord,
+    ...cachedApplications.filter((item) => item.id !== normalizedRecord.id),
+  ]
+
   return normalizedRecord
 }
 
-export function removeAccountAthleteApplication({ ownerUserKey, scope, scopeId }) {
-  const applicationId = getApplicationId({ ownerUserKey, scope, scopeId })
-  const records = readAccountAthleteApplications().filter((record) => record.id !== applicationId)
-  writeJsonStorage(ACCOUNT_ATHLETE_APPLICATIONS_STORAGE_KEY, records)
+export function getAccountAthleteApplicationId({ ownerUserKey, scope, scopeId }) {
+  return getAccountWorkflowId({ ownerUserKey, scope, scopeId })
 }
 
-export function updateAccountAthleteApplication(
+export function normalizeApplicationStatus(status) {
+  return normalizeAccountWorkflowStatus(status)
+}
+
+export function setCachedAccountAthleteApplications(records = []) {
+  cachedApplications = Array.isArray(records) ? records.map(normalizeApplication).filter(Boolean) : []
+}
+
+export async function refreshAccountAthleteApplicationsForCurrentUser() {
+  const workflow = await loadAccountAdmissionWorkflowForCurrentUser()
+  setCachedAccountAthleteApplications(workflow.applications)
+  return readAccountAthleteApplications()
+}
+
+export async function refreshAllAccountAthleteApplicationsForStaff() {
+  const workflow = await loadAllAccountAdmissionWorkflowForStaff()
+  setCachedAccountAthleteApplications(workflow.applications)
+  return readAccountAthleteApplications()
+}
+
+export function readAccountAthleteApplications() {
+  return cachedApplications
+}
+
+export function readAccountAthleteApplication({ ownerUserKey, scope, scopeId }) {
+  const applicationId = getAccountWorkflowId({ ownerUserKey, scope, scopeId })
+  return cachedApplications.find((record) => record.id === applicationId) || null
+}
+
+export async function upsertAccountAthleteApplication(record) {
+  const normalizedRecord = normalizeApplication(record)
+
+  if (!normalizedRecord) {
+    return null
+  }
+
+  const savedRecord = await saveAccountAthleteApplication(normalizedRecord)
+  return replaceCachedApplication(savedRecord)
+}
+
+export async function removeAccountAthleteApplication({ ownerUserKey, scope, scopeId }) {
+  const applicationId = getAccountWorkflowId({ ownerUserKey, scope, scopeId })
+  await removeAccountAthleteApplicationRecord({ id: applicationId })
+  cachedApplications = cachedApplications.filter((record) => record.id !== applicationId)
+}
+
+export async function updateAccountAthleteApplication(
   { ownerUserKey, scope, scopeId },
   patch = {},
-  { updatedBy = '' } = {},
+  { currentUser = null, updatedBy = '' } = {},
 ) {
   const existingRecord = readAccountAthleteApplication({ ownerUserKey, scope, scopeId })
+  const resolvedUser = resolveCurrentUser(currentUser)
   const nextRecord = {
     ...existingRecord,
+    ownerUserId: ownerUserKey,
     ownerUserKey,
+    ownerName: patch.ownerName || existingRecord?.ownerName || resolvedUser?.name || '',
+    ownerEmail: patch.ownerEmail || existingRecord?.ownerEmail || resolvedUser?.email || '',
+    ownerPhone: patch.ownerPhone || existingRecord?.ownerPhone || resolvedUser?.phone || '',
     scope,
     scopeId,
     ...patch,
@@ -187,3 +144,5 @@ export function updateAccountAthleteApplication(
 
   return upsertAccountAthleteApplication(nextRecord)
 }
+
+export { getCurrentUserKey }

@@ -7,10 +7,12 @@ import {
   subscribeToCompetitionRegistrationChanges,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 import {
-  readAccountAthletesSnapshot,
-  readAccountProfileSnapshot,
-} from '@/pages/account/utils/accountLocalStorage'
-import { readAccountUsersSnapshot } from '@/pages/account/utils/accountUsersStorage'
+  loadAllAccountUsersForAdmin,
+  subscribeToAccountUsersChanges,
+} from '@/domains/account-users/accountUsersRepository'
+import { subscribeToAccountProfileAthleteChanges } from '@/domains/account-data/accountDataRepository'
+import { subscribeToAccountDocumentChanges } from '@/domains/account-documents/documentRepository'
+import { subscribeToAccountAdmissionWorkflowChanges } from '@/domains/account-admissions/accountAdmissionRepository'
 import {
   COMPETITION_REGISTRATION_RECORD_STATUS,
   isCompetitionRegistrationActiveStatus,
@@ -69,8 +71,13 @@ export function useAccountCompetitionRegistrationsAdmin() {
   const isDetailsDialogOpen = ref(false)
   const isRegistrationsLoading = ref(false)
   const registrationsError = ref('')
+  const accountUsers = ref([])
   let loadRequestId = 0
   let unsubscribeFromCompetitionApplications = null
+  let unsubscribeFromUsers = null
+  let unsubscribeFromAccountData = null
+  let unsubscribeFromDocuments = null
+  let unsubscribeFromAdmissions = null
 
   async function loadRegistrations() {
     const requestId = loadRequestId + 1
@@ -93,6 +100,14 @@ export function useAccountCompetitionRegistrationsAdmin() {
       if (requestId === loadRequestId) {
         isRegistrationsLoading.value = false
       }
+    }
+  }
+
+  async function loadAccountUsersLookup() {
+    try {
+      accountUsers.value = await loadAllAccountUsersForAdmin()
+    } catch {
+      accountUsers.value = []
     }
   }
 
@@ -126,7 +141,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
       return null
     }
 
-    const sourceUser = readAccountUsersSnapshot().find(
+    const sourceUser = accountUsers.value.find(
       (item) => item.id === registration.sourceUserKey || item.email === registration.sourceUserKey,
     )
 
@@ -139,16 +154,8 @@ export function useAccountCompetitionRegistrationsAdmin() {
       }
     }
 
-    const sourceUserSnapshot =
-      sourceUser || {
-        id: registration.sourceUserKey,
-        email: registration.ownerEmail || '',
-        name: registration.ownerName || '',
-        phone: registration.ownerPhone || '',
-      }
-
     if (registration.participantKind === 'athlete') {
-      const athlete = readAccountAthletesSnapshot(sourceUserSnapshot).find(
+      const athlete = (sourceUser.athletes || []).find(
         (item) => item.id === registration.participantId,
       )
 
@@ -164,12 +171,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
       }
     }
 
-    const profile = readAccountProfileSnapshot(sourceUserSnapshot)
-    const profileDocuments = profile.documents || []
-    const sourceUserDocuments = sourceUserSnapshot.documents || []
-    const documents = profileDocuments.some((document) => document.status !== 'missing')
-      ? profileDocuments
-      : sourceUserDocuments
+    const documents = sourceUser.documents || []
 
     if (!documents.length) {
       return {
@@ -373,9 +375,22 @@ export function useAccountCompetitionRegistrationsAdmin() {
 
   onMounted(() => {
     void loadRegistrations()
+    void loadAccountUsersLookup()
 
     unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
       void loadRegistrations()
+    })
+    unsubscribeFromUsers = subscribeToAccountUsersChanges(() => {
+      void loadAccountUsersLookup()
+    })
+    unsubscribeFromAccountData = subscribeToAccountProfileAthleteChanges(() => {
+      void loadAccountUsersLookup()
+    })
+    unsubscribeFromDocuments = subscribeToAccountDocumentChanges(() => {
+      void loadAccountUsersLookup()
+    })
+    unsubscribeFromAdmissions = subscribeToAccountAdmissionWorkflowChanges(() => {
+      void loadAccountUsersLookup()
     })
   })
 
@@ -385,6 +400,25 @@ export function useAccountCompetitionRegistrationsAdmin() {
       unsubscribeFromCompetitionApplications = null
     }
 
+    if (unsubscribeFromUsers) {
+      unsubscribeFromUsers()
+      unsubscribeFromUsers = null
+    }
+
+    if (unsubscribeFromAccountData) {
+      unsubscribeFromAccountData()
+      unsubscribeFromAccountData = null
+    }
+
+    if (unsubscribeFromDocuments) {
+      unsubscribeFromDocuments()
+      unsubscribeFromDocuments = null
+    }
+
+    if (unsubscribeFromAdmissions) {
+      unsubscribeFromAdmissions()
+      unsubscribeFromAdmissions = null
+    }
   })
 
   return {
