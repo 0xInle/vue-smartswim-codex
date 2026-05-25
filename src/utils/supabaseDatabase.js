@@ -2,6 +2,7 @@ import { CRM_ROLE } from '@/utils/crmRoles'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
 import { formatRussianPhone, isRussianPhone } from '@/utils/phone'
+import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 function toMissingTableError(tableName, sqlFilePath) {
   return `CRM недоступна: таблица ${tableName} не найдена. Выполните SQL из файла ${sqlFilePath} в Supabase SQL Editor.`
@@ -129,7 +130,7 @@ export async function fetchCurrentCrmUser() {
       throw new Error(toMissingTableError('crm_users', 'supabase/crm_users.sql'))
     }
 
-    throw new Error(error.message || 'Не удалось загрузить профиль пользователя из CRM.')
+    throw new Error(getUserFacingErrorMessage(error, 'Не удалось загрузить профиль пользователя из CRM.'))
   }
 
   if (!data) {
@@ -170,7 +171,7 @@ export async function createTrainerBooking(payload) {
         throw new Error(toMissingTableError('trainer_bookings', 'supabase/trainer_bookings.sql'))
       }
 
-      throw new Error(error.message || 'Не удалось записаться к тренеру.')
+      throw new Error(getUserFacingErrorMessage(error, 'Не удалось записаться к тренеру.'))
     }
 
     return mapTrainerBooking({
@@ -193,7 +194,7 @@ export async function createTrainerBooking(payload) {
       throw new Error(toMissingTableError('trainer_bookings', 'supabase/trainer_bookings.sql'))
     }
 
-    throw new Error(error.message || 'Не удалось записаться к тренеру.')
+    throw new Error(getUserFacingErrorMessage(error, 'Не удалось записаться к тренеру.'))
   }
 
   return mapTrainerBooking(data)
@@ -222,7 +223,7 @@ export async function createConsultationRequest(payload) {
       )
     }
 
-    throw new Error(error.message || 'Не удалось отправить заявку на консультацию.')
+    throw new Error(getUserFacingErrorMessage(error, 'Не удалось отправить заявку на консультацию.'))
   }
 
   return {
@@ -256,7 +257,7 @@ export async function fetchConsultationRequests() {
       )
     }
 
-    throw new Error(error.message || 'Не удалось загрузить заявки на консультацию.')
+    throw new Error(getUserFacingErrorMessage(error, 'Не удалось загрузить заявки на консультацию.'))
   }
 
   return (data ?? []).map(mapConsultationRequest)
@@ -281,7 +282,7 @@ export async function fetchOwnTrainerBookings() {
       throw new Error(toMissingTableError('trainer_bookings', 'supabase/trainer_bookings.sql'))
     }
 
-    throw new Error(error.message || 'Не удалось загрузить ваши записи к тренерам.')
+    throw new Error(getUserFacingErrorMessage(error, 'Не удалось загрузить ваши записи к тренерам.'))
   }
 
   return (data ?? []).map(mapTrainerBooking)
@@ -306,7 +307,7 @@ export async function fetchTrainerBookings() {
       throw new Error(toMissingTableError('trainer_bookings', 'supabase/trainer_bookings.sql'))
     }
 
-    throw new Error(error.message || 'Не удалось загрузить записи к тренерам.')
+    throw new Error(getUserFacingErrorMessage(error, 'Не удалось загрузить записи к тренерам.'))
   }
 
   return (data ?? []).map(mapTrainerBooking)
@@ -416,7 +417,7 @@ export async function updateConsultationRequestStatus({
       )
     }
 
-    throw new Error(result.error.message || 'Не удалось обновить статус заявки.')
+    throw new Error(getUserFacingErrorMessage(result.error, 'Не удалось обновить статус заявки.'))
   }
 
   return mapConsultationRequest({
@@ -457,7 +458,7 @@ export async function updateTrainerBookingStatus({ id, status }) {
       )
     }
 
-    throw new Error(error.message || 'Не удалось обновить статус записи.')
+    throw new Error(getUserFacingErrorMessage(error, 'Не удалось обновить статус записи.'))
   }
 
   return mapTrainerBooking(data)

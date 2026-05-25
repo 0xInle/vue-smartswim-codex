@@ -3,6 +3,7 @@ import { trainers } from '@/pages/trainers/trainersData'
 import { ElMessageBox } from 'element-plus'
 import { showToast } from '@/utils/toast'
 import {
+  createAccountDocumentRemovalPatch,
   createAccountDocumentsState,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
@@ -50,6 +51,7 @@ export function useAccountAthletes({ currentUser }) {
   let unsubscribeFromSupabaseDocuments = null
   let unsubscribeFromSupabaseAccountData = null
   let unsubscribeFromSupabaseAdmissionWorkflow = null
+  let isAthleteSubmitInProgress = false
 
   const form = reactive({
     fullName: '',
@@ -360,6 +362,7 @@ export function useAccountAthletes({ currentUser }) {
       return false
     }
 
+    const isEditingAthlete = Boolean(editingAthleteId.value)
     const payload = normalizeAthlete({
       id: editingAthleteId.value,
       fullName: form.fullName,
@@ -372,10 +375,12 @@ export function useAccountAthletes({ currentUser }) {
     })
 
     let savedAthlete = null
+    isAthleteSubmitInProgress = true
 
     try {
       savedAthlete = await saveAccountAthleteForCurrentUser({ athlete: payload })
     } catch (error) {
+      isAthleteSubmitInProgress = false
       showToast(error instanceof Error ? error.message : 'Не удалось сохранить спортсмена', {
         type: 'error',
       })
@@ -387,23 +392,26 @@ export function useAccountAthletes({ currentUser }) {
       documents: normalizeAccountDocumentsState(payload.documents),
     }
 
-    if (editingAthleteId.value) {
+    try {
+      await persistSupabaseAthleteDocuments(savedAthlete)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось сохранить документы', {
+        type: 'error',
+      })
+    }
+
+    if (isEditingAthlete) {
       athletes.value = athletes.value.map((athlete) =>
-        athlete.id === editingAthleteId.value ? savedAthlete : athlete,
+        athlete.id === savedAthlete.id ? savedAthlete : athlete,
       )
     } else {
       athletes.value = [savedAthlete, ...athletes.value]
     }
 
-    void persistSupabaseAthleteDocuments(payload).catch((error) => {
-      showToast(error instanceof Error ? error.message : 'Не удалось сохранить документы', {
-        type: 'error',
-      })
-    })
-
     void syncCompetitionRegistrationAthleteSnapshotFromSource(currentUser, savedAthlete)
 
-    showToast(editingAthleteId.value ? 'Спортсмен сохранён' : 'Спортсмен добавлен')
+    isAthleteSubmitInProgress = false
+    showToast(isEditingAthlete ? 'Спортсмен сохранён' : 'Спортсмен добавлен')
     resetForm()
     return true
   }
@@ -551,41 +559,31 @@ export function useAccountAthletes({ currentUser }) {
         closeOnPressEscape: true,
       },
     )
-      .then(() => {
-        upsertDocument(documentType, {
-          status: 'missing',
-          fileName: '',
-          fileSize: 0,
-          fileDataUrl: '',
-          fileType: '',
-          uploadedAt: '',
-          expiresAt: '',
-          verifiedAt: '',
-          verifiedBy: '',
-          rejectionReason: '',
-        })
-
-        persistEditedAthleteDocuments()
+      .then(async () => {
+        upsertDocument(documentType, createAccountDocumentRemovalPatch())
 
         if (editingAthleteId.value) {
           const editedAthlete = getEditingAthlete()
           const nextDocument = form.documents.find((document) => document.type === documentType)
 
           if (editedAthlete && nextDocument) {
-            void persistSupabaseAthleteDocument(
-              {
-                ...editedAthlete,
-                documents: form.documents,
-              },
-              nextDocument,
-            )
-              .then(() => syncAthleteDocumentsFromSource())
-              .catch((error) => {
-                showToast(error instanceof Error ? error.message : 'Не удалось удалить документ', {
-                  type: 'error',
-                })
+            try {
+              await persistSupabaseAthleteDocument(
+                {
+                  ...editedAthlete,
+                  documents: form.documents,
+                },
+                nextDocument,
+              )
+              await syncAthleteDocumentsFromSource()
+            } catch (error) {
+              showToast(error instanceof Error ? error.message : 'Не удалось удалить документ', {
+                type: 'error',
               })
+            }
           }
+
+          return
         }
       })
       .catch(() => {})
@@ -602,12 +600,24 @@ export function useAccountAthletes({ currentUser }) {
 
   onMounted(() => {
     unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
+      if (isAthleteSubmitInProgress) {
+        return
+      }
+
       void syncAthleteDocumentsFromSource()
     })
     unsubscribeFromSupabaseAccountData = subscribeToAccountProfileAthleteChanges(() => {
+      if (isAthleteSubmitInProgress) {
+        return
+      }
+
       void syncAthletesFromSource()
     })
     unsubscribeFromSupabaseAdmissionWorkflow = subscribeToAccountAdmissionWorkflowChanges(() => {
+      if (isAthleteSubmitInProgress) {
+        return
+      }
+
       void syncAthletesFromSource()
     })
   })

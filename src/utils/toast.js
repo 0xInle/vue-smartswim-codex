@@ -1,4 +1,5 @@
 import { readonly, ref } from 'vue'
+import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 const DEFAULT_DURATION = 3200
 
@@ -27,10 +28,12 @@ export function showToast(message, options = {}) {
 
   clearToastTimer()
 
+  const isError = options.type === 'error'
+
   toastState.value = {
     id: Date.now(),
-    message,
-    type: options.type === 'error' ? 'error' : 'success',
+    message: isError ? getUserFacingErrorMessage(message) : message,
+    type: isError ? 'error' : 'success',
     isVisible: true,
   }
 

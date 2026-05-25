@@ -6,7 +6,7 @@ import { getErrorMessage } from '@/pages/account/utils/accountFormatters'
 
 export function useAccountSession({ router }) {
   const currentUser = ref(null)
-  const isProfileLoading = ref(false)
+  const isProfileLoading = ref(true)
   const profileLoadError = ref('')
   let currentUserSyncPromise = null
 
@@ -24,22 +24,28 @@ export function useAccountSession({ router }) {
     return 'Пользователь'
   })
 
-  async function syncCurrentUser() {
+  async function syncCurrentUser({ silent = false } = {}) {
     if (currentUserSyncPromise) {
       return currentUserSyncPromise
     }
 
-    isProfileLoading.value = true
+    if (!silent || !currentUser.value) {
+      isProfileLoading.value = true
+    }
 
     currentUserSyncPromise = (async () => {
       try {
         currentUser.value = await fetchCurrentCrmUser()
         profileLoadError.value = ''
       } catch (error) {
-        currentUser.value = null
+        if (!currentUser.value) {
+          currentUser.value = null
+        }
         profileLoadError.value = getErrorMessage(error, 'Не удалось загрузить профиль кабинета.')
       } finally {
-        isProfileLoading.value = false
+        if (!silent || !currentUser.value) {
+          isProfileLoading.value = false
+        }
         currentUserSyncPromise = null
       }
     })()

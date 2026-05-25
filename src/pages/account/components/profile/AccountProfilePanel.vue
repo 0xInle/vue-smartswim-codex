@@ -106,6 +106,7 @@ import { showToast } from '@/utils/toast'
 import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
 import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
 import {
+  createAccountDocumentRemovalPatch,
   createAccountDocumentsState,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
@@ -361,18 +362,7 @@ function handleDocumentRemove(documentType) {
     },
   )
     .then(async () => {
-      upsertDocument(documentType, {
-        status: 'missing',
-        fileName: '',
-        fileSize: 0,
-        fileDataUrl: '',
-        fileType: '',
-        uploadedAt: '',
-        expiresAt: '',
-        verifiedAt: '',
-        verifiedBy: '',
-        rejectionReason: '',
-      })
+      upsertDocument(documentType, createAccountDocumentRemovalPatch())
 
       const nextDocument = profile.documents.find((document) => document.type === documentType)
 

@@ -6,6 +6,7 @@ import {
 } from './accountAdmissionMappers.js'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
+import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 const ACCOUNT_ATHLETE_APPLICATIONS_TABLE = 'account_athlete_applications'
 const ACCOUNT_ADMISSIONS_TABLE = 'account_admissions'
@@ -73,7 +74,7 @@ function throwAccountAdmissionsError(error, tableName, fallback) {
     throw new Error(toMissingAccountAdmissionsTableError(tableName))
   }
 
-  throw new Error(error?.message || fallback)
+  throw new Error(getUserFacingErrorMessage(error, fallback))
 }
 
 async function requireCurrentSession(message) {

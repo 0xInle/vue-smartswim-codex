@@ -2,13 +2,18 @@
   <section class="account">
     <ElContainer class="account__shell">
       <AccountSidebar
+        v-if="isAccountShellReady"
         :active-section="activeSection"
         :navigation-items="navigationItems"
         @select="handleSectionSelect"
       />
 
       <ElContainer class="account__content-shell">
-        <AccountHeaderBar :title="currentSectionTitle" @sign-out="handleSignOutClick" />
+        <AccountHeaderBar
+          v-if="isAccountShellReady"
+          :title="currentSectionTitle"
+          @sign-out="handleSignOutClick"
+        />
 
         <ElMain class="account__main">
           <ElAlert
@@ -47,7 +52,7 @@
             class="account__sync-alert"
           />
 
-          <div v-if="isProfileLoading && !currentUser" class="account__loading-state">
+          <div v-if="!isAccountShellReady" class="account__loading-state">
             Загружаем кабинет...
           </div>
 
@@ -220,30 +225,30 @@
 
             <template v-else>
               <AccountUserDashboardPanel
-                v-if="activeSection === 'dashboard'"
+                v-show="activeSection === 'dashboard'"
                 :current-user="currentUser"
                 :open-competitions-count="openCompetitionRegistrationsCount"
               />
 
               <AccountProfilePanel
-                v-else-if="activeSection === 'profile'"
+                v-show="activeSection === 'profile'"
                 :current-user="currentUser"
               />
 
               <AccountAthletesPanel
-                v-else-if="activeSection === 'athletes'"
+                v-show="activeSection === 'athletes'"
                 :current-user="currentUser"
               />
 
               <AccountCompetitionRegistrationsPanel
-                v-else-if="activeSection === 'competitions'"
+                v-show="activeSection === 'competitions'"
                 :current-user="currentUser"
                 :initial-target="competitionRegistrationTarget"
                 @consume-target="handleCompetitionTargetConsumed"
               />
 
               <AccountSettingsPanel
-                v-else-if="activeSection === 'settings'"
+                v-show="activeSection === 'settings'"
                 :form="passwordChangeForm"
                 :errors="passwordChangeErrors"
                 :visibility="passwordVisibility"
@@ -343,6 +348,7 @@ const accountMode = computed(() => {
 
   return 'user'
 })
+const isAccountShellReady = computed(() => Boolean(currentUser.value) && !isProfileLoading.value)
 
 const {
   passwordChangeStatus,
@@ -483,7 +489,7 @@ const {
   handleDocumentRemove,
 } = useAccountUsers()
 
-async function syncAccountData({ force = false } = {}) {
+async function syncAccountData({ force = false, silent = false } = {}) {
   const now = Date.now()
 
   if (!force && now - lastAccountSyncAt < ACCOUNT_SYNC_COOLDOWN_MS) {
@@ -497,10 +503,10 @@ async function syncAccountData({ force = false } = {}) {
   lastAccountSyncAt = now
   accountSyncPromise = (async () => {
     try {
-      await syncCurrentUser()
+      await syncCurrentUser({ silent })
       if (accountMode.value === 'admin') {
-        await syncAdminData()
-        await syncTrainerBookings()
+        await syncAdminData({ silent })
+        await syncTrainerBookings({ silent })
         clearOwnTrainerBookings()
       } else if (accountMode.value === 'trainer') {
         clearConsultationState()
@@ -611,6 +617,10 @@ const currentSectionTitle = computed(
 watch(
   navigationItems,
   (items) => {
+    if (!isAccountShellReady.value) {
+      return
+    }
+
     if (!items.some((item) => item.id === activeSection.value)) {
       activeSection.value = items[0]?.id || 'dashboard'
     }
@@ -625,8 +635,18 @@ watch(activeSection, (value) => {
 })
 
 watch(
-  () => [route.query.section, route.query.competitionSlug, route.query.stageId],
+  () => [
+    isAccountShellReady.value,
+    accountMode.value,
+    route.query.section,
+    route.query.competitionSlug,
+    route.query.stageId,
+  ],
   () => {
+    if (!isAccountShellReady.value) {
+      return
+    }
+
     const section = typeof route.query.section === 'string' ? route.query.section : ''
     const competitionSlug =
       typeof route.query.competitionSlug === 'string' ? route.query.competitionSlug : ''
@@ -660,7 +680,7 @@ watch(
 onMounted(() => {
   void syncAccountData({ force: true })
 
-  authSubscription = subscribeToAuthStateChange((_event, session) => {
+  authSubscription = subscribeToAuthStateChange((event, session) => {
     if (!session) {
       clearCurrentUser()
       clearConsultationState()
@@ -672,7 +692,15 @@ onMounted(() => {
       return
     }
 
-    void syncAccountData({ force: true })
+    if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+      return
+    }
+
+    if (event === 'SIGNED_IN' && currentUser.value?.id === session.user.id) {
+      return
+    }
+
+    void syncAccountData({ force: true, silent: Boolean(currentUser.value) })
   })
 })
 

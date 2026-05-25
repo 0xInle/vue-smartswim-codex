@@ -1,4 +1,5 @@
 import { getSupabaseClient, getSupabaseConfigError } from '@/utils/supabaseClient'
+import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 export const SUPABASE_MIN_PASSWORD_LENGTH = 6
 const SUPABASE_AUTH_REQUEST_TIMEOUT_MS = 15000
@@ -6,7 +7,7 @@ const SUPABASE_AUTH_TIMEOUT_MESSAGE =
   'Запрос к Supabase занял слишком много времени. Проверьте соединение и попробуйте снова.'
 
 function toError(message, fallback = 'Не удалось выполнить запрос к Supabase.') {
-  return new Error(message || fallback)
+  return new Error(getUserFacingErrorMessage(message, fallback))
 }
 
 async function withAuthTimeout(request) {

@@ -5,6 +5,7 @@ import {
 } from './documentMappers.js'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
+import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 const ACCOUNT_DOCUMENTS_TABLE = 'account_documents'
 const ACCOUNT_DOCUMENTS_SQL_PATH = 'supabase/account_documents.sql'
@@ -62,7 +63,7 @@ function throwAccountDocumentError(error, fallback) {
     throw new Error(toMissingAccountDocumentsTableError())
   }
 
-  throw new Error(error?.message || fallback)
+  throw new Error(getUserFacingErrorMessage(error, fallback))
 }
 
 async function requireCurrentSession(message) {

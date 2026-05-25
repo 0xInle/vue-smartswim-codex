@@ -183,12 +183,12 @@
                 <span>
                   Файл:
                   <a
-                    v-if="document.fileDataUrl"
+                    v-if="getDocumentPreviewUrl(document)"
                     class="account-document-review__download-link"
-                    :href="document.fileDataUrl"
+                    :href="getDocumentPreviewUrl(document)"
                     :download="document.fileName || document.label"
                   >
-                    {{ document.fileName || 'Скачать' }}
+                    {{ document.fileName || 'Скачать файл' }}
                   </a>
                   <span v-else>{{ document.fileName || 'Не загружен' }}</span>
                 </span>
@@ -417,7 +417,11 @@ function formatDocumentReviewDate(document) {
 }
 
 function canReviewDocument(document) {
-  return Boolean(document?.fileName || document?.fileDataUrl)
+  return Boolean(getDocumentPreviewUrl(document))
+}
+
+function getDocumentPreviewUrl(document) {
+  return document?.fileDataUrl || document?.fileUrl || ''
 }
 
 watch(

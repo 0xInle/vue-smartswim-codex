@@ -5,10 +5,13 @@ import {
 } from './supabaseApplicationMapper.js'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
+import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 const COMPETITION_APPLICATIONS_TABLE = 'competition_applications'
 const COMPETITION_APPLICATIONS_SQL_PATH = 'supabase/competition_applications.sql'
 let competitionApplicationsSubscriptionId = 0
+const COMPETITION_APPLICATION_UPDATE_NOT_ALLOWED_MESSAGE =
+  'Заявку не удалось обновить. Проверьте права доступа или текущий статус заявки.'
 const COMPETITION_APPLICATION_SELECT = [
   'id',
   'owner_user_id',
@@ -64,7 +67,7 @@ function throwCompetitionApplicationError(error, fallback) {
     throw new Error(toMissingCompetitionApplicationsTableError())
   }
 
-  throw new Error(error?.message || fallback)
+  throw new Error(getUserFacingErrorMessage(error, fallback))
 }
 
 async function requireCurrentSession(message) {
@@ -139,10 +142,14 @@ export async function updateSupabaseCompetitionApplication(applicationId, patch 
     .update(payload)
     .eq('id', applicationId)
     .select(COMPETITION_APPLICATION_SELECT)
-    .single()
+    .maybeSingle()
 
   if (error) {
     throwCompetitionApplicationError(error, 'Не удалось обновить заявку на соревнование.')
+  }
+
+  if (!data) {
+    throw new Error(COMPETITION_APPLICATION_UPDATE_NOT_ALLOWED_MESSAGE)
   }
 
   return mapSupabaseCompetitionApplicationRow(data)

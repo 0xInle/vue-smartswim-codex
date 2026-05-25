@@ -1136,6 +1136,7 @@
 .account-dashboard__card {
   display: grid;
   gap: 12px;
+  grid-template-rows: auto 1fr;
   padding: 14px;
   border: 1px solid #e5eaf3;
   border-radius: 10px;
@@ -1154,6 +1155,8 @@
 .account-dashboard__document-highlight {
   display: grid;
   gap: 4px;
+  min-height: 132px;
+  align-content: start;
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--cyan) 14%, white);
   border-radius: 10px;
@@ -1251,6 +1254,8 @@
 .account-dashboard__activity-list {
   display: grid;
   gap: 6px;
+  grid-template-rows: repeat(4, minmax(74px, auto));
+  align-content: start;
 }
 
 .account-dashboard__activity-item {
@@ -1260,8 +1265,19 @@
   border-bottom: 1px solid #eef2f7;
 }
 
+.account-dashboard__activity-item--empty {
+  align-content: center;
+}
+
 .account-dashboard__activity-item:last-child {
   border-bottom: 0;
+}
+
+.account-dashboard__activity-placeholder {
+  visibility: hidden;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
 }
 
 .account-dashboard__activity-copy {

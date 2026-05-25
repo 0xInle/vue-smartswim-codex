@@ -56,6 +56,26 @@ export function createAccountDocumentState(definition) {
   }
 }
 
+export function createAccountDocumentRemovalPatch() {
+  return {
+    status: ACCOUNT_DOCUMENT_STATUS.MISSING,
+    fileName: '',
+    fileSize: 0,
+    fileType: '',
+    fileDataUrl: '',
+    fileUrl: '',
+    storagePath: '',
+    uploadedAt: '',
+    expiresAt: '',
+    verifiedAt: '',
+    verifiedBy: '',
+    reviewedAt: '',
+    reviewedBy: '',
+    reviewedByName: '',
+    rejectionReason: '',
+  }
+}
+
 export function normalizeAccountDocumentState(document, definition) {
   const fallback = createAccountDocumentState(definition)
   const allowedStatuses = Object.values(ACCOUNT_DOCUMENT_STATUS)

@@ -2,6 +2,7 @@ import { CRM_ROLE } from '@/utils/crmRoles'
 import { formatRussianPhone } from '@/utils/phone'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
+import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 const CRM_USERS_TABLE = 'crm_users'
 const CRM_USERS_SQL_PATH = 'supabase/crm_users.sql'
@@ -37,7 +38,7 @@ function throwCrmUsersError(error, fallback) {
     throw new Error(toMissingCrmUsersTableError())
   }
 
-  throw new Error(error?.message || fallback)
+  throw new Error(getUserFacingErrorMessage(error, fallback))
 }
 
 async function requireCurrentSession(message) {

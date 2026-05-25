@@ -209,9 +209,9 @@
       :registration="selectedHistoryRegistration"
       :stage-options="[]"
       :can-edit-stage="false"
-      :can-edit-registration-kind="true"
-      :show-save-button="true"
-      :show-withdraw-button="true"
+      :can-edit-registration-kind="false"
+      :show-save-button="false"
+      :show-withdraw-button="selectedHistoryCanBeWithdrawn"
       :status-tag-type="
         selectedHistoryRegistration
           ? getRegistrationStatusTagType(selectedHistoryRegistration.status)
@@ -333,6 +333,10 @@ const selectedHistoryRegistrationLifecycle = computed(() =>
   selectedHistoryRegistration.value
     ? getRegistrationLifecycleSummary(selectedHistoryRegistration.value)
     : null,
+)
+
+const selectedHistoryCanBeWithdrawn = computed(() =>
+  Boolean(selectedHistoryRegistrationLifecycle.value?.isActive),
 )
 
 function handleOpenRegistration(stageId) {

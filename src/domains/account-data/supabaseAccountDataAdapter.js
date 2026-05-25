@@ -7,6 +7,7 @@ import {
 } from './accountDataMappers.js'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
+import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 const ACCOUNT_PROFILES_TABLE = 'account_profiles'
 const ACCOUNT_ATHLETES_TABLE = 'account_athletes'
@@ -58,7 +59,7 @@ function throwAccountDataError(error, tableName, fallback) {
     throw new Error(toMissingAccountDataTableError(tableName))
   }
 
-  throw new Error(error?.message || fallback)
+  throw new Error(getUserFacingErrorMessage(error, fallback))
 }
 
 async function requireCurrentSession(message) {

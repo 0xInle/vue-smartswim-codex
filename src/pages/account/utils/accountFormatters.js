@@ -15,9 +15,10 @@ import {
   resolveCompetitionRegistrationState,
 } from '@/utils/competitionRegistration'
 import { CONSULTATION_STATUS, TRAINER_BOOKING_STATUS } from '@/pages/account/utils/accountConstants'
+import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 export function getErrorMessage(error, fallback) {
-  return error instanceof Error ? error.message : fallback
+  return getUserFacingErrorMessage(error, fallback)
 }
 
 export function userRoleTagType(role) {

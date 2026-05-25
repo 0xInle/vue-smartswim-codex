@@ -6,6 +6,7 @@ import {
 } from './competitionCatalogMappers.js'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
+import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 const COMPETITIONS_TABLE = 'competitions'
 const COMPETITION_STAGES_TABLE = 'competition_stages'
@@ -83,7 +84,7 @@ function throwCompetitionCatalogError(error, tableName, fallback) {
     throw new Error(toMissingCatalogTableError(tableName))
   }
 
-  throw new Error(error?.message || fallback)
+  throw new Error(getUserFacingErrorMessage(error, fallback))
 }
 
 async function requireCurrentSession(message) {

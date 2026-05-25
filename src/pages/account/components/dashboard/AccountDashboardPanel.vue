@@ -41,27 +41,32 @@
             </ElButton>
           </div>
 
-          <div v-if="latestActivityItems.length" class="account-dashboard__activity-list">
+          <div class="account-dashboard__activity-list">
             <div
-              v-for="item in latestActivityItems"
+              v-for="item in latestActivityRows"
               :key="item.id"
               class="account-dashboard__activity-item"
+              :class="{ 'account-dashboard__activity-item--empty': item.isEmpty }"
             >
-              <div class="account-dashboard__activity-copy">
-                <span class="account-dashboard__activity-title">{{ item.title }}</span>
-                <span class="account-dashboard__activity-name">{{ item.name }}</span>
-              </div>
+              <template v-if="!item.isEmpty">
+                <div class="account-dashboard__activity-copy">
+                  <span class="account-dashboard__activity-title">{{ item.title }}</span>
+                  <span class="account-dashboard__activity-name">{{ item.name }}</span>
+                </div>
 
-              <div class="account-dashboard__activity-meta">
-                <ElTag :type="item.tagType" effect="light" round>
-                  {{ item.tagLabel }}
-                </ElTag>
-                <span class="account-dashboard__activity-time">{{ item.timeLabel }}</span>
-              </div>
+                <div class="account-dashboard__activity-meta">
+                  <ElTag :type="item.tagType" effect="light" round>
+                    {{ item.tagLabel }}
+                  </ElTag>
+                  <span class="account-dashboard__activity-time">{{ item.timeLabel }}</span>
+                </div>
+              </template>
+
+              <span v-else class="account-dashboard__activity-placeholder" aria-hidden="true">
+                Нет события
+              </span>
             </div>
           </div>
-
-          <div v-else class="account-dashboard__empty">Пока нет обновлений.</div>
         </article>
 
         <article class="account-dashboard__card account-dashboard__card--snapshot">
@@ -185,6 +190,8 @@ const props = defineProps({
 })
 
 defineEmits(['select-section'])
+
+const DASHBOARD_ACTIVITY_ROWS_COUNT = 4
 
 function sortByDateDesc(items, field) {
   return [...items].sort((left, right) => {
@@ -399,6 +406,19 @@ const latestActivityItems = computed(() => {
 
     return rightTime - leftTime
   })
+})
+
+const latestActivityRows = computed(() => {
+  const rows = latestActivityItems.value.slice(0, DASHBOARD_ACTIVITY_ROWS_COUNT)
+
+  while (rows.length < DASHBOARD_ACTIVITY_ROWS_COUNT) {
+    rows.push({
+      id: `activity-placeholder-${rows.length}`,
+      isEmpty: true,
+    })
+  }
+
+  return rows
 })
 
 onMounted(() => {
