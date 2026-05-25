@@ -9,7 +9,14 @@ import {
   updateCompetitionRegistrationsByStageIdFromSource,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 import { isCompetitionRegistrationActiveStatus } from '@/pages/account/utils/accountConstants'
-import { competitionDirections } from '@/pages/competitions/competitionData'
+import {
+  competitionDirections,
+  deleteCompetitionStageFromSource,
+  saveCompetitionDirectionTitleToSource,
+  saveCompetitionDirectionToSource,
+  saveCompetitionStageDistancesToSource,
+  saveCompetitionStageToSource,
+} from '@/pages/competitions/competitionData'
 import { publicAsset } from '@/utils/publicAsset'
 import { showToast } from '@/utils/toast'
 import {
@@ -333,6 +340,10 @@ export function useCompetitionStages() {
       targetStage.photoUrl = photoUrl
     }
 
+    void saveCompetitionStageToSource(targetStage).catch(() => {
+      showToast('Не удалось сохранить этап соревнования', { type: 'error' })
+    })
+
     void updateCompetitionRegistrationsByStageIdFromSource(
       targetStage.id,
       {
@@ -353,6 +364,12 @@ export function useCompetitionStages() {
     }
 
     direction.title = nextCompetitionName
+
+    if (competitionName && previousCompetitionName !== nextCompetitionName) {
+      void saveCompetitionDirectionTitleToSource(competitionSlug, nextCompetitionName).catch(() => {
+        showToast('Не удалось сохранить название соревнования', { type: 'error' })
+      })
+    }
 
     const directionCardIndex = getDirectionCardIndex(direction, targetStage.stage)
 
@@ -424,6 +441,9 @@ export function useCompetitionStages() {
     }
 
     competitionStages.value = competitionStages.value.filter((stage) => stage.id !== stageId)
+    void deleteCompetitionStageFromSource(stageId).catch(() => {
+      showToast('Не удалось удалить этап соревнования', { type: 'error' })
+    })
 
     const direction = findDirectionBySlug(targetStage.competitionSlug)
 
@@ -454,6 +474,9 @@ export function useCompetitionStages() {
 
     const nextDescription = String(description || '').trim()
     targetStage.distanceSummary = nextDescription
+    void saveCompetitionStageDistancesToSource(stageId, nextDescription).catch(() => {
+      showToast('Не удалось сохранить дистанции этапа', { type: 'error' })
+    })
 
     const direction = findDirectionBySlug(targetStage.competitionSlug)
 
@@ -486,6 +509,18 @@ export function useCompetitionStages() {
     const directionCardIndex = getDirectionCardIndex(direction, targetStage.stage)
 
     return direction.cards?.[directionCardIndex]?.description || targetStage.distanceSummary || ''
+  }
+
+  async function persistCreatedCompetitionStage({ direction, row, isNewDirection }) {
+    try {
+      if (isNewDirection) {
+        await saveCompetitionDirectionToSource(direction)
+      }
+
+      await saveCompetitionStageToSource(row)
+    } catch {
+      showToast('Не удалось сохранить этап соревнования', { type: 'error' })
+    }
   }
 
   function createCompetitionStage({
@@ -531,6 +566,7 @@ export function useCompetitionStages() {
       competitionName: normalizedName,
       competitionSlug,
       stage: normalizedStage,
+      title: String(normalizedStage),
       date: normalizedDate,
       protocolUrl,
       photoUrl,
@@ -550,7 +586,9 @@ export function useCompetitionStages() {
       },
     }
 
-    if (!direction) {
+    const isNewDirection = !direction
+
+    if (isNewDirection) {
       direction = createCompetitionDirection({
         competitionName: normalizedName,
         competitionSlug,
@@ -562,6 +600,11 @@ export function useCompetitionStages() {
     }
 
     competitionStages.value.push(row)
+    void persistCreatedCompetitionStage({
+      direction,
+      row,
+      isNewDirection,
+    })
   }
 
   onMounted(() => {

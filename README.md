@@ -167,7 +167,7 @@ CRM users, профиль тренера и competition catalog тоже исп�
 
 - `crm_users` содержит реальные auth-linked users, роль и account status для CRM;
 - профиль тренера сохраняется в `account_profiles`;
-- `competition_catalog` хранит редактируемый JSON-каталог соревнований.
+- каталог соревнований хранится в нормализованных таблицах `competitions`, `competition_stages`, `competition_stage_distances`, `competition_registration_options`, `competition_faq_sections`, `competition_faq_items`.
 
 Runtime `localStorage` / `sessionStorage` в `src` не используется.
 
@@ -290,13 +290,13 @@ npm run supabase:check-account-athlete-admissions
 
 Команда read-only и проверяет наличие таблиц, RLS, policies, constraints, triggers, индексов и realtime publication из `supabase/account_athlete_admissions.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
 
-Проверить, что Supabase contract для редактируемого каталога соревнований применен:
+Проверить, что Supabase contract для нормализованного каталога соревнований применен:
 
 ```sh
-npm run supabase:check-competition-catalog
+npm run supabase:check-competition-catalog-normalized
 ```
 
-Команда read-only и проверяет наличие таблицы, RLS, policies, constraints, trigger, индексов и realtime publication из `supabase/competition_catalog.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
+Команда read-only и проверяет наличие таблиц, RLS, policies, constraints, triggers, индексов, realtime publication и seed rows из `supabase/competition_catalog_normalized.sql`. Для нее также нужен `SUPABASE_ACCESS_TOKEN`.
 
 Проверить, что тестовая Supabase-заявка для regression smoke существует и находится в ожидаемом статусе:
 
@@ -344,12 +344,12 @@ npm run supabase:check-competition-fixture
 - выполнен ли SQL из `supabase/consultation_requests.sql`
 - выполнен ли SQL из `supabase/competition_applications.sql`, потому что заявки на соревнования по умолчанию используют Supabase
 - выполнен ли SQL из `supabase/account_athlete_admissions.sql`, если проверяете статусы заявок спортсменов и допуски
-- выполнен ли SQL из `supabase/competition_catalog.sql`, если проверяете редактируемый каталог соревнований
+- выполнен ли SQL из `supabase/competition_catalog_normalized.sql`, если проверяете редактируемый каталог соревнований
 - для `npm run supabase:list-tables` заполнен ли `SUPABASE_ACCESS_TOKEN`
 - для `npm run supabase:check-crm-users` заполнен ли `SUPABASE_ACCESS_TOKEN`
 - для `npm run supabase:check-competition-applications` заполнен ли `SUPABASE_ACCESS_TOKEN`
 - для `npm run supabase:check-account-athlete-admissions` заполнен ли `SUPABASE_ACCESS_TOKEN`
-- для `npm run supabase:check-competition-catalog` заполнен ли `SUPABASE_ACCESS_TOKEN`
+- для `npm run supabase:check-competition-catalog-normalized` заполнен ли `SUPABASE_ACCESS_TOKEN`
 - для `npm run supabase:check-competition-fixture` заполнен ли `SUPABASE_ACCESS_TOKEN`, если проверяете smoke fixture
 
 ### Открывается `/account`, но нет профиля пользователя

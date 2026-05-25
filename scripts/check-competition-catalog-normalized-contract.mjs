@@ -6,18 +6,87 @@ const ENV_PATH = resolve(process.cwd(), '.env.local')
 const PROJECTS_API_BASE_URL = 'https://api.supabase.com/v1/projects'
 
 const REQUIRED_OBJECTS = {
-  table: ['public.competition_catalog'],
-  rls: ['public.competition_catalog'],
-  policy: [
-    'Allow public read competition catalog',
-    'Allow admin insert competition catalog',
-    'Allow admin update competition catalog',
-    'Allow admin delete competition catalog',
+  table: [
+    'public.competitions',
+    'public.competition_stages',
+    'public.competition_stage_distances',
+    'public.competition_registration_options',
+    'public.competition_faq_sections',
+    'public.competition_faq_items',
   ],
-  constraint: ['competition_catalog_pkey', 'competition_catalog_state_is_array_check'],
-  trigger: ['competition_catalog_touch_updated_at'],
-  index: ['competition_catalog_pkey', 'competition_catalog_updated_at_idx'],
-  publication: ['public.competition_catalog'],
+  rls: [
+    'public.competitions',
+    'public.competition_stages',
+    'public.competition_stage_distances',
+    'public.competition_registration_options',
+    'public.competition_faq_sections',
+    'public.competition_faq_items',
+  ],
+  policy: [
+    'Allow public read competitions',
+    'Allow admin write competitions',
+    'Allow public read competition stages',
+    'Allow admin write competition stages',
+    'Allow public read competition stage distances',
+    'Allow admin write competition stage distances',
+    'Allow public read competition registration options',
+    'Allow admin write competition registration options',
+    'Allow public read competition faq sections',
+    'Allow admin write competition faq sections',
+    'Allow public read competition faq items',
+    'Allow admin write competition faq items',
+  ],
+  constraint: [
+    'competitions_pkey',
+    'competitions_slug_key',
+    'competition_stages_pkey',
+    'competition_stages_stage_number_check',
+    'competition_stages_unique_stage_number',
+    'competition_stage_distances_pkey',
+    'competition_registration_options_pkey',
+    'competition_registration_options_unique_key',
+    'competition_faq_sections_pkey',
+    'competition_faq_sections_placement_check',
+    'competition_faq_items_pkey',
+    'competition_applications_stage_id_fkey',
+  ],
+  trigger: [
+    'competitions_touch_updated_at',
+    'competition_stages_touch_updated_at',
+  ],
+  index: [
+    'competitions_pkey',
+    'competitions_slug_key',
+    'competitions_sort_order_idx',
+    'competition_stages_pkey',
+    'competition_stages_unique_stage_number',
+    'competition_stages_competition_sort_idx',
+    'competition_stages_public_idx',
+    'competition_stage_distances_pkey',
+    'competition_stage_distances_stage_sort_idx',
+    'competition_registration_options_pkey',
+    'competition_registration_options_unique_key',
+    'competition_registration_options_competition_sort_idx',
+    'competition_faq_sections_pkey',
+    'competition_faq_sections_competition_sort_idx',
+    'competition_faq_items_pkey',
+    'competition_faq_items_section_sort_idx',
+  ],
+  publication: [
+    'public.competitions',
+    'public.competition_stages',
+    'public.competition_stage_distances',
+    'public.competition_registration_options',
+    'public.competition_faq_sections',
+    'public.competition_faq_items',
+  ],
+  seed: [
+    'competitions:min:2',
+    'competition_stages:min:18',
+    'competition_registration_options:min:4',
+    'competition_faq_sections:min:4',
+    'competition_faq_items:min:10',
+  ],
 }
 
 function parseDotEnv(content) {
@@ -85,13 +154,23 @@ async function queryContract({ accessToken, projectRef }) {
     },
     body: JSON.stringify({
       query: `
-        with found_objects as (
+        with target_tables as (
+          select unnest(array[
+            'competitions',
+            'competition_stages',
+            'competition_stage_distances',
+            'competition_registration_options',
+            'competition_faq_sections',
+            'competition_faq_items'
+          ]) as table_name
+        ),
+        found_objects as (
           select
             'table' as object_type,
             table_schema || '.' || table_name as object_name
           from information_schema.tables
           where table_schema = 'public'
-            and table_name = 'competition_catalog'
+            and table_name in (select table_name from target_tables)
 
           union all
 
@@ -102,7 +181,7 @@ async function queryContract({ accessToken, projectRef }) {
           join pg_namespace as namespace
             on namespace.oid = class.relnamespace
           where namespace.nspname = 'public'
-            and class.relname = 'competition_catalog'
+            and class.relname in (select table_name from target_tables)
             and class.relrowsecurity = true
 
           union all
@@ -112,7 +191,7 @@ async function queryContract({ accessToken, projectRef }) {
             policy.policyname as object_name
           from pg_policies as policy
           where policy.schemaname = 'public'
-            and policy.tablename = 'competition_catalog'
+            and policy.tablename in (select table_name from target_tables)
 
           union all
 
@@ -125,7 +204,10 @@ async function queryContract({ accessToken, projectRef }) {
           join pg_namespace as namespace
             on namespace.oid = class.relnamespace
           where namespace.nspname = 'public'
-            and class.relname = 'competition_catalog'
+            and (
+              class.relname in (select table_name from target_tables)
+              or class.relname = 'competition_applications'
+            )
 
           union all
 
@@ -138,7 +220,7 @@ async function queryContract({ accessToken, projectRef }) {
           join pg_namespace as namespace
             on namespace.oid = class.relnamespace
           where namespace.nspname = 'public'
-            and class.relname = 'competition_catalog'
+            and class.relname in ('competitions', 'competition_stages')
             and trigger_info.tgisinternal = false
 
           union all
@@ -148,7 +230,7 @@ async function queryContract({ accessToken, projectRef }) {
             index_info.indexname as object_name
           from pg_indexes as index_info
           where index_info.schemaname = 'public'
-            and index_info.tablename = 'competition_catalog'
+            and index_info.tablename in (select table_name from target_tables)
 
           union all
 
@@ -158,7 +240,32 @@ async function queryContract({ accessToken, projectRef }) {
           from pg_publication_tables
           where pubname = 'supabase_realtime'
             and schemaname = 'public'
-            and tablename = 'competition_catalog'
+            and tablename in (select table_name from target_tables)
+
+          union all
+
+          select 'seed' as object_type, 'competitions:min:' || count(*)::text as object_name
+          from public.competitions
+
+          union all
+
+          select 'seed' as object_type, 'competition_stages:min:' || count(*)::text as object_name
+          from public.competition_stages
+
+          union all
+
+          select 'seed' as object_type, 'competition_registration_options:min:' || count(*)::text as object_name
+          from public.competition_registration_options
+
+          union all
+
+          select 'seed' as object_type, 'competition_faq_sections:min:' || count(*)::text as object_name
+          from public.competition_faq_sections
+
+          union all
+
+          select 'seed' as object_type, 'competition_faq_items:min:' || count(*)::text as object_name
+          from public.competition_faq_items
         )
         select object_type, object_name
         from found_objects
@@ -209,12 +316,35 @@ function createFoundSet(rows) {
   }, new Map())
 }
 
+function seedRequirementIsMet(foundNames, requirement) {
+  const [tableName, marker, minimumValue] = requirement.split(':')
+  const minimum = Number(minimumValue)
+
+  if (marker !== 'min' || !Number.isFinite(minimum)) {
+    return foundNames.has(requirement)
+  }
+
+  return Array.from(foundNames).some((foundName) => {
+    const [foundTableName, foundMarker, foundValue] = foundName.split(':')
+
+    return (
+      foundTableName === tableName &&
+      foundMarker === marker &&
+      Number(foundValue) >= minimum
+    )
+  })
+}
+
 function getMissingObjects(foundObjects) {
   return Object.entries(REQUIRED_OBJECTS).flatMap(([objectType, objectNames]) => {
     const foundNames = foundObjects.get(objectType) || new Set()
 
     return objectNames
-      .filter((objectName) => !foundNames.has(objectName))
+      .filter((objectName) =>
+        objectType === 'seed'
+          ? !seedRequirementIsMet(foundNames, objectName)
+          : !foundNames.has(objectName),
+      )
       .map((objectName) => `${objectType}: ${objectName}`)
   })
 }
@@ -239,7 +369,7 @@ async function main() {
     const missingObjects = getMissingObjects(createFoundSet(rows))
 
     if (missingObjects.length) {
-      console.error('Competition catalog contract is incomplete.')
+      console.error('Normalized competition catalog contract is incomplete.')
       console.error('Missing:')
       missingObjects.forEach((objectName) => {
         console.error(`- ${objectName}`)
@@ -248,13 +378,13 @@ async function main() {
       return
     }
 
-    console.log(`Competition catalog contract is ready in project ${resolvedProjectRef}.`)
-    console.log('Checked: table, RLS, policies, constraints, trigger, indexes, realtime publication.')
+    console.log(`Normalized competition catalog contract is ready in project ${resolvedProjectRef}.`)
+    console.log('Checked: tables, RLS, policies, constraints, triggers, indexes, realtime publication, seed rows.')
   } catch (error) {
     fail(
       error instanceof Error
         ? error.message
-        : 'Не удалось проверить Supabase contract для competition catalog.',
+        : 'Не удалось проверить Supabase contract для normalized competition catalog.',
     )
   }
 }
