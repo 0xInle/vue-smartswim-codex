@@ -31,14 +31,24 @@
         <article class="account-dashboard__card account-dashboard__card--activity">
           <div class="account-dashboard__card-head">
             <p class="account__panel-eyebrow">Последние события</p>
-            <ElButton
-              class="account-dashboard__action"
-              plain
-              type="primary"
-              @click="$emit('select-section', 'consultations')"
-            >
-              Открыть CRM
-            </ElButton>
+            <div class="account-dashboard__actions">
+              <ElButton
+                class="account-dashboard__action"
+                plain
+                type="primary"
+                @click="$emit('select-section', 'consultations')"
+              >
+                Открыть CRM
+              </ElButton>
+              <ElButton
+                class="account-dashboard__action"
+                plain
+                type="primary"
+                @click="$emit('select-section', 'email')"
+              >
+                Письма
+              </ElButton>
+            </div>
           </div>
 
           <div class="account-dashboard__activity-list">

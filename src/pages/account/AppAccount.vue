@@ -155,6 +155,11 @@
                 v-show="activeSection === 'registrations'"
               />
 
+              <AccountEmailPanel
+                v-show="activeSection === 'email'"
+                :users="users"
+              />
+
               <AccountCompetitionsPanel
                 v-show="activeSection === 'competitions'"
                 :rows="filteredCompetitionStages"
@@ -269,7 +274,7 @@
 </template>
 
 <script setup>
-import { Calendar, Document, Monitor, Setting, Trophy, User } from '@element-plus/icons-vue'
+import { Calendar, Document, Message, Monitor, Setting, Trophy, User } from '@element-plus/icons-vue'
 import { ElAlert, ElContainer, ElMain } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -283,6 +288,7 @@ import AccountConsultationDetailsDialog from '@/pages/account/components/consult
 import AccountDocumentReviewsPanel from '@/pages/account/components/documents/AccountDocumentReviewsPanel.vue'
 import AccountConsultationsPanel from '@/pages/account/components/consultations/AccountConsultationsPanel.vue'
 import AccountDashboardPanel from '@/pages/account/components/dashboard/AccountDashboardPanel.vue'
+import AccountEmailPanel from '@/pages/account/components/email/AccountEmailPanel.vue'
 import AccountAthletesPanel from '@/pages/account/components/athletes/AccountAthletesPanel.vue'
 import AccountHeaderBar from '@/pages/account/components/layout/AccountHeaderBar.vue'
 import AccountProfilePanel from '@/pages/account/components/profile/AccountProfilePanel.vue'
@@ -556,6 +562,7 @@ const navigationItems = computed(() => {
       { id: 'consultations', label: 'Консультации', icon: Calendar },
       { id: 'registrations', label: 'Заявки', icon: Trophy },
       { id: 'documents', label: 'Документы', icon: Document },
+      { id: 'email', label: 'Письма', icon: Message },
       { id: 'settings', label: 'Настройки', icon: Setting },
     ]
   }
@@ -585,6 +592,7 @@ const sectionContent = computed(() => {
       consultations: { title: 'Консультации' },
       'trainer-bookings': { title: 'Записи к тренерам' },
       documents: { title: 'Проверка документов' },
+      email: { title: 'Письма' },
       registrations: { title: 'Заявки на соревнования' },
       competitions: { title: 'Соревнования' },
       users: { title: 'Пользователи' },

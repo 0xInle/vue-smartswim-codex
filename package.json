@@ -14,6 +14,7 @@
     "supabase:check-account-documents": "node scripts/check-account-documents-contract.mjs",
     "supabase:check-account-profile-athletes": "node scripts/check-account-profile-athletes-contract.mjs",
     "supabase:check-account-athlete-admissions": "node scripts/check-account-athlete-admissions-contract.mjs",
+    "supabase:check-account-email": "node scripts/check-account-email-contract.mjs",
     "supabase:check-competition-payments": "node scripts/check-competition-payments-contract.mjs",
     "supabase:check-competition-catalog-normalized": "node scripts/check-competition-catalog-normalized-contract.mjs",
     "supabase:check-competition-fixture": "node scripts/check-competition-application-fixture.mjs",
