@@ -33,6 +33,8 @@ export const CONSULTATION_STATUS_OPTIONS = [
 
 export const TRAINER_BOOKING_STATUS = Object.freeze({
   NEW: 'new',
+  IN_WORK: 'in_work',
+  PROCESSED: 'processed',
   CONTACTED: 'contacted',
   CONFIRMED: 'confirmed',
   CANCELLED: 'cancelled',
@@ -41,10 +43,8 @@ export const TRAINER_BOOKING_STATUS = Object.freeze({
 
 export const TRAINER_BOOKING_STATUS_OPTIONS = [
   { value: TRAINER_BOOKING_STATUS.NEW, label: 'Новая' },
-  { value: TRAINER_BOOKING_STATUS.CONTACTED, label: 'Связались' },
-  { value: TRAINER_BOOKING_STATUS.CONFIRMED, label: 'Подтверждена' },
-  { value: TRAINER_BOOKING_STATUS.CANCELLED, label: 'Отменена' },
-  { value: TRAINER_BOOKING_STATUS.COMPLETED, label: 'Завершена' },
+  { value: TRAINER_BOOKING_STATUS.IN_WORK, label: 'В работе' },
+  { value: TRAINER_BOOKING_STATUS.PROCESSED, label: 'Обработана' },
 ]
 
 export const COMPETITION_REGISTRATION_RECORD_STATUS = Object.freeze({

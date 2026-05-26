@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { fetchOwnTrainerBookings } from '@/utils/supabaseDatabase'
+import { fetchOwnTrainerBookings, updateTrainerBookingStatus } from '@/utils/supabaseDatabase'
 import { getErrorMessage } from '@/pages/account/utils/accountFormatters'
 
 export function useOwnTrainerBookings() {
@@ -39,6 +39,24 @@ export function useOwnTrainerBookings() {
     ownTrainerBookingsError.value = ''
   }
 
+  async function updateOwnTrainerBookingStatus(id, status) {
+    if (!id || !status) {
+      return null
+    }
+
+    try {
+      const updatedBooking = await updateTrainerBookingStatus({ id, status })
+      await syncOwnTrainerBookings()
+      return updatedBooking
+    } catch (error) {
+      ownTrainerBookingsError.value = getErrorMessage(
+        error,
+        'Не удалось обновить запись к тренеру.',
+      )
+      return null
+    }
+  }
+
   const ownTrainerBookingsTotal = computed(() => ownTrainerBookings.value.length)
 
   return {
@@ -47,6 +65,7 @@ export function useOwnTrainerBookings() {
     ownTrainerBookingsError,
     ownTrainerBookingsTotal,
     syncOwnTrainerBookings,
+    updateOwnTrainerBookingStatus,
     clearOwnTrainerBookings,
   }
 }

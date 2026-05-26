@@ -38,6 +38,8 @@ drop policy if exists "Allow admin read trainer bookings" on public.trainer_book
 drop policy if exists "Allow admin update trainer bookings" on public.trainer_bookings;
 drop policy if exists "Allow admin delete trainer bookings" on public.trainer_bookings;
 drop policy if exists "Allow admin insert trainer bookings" on public.trainer_bookings;
+drop policy if exists "Allow selected trainer read trainer bookings" on public.trainer_bookings;
+drop policy if exists "Allow selected trainer update trainer booking status" on public.trainer_bookings;
 
 alter table public.trainer_bookings
   alter column preferred_time type time
@@ -48,7 +50,7 @@ alter table public.trainer_bookings
 
 alter table public.trainer_bookings
   add constraint trainer_bookings_status_check
-  check (status in ('new', 'contacted', 'confirmed', 'cancelled', 'completed'));
+  check (status in ('new', 'in_work', 'processed', 'contacted', 'confirmed', 'cancelled', 'completed'));
 
 alter table public.trainer_bookings
   drop constraint if exists trainer_bookings_format_check;
@@ -98,7 +100,13 @@ begin
     raise exception 'Укажите корректную электронную почту.';
   end if;
 
-  if new.preferred_date < current_date then
+  if
+    new.preferred_date < current_date
+    and (
+      TG_OP = 'INSERT'
+      or new.preferred_date is distinct from old.preferred_date
+    )
+  then
     raise exception 'Дата записи не может быть в прошлом.';
   end if;
 
@@ -187,6 +195,21 @@ using (
   or public.normalize_email(auth.jwt() ->> 'email') = client_email_normalized
 );
 
+create policy "Allow selected trainer read trainer bookings"
+on public.trainer_bookings
+for select
+to authenticated
+using (
+  public.current_crm_role() = 'trainer'
+  and exists (
+    select 1
+    from public.crm_users as crm_user
+    where crm_user.id = auth.uid()
+      and crm_user.role = 'trainer'
+      and trim(coalesce(crm_user.name, '')) = trainer_bookings.trainer_name
+  )
+);
+
 create policy "Allow admin read trainer bookings"
 on public.trainer_bookings
 for select
@@ -199,6 +222,32 @@ for update
 to authenticated
 using (public.current_crm_role() = 'admin')
 with check (public.current_crm_role() = 'admin');
+
+create policy "Allow selected trainer update trainer booking status"
+on public.trainer_bookings
+for update
+to authenticated
+using (
+  public.current_crm_role() = 'trainer'
+  and exists (
+    select 1
+    from public.crm_users as crm_user
+    where crm_user.id = auth.uid()
+      and crm_user.role = 'trainer'
+      and trim(coalesce(crm_user.name, '')) = trainer_bookings.trainer_name
+  )
+)
+with check (
+  public.current_crm_role() = 'trainer'
+  and status in ('in_work', 'processed')
+  and exists (
+    select 1
+    from public.crm_users as crm_user
+    where crm_user.id = auth.uid()
+      and crm_user.role = 'trainer'
+      and trim(coalesce(crm_user.name, '')) = trainer_bookings.trainer_name
+  )
+);
 
 create policy "Allow admin delete trainer bookings"
 on public.trainer_bookings

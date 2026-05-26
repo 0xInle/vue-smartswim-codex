@@ -1,5 +1,9 @@
 import { computed, ref, watch } from 'vue'
-import { fetchTrainerBookings, subscribeToTrainerBookings } from '@/utils/supabaseDatabase'
+import {
+  fetchTrainerBookings,
+  subscribeToTrainerBookings,
+  updateTrainerBookingStatus,
+} from '@/utils/supabaseDatabase'
 import {
   TRAINER_BOOKING_STATUS,
   TRAINER_BOOKING_STATUS_OPTIONS,
@@ -78,6 +82,21 @@ export function useTrainerBookings({ isAdmin }) {
     void syncTrainerBookings()
   }
 
+  async function handleTrainerBookingStatusUpdate(id, status) {
+    if (!id || !status) {
+      return null
+    }
+
+    try {
+      const updatedBooking = await updateTrainerBookingStatus({ id, status })
+      await syncTrainerBookings({ silent: true })
+      return updatedBooking
+    } catch (error) {
+      trainerBookingsError.value = getErrorMessage(error, 'Не удалось обновить запись к тренеру.')
+      return null
+    }
+  }
+
   const newTrainerBookingsCount = computed(
     () =>
       trainerBookings.value.filter((booking) => booking.status === TRAINER_BOOKING_STATUS.NEW).length,
@@ -150,6 +169,7 @@ export function useTrainerBookings({ isAdmin }) {
     filteredTrainerBookings,
     filteredTrainerBookingsTotal,
     handleTrainerBookingsRefresh,
+    handleTrainerBookingStatusUpdate,
     syncTrainerBookings,
     stopTrainerBookingsFeed,
     clearTrainerBookingsState,

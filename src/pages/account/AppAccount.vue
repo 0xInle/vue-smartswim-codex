@@ -73,6 +73,16 @@
                 :current-user="currentUser"
               />
 
+              <AccountOwnTrainerBookingsPanel
+                v-show="activeSection === 'trainer-bookings'"
+                :bookings="ownTrainerBookings"
+                :is-loading="ownTrainerBookingsLoading"
+                :total="ownTrainerBookingsTotal"
+                mode="trainer"
+                can-update-status
+                @update-status="handleOwnTrainerBookingStatusUpdate"
+              />
+
               <AccountSettingsPanel
                 v-show="activeSection === 'settings'"
                 :form="passwordChangeForm"
@@ -149,6 +159,7 @@
                 @refresh="handleTrainerBookingsRefresh"
                 @update:search="trainerBookingsSearch = $event"
                 @update:status-filter="trainerBookingsStatusFilter = $event"
+                @update-status="handleTrainerBookingStatusUpdate"
               />
 
               <AccountCompetitionRegistrationsAdminPanel
@@ -296,6 +307,7 @@ import AccountUserDashboardPanel from '@/pages/account/components/dashboard/Acco
 import AccountSettingsPanel from '@/pages/account/components/profile/AccountSettingsPanel.vue'
 import AccountSidebar from '@/pages/account/components/layout/AccountSidebar.vue'
 import AccountTrainerBookingsPanel from '@/pages/account/components/trainer-bookings/AccountTrainerBookingsPanel.vue'
+import AccountOwnTrainerBookingsPanel from '@/pages/account/components/trainer-bookings/AccountOwnTrainerBookingsPanel.vue'
 import AccountUsersPanel from '@/pages/account/components/users/AccountUsersPanel.vue'
 import { useOwnTrainerBookings } from '@/pages/account/composables/useOwnTrainerBookings'
 import { useAccountPasswordChange } from '@/pages/account/composables/useAccountPasswordChange'
@@ -369,8 +381,15 @@ const {
   minPasswordLength,
 } = useAccountPasswordChange({ currentUser })
 
-const { ownTrainerBookingsError, syncOwnTrainerBookings, clearOwnTrainerBookings } =
-  useOwnTrainerBookings()
+const {
+  ownTrainerBookings,
+  ownTrainerBookingsLoading,
+  ownTrainerBookingsError,
+  ownTrainerBookingsTotal,
+  syncOwnTrainerBookings,
+  updateOwnTrainerBookingStatus,
+  clearOwnTrainerBookings,
+} = useOwnTrainerBookings()
 
 const {
   consultationRequests,
@@ -407,6 +426,7 @@ const {
   filteredTrainerBookings,
   filteredTrainerBookingsTotal,
   handleTrainerBookingsRefresh,
+  handleTrainerBookingStatusUpdate,
   syncTrainerBookings,
   stopTrainerBookingsFeed,
   clearTrainerBookingsState,
@@ -517,7 +537,7 @@ async function syncAccountData({ force = false, silent = false } = {}) {
       } else if (accountMode.value === 'trainer') {
         clearConsultationState()
         clearTrainerBookingsState()
-        clearOwnTrainerBookings()
+        await syncOwnTrainerBookings()
       } else {
         clearConsultationState()
         clearTrainerBookingsState()
@@ -552,6 +572,10 @@ function handleSignOutClick() {
   })
 }
 
+function handleOwnTrainerBookingStatusUpdate(payload) {
+  void updateOwnTrainerBookingStatus(payload?.id, payload?.status)
+}
+
 const navigationItems = computed(() => {
   if (accountMode.value === 'admin') {
     return [
@@ -572,6 +596,7 @@ const navigationItems = computed(() => {
       { id: 'dashboard', label: 'Дашборд', icon: Monitor },
       { id: 'profile', label: 'Личная информация', icon: User },
       { id: 'athletes', label: 'Спортсмены', icon: Trophy },
+      { id: 'trainer-bookings', label: 'Заявки', icon: Calendar },
       { id: 'settings', label: 'Настройки', icon: Setting },
     ]
   }
@@ -605,6 +630,7 @@ const sectionContent = computed(() => {
       dashboard: { title: 'Дашборд' },
       profile: { title: 'Личная информация' },
       athletes: { title: 'Спортсмены' },
+      'trainer-bookings': { title: 'Заявки к тренеру' },
       settings: { title: 'Настройки' },
     }
   }

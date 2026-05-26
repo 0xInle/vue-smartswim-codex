@@ -61,6 +61,22 @@
 
       <div class="account-trainer-booking-details__actions">
         <button
+          v-if="canUpdateStatus && isTrainerBookingNewStatus(booking.status)"
+          type="button"
+          class="account__table-action account__table-action--edit btn-reset"
+          @click="emit('update-status', trainerBookingStatusInWork)"
+        >
+          В работу
+        </button>
+        <button
+          v-if="canUpdateStatus && !isTrainerBookingProcessedStatus(booking.status)"
+          type="button"
+          class="account__table-action account__table-action--success btn-reset"
+          @click="emit('update-status', trainerBookingStatusProcessed)"
+        >
+          Обработана
+        </button>
+        <button
           type="button"
           class="account__table-action account__table-action--ghost btn-reset"
           @click="emit('close')"
@@ -77,6 +93,9 @@ import { Close } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 import { ElDialog, ElTag } from 'element-plus'
 import {
+  TRAINER_BOOKING_STATUS,
+} from '@/pages/account/utils/accountConstants'
+import {
   formatCompactDateTime,
   formatConsultationDate,
   formatTrainerBookingStatus,
@@ -92,12 +111,30 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  canUpdateStatus: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'update-status'])
+const trainerBookingStatusInWork = TRAINER_BOOKING_STATUS.IN_WORK
+const trainerBookingStatusProcessed = TRAINER_BOOKING_STATUS.PROCESSED
 
 const statusLabel = computed(() => formatTrainerBookingStatus(props.booking?.status))
 const statusTagType = computed(() => trainerBookingStatusType(props.booking?.status))
+
+function isTrainerBookingNewStatus(status) {
+  return status === TRAINER_BOOKING_STATUS.NEW
+}
+
+function isTrainerBookingProcessedStatus(status) {
+  return [
+    TRAINER_BOOKING_STATUS.PROCESSED,
+    TRAINER_BOOKING_STATUS.COMPLETED,
+    TRAINER_BOOKING_STATUS.CANCELLED,
+  ].includes(status)
+}
 </script>
 
 <style scoped>

@@ -4,7 +4,8 @@
       <div class="account__panel-head">
         <div>
           <p class="account__panel-eyebrow">Записи</p>
-          <h3 class="account__panel-title">Мои записи к тренерам</h3>
+          <h3 v-if="mode !== 'trainer'" class="account__panel-title">Мои записи к тренерам</h3>
+          <h3 v-if="mode === 'trainer'" class="account__panel-title">Мои заявки</h3>
         </div>
         <div class="account__panel-actions">
           <ElTag type="primary" effect="light" round>{{ total }} всего</ElTag>
@@ -51,6 +52,34 @@
         </template>
       </ElTableColumn>
 
+      <ElTableColumn
+        v-if="canUpdateStatus"
+        label="Действие"
+        min-width="176"
+        align="center"
+      >
+        <template #default="{ row }">
+          <div class="account__table-actions">
+            <button
+              v-if="isTrainerBookingNewStatus(row.status)"
+              type="button"
+              class="account__table-action account__table-action--edit btn-reset"
+              @click="$emit('update-status', { id: row.id, status: trainerBookingStatusInWork })"
+            >
+              В работу
+            </button>
+            <button
+              v-if="!isTrainerBookingProcessedStatus(row.status)"
+              type="button"
+              class="account__table-action account__table-action--success btn-reset"
+              @click="$emit('update-status', { id: row.id, status: trainerBookingStatusProcessed })"
+            >
+              Обработана
+            </button>
+          </div>
+        </template>
+      </ElTableColumn>
+
       <ElTableColumn label="Создана" min-width="116" align="center">
         <template #default="{ row }">
           {{ formatCompactDateTime(row.createdAt) }}
@@ -64,6 +93,7 @@
 
 <script setup>
 import { ElCard, ElEmpty, ElTable, ElTableColumn, ElTag } from 'element-plus'
+import { TRAINER_BOOKING_STATUS } from '@/pages/account/utils/accountConstants'
 import {
   formatCompactDateTime,
   formatTrainerBookingSlot,
@@ -84,5 +114,30 @@ defineProps({
     type: Number,
     required: true,
   },
+  mode: {
+    type: String,
+    default: 'user',
+  },
+  canUpdateStatus: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+defineEmits(['update-status'])
+
+const trainerBookingStatusInWork = TRAINER_BOOKING_STATUS.IN_WORK
+const trainerBookingStatusProcessed = TRAINER_BOOKING_STATUS.PROCESSED
+
+function isTrainerBookingNewStatus(status) {
+  return status === TRAINER_BOOKING_STATUS.NEW
+}
+
+function isTrainerBookingProcessedStatus(status) {
+  return [
+    TRAINER_BOOKING_STATUS.PROCESSED,
+    TRAINER_BOOKING_STATUS.COMPLETED,
+    TRAINER_BOOKING_STATUS.CANCELLED,
+  ].includes(status)
+}
 </script>

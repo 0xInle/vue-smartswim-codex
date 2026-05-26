@@ -165,15 +165,18 @@ export function trainerBookingStatusType(status) {
     return 'danger'
   }
 
-  if (status === TRAINER_BOOKING_STATUS.CONTACTED) {
+  if (
+    status === TRAINER_BOOKING_STATUS.IN_WORK ||
+    status === TRAINER_BOOKING_STATUS.CONTACTED ||
+    status === TRAINER_BOOKING_STATUS.CONFIRMED
+  ) {
     return 'primary'
   }
 
-  if (status === TRAINER_BOOKING_STATUS.CONFIRMED) {
-    return 'warning'
-  }
-
-  if (status === TRAINER_BOOKING_STATUS.COMPLETED) {
+  if (
+    status === TRAINER_BOOKING_STATUS.PROCESSED ||
+    status === TRAINER_BOOKING_STATUS.COMPLETED
+  ) {
     return 'success'
   }
 
@@ -181,20 +184,20 @@ export function trainerBookingStatusType(status) {
 }
 
 export function formatTrainerBookingStatus(status) {
-  if (status === TRAINER_BOOKING_STATUS.CONTACTED) {
-    return 'Связались'
+  if (
+    status === TRAINER_BOOKING_STATUS.IN_WORK ||
+    status === TRAINER_BOOKING_STATUS.CONTACTED ||
+    status === TRAINER_BOOKING_STATUS.CONFIRMED
+  ) {
+    return 'В работе'
   }
 
-  if (status === TRAINER_BOOKING_STATUS.CONFIRMED) {
-    return 'Подтверждена'
-  }
-
-  if (status === TRAINER_BOOKING_STATUS.CANCELLED) {
-    return 'Отменена'
-  }
-
-  if (status === TRAINER_BOOKING_STATUS.COMPLETED) {
-    return 'Завершена'
+  if (
+    status === TRAINER_BOOKING_STATUS.PROCESSED ||
+    status === TRAINER_BOOKING_STATUS.COMPLETED ||
+    status === TRAINER_BOOKING_STATUS.CANCELLED
+  ) {
+    return 'Обработана'
   }
 
   return 'Новая'
