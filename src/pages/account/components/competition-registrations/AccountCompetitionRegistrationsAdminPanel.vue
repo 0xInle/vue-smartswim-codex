@@ -276,12 +276,15 @@
       :show-mark-payment-failed-button="selectedRegistrationCanMarkPayment"
       :show-resolve-refund-succeeded-button="selectedRegistrationCanResolveRefund"
       :show-resolve-refund-rejected-button="selectedRegistrationCanResolveRefund"
+      :show-admit-button="selectedRegistrationCanAdmit"
+      admit-button-label="Допустить"
       @close="closeDetailsDialog"
       @save="handleRegistrationSave"
       @mark-payment-succeeded="handleMarkSelectedPaymentSucceeded"
       @mark-payment-failed="handleMarkSelectedPaymentFailed"
       @resolve-refund-succeeded="handleResolveSelectedRefund(refundSucceededStatus)"
       @resolve-refund-rejected="handleResolveSelectedRefund(refundRejectedStatus)"
+      @admit="handleAdmitSelectedRegistration"
     />
   </ElCard>
 </template>
@@ -325,6 +328,7 @@ const {
   handleMarkPaymentSucceeded,
   handleMarkPaymentFailed,
   handleResolveRefund,
+  handleAdmitSelectedRegistration,
   competitionRegistrationRecordStatusType,
   formatCompetitionRegistrationRecordStatus,
   handleRegistrationSave,
@@ -351,6 +355,20 @@ const selectedRegistrationCanResolveRefund = computed(() => {
   const refund = getRegistrationRefund(selectedRegistration.value)
 
   return Boolean(refund && ['requested', 'processing'].includes(refund.status))
+})
+
+const selectedRegistrationCanAdmit = computed(() => {
+  const paymentSummary = selectedRegistration.value
+    ? getRegistrationPaymentSummary(selectedRegistration.value)
+    : null
+  const refund = getRegistrationRefund(selectedRegistration.value)
+
+  return Boolean(
+    selectedRegistration.value?.status === 'paid' &&
+      selectedRegistrationDocumentsStatus.value?.status === 'admitted' &&
+      paymentSummary?.applicationStatus === 'paid' &&
+      !(refund && ['requested', 'processing'].includes(refund.status)),
+  )
 })
 
 const sortedRegistrations = computed(() =>

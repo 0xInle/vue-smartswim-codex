@@ -304,6 +304,14 @@
           Возврат отклонен
         </button>
         <button
+          v-if="showAdmitButton"
+          type="button"
+          class="account__table-action account__table-action--success btn-reset"
+          @click="emit('admit')"
+        >
+          {{ admitButtonLabel }}
+        </button>
+        <button
           v-if="showWithdrawButton && registration.status !== 'withdrawn' && registration.status !== 'rejected'"
           type="button"
           class="account__table-action account__table-action--delete btn-reset"
@@ -447,6 +455,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  showAdmitButton: {
+    type: Boolean,
+    default: false,
+  },
+  admitButtonLabel: {
+    type: String,
+    default: 'Допустить',
+  },
   statusOptions: {
     type: Array,
     default: () => COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS,
@@ -463,6 +479,7 @@ const emit = defineEmits([
   'mark-payment-failed',
   'resolve-refund-succeeded',
   'resolve-refund-rejected',
+  'admit',
 ])
 
 const form = reactive({

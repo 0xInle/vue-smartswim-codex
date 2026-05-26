@@ -44,6 +44,7 @@ import {
   getCompetitionRefundStatusMeta,
   hasActiveRefund,
 } from '@/domains/payments/paymentLifecycle'
+import { createQueuedEmailMessageForAdmin } from '@/domains/account-email/emailRepository'
 
 function normalizeSearchValue(value) {
   return String(value || '')
@@ -352,6 +353,11 @@ export function useAccountCompetitionRegistrationsAdmin() {
     const status = typeof payload === 'object' && payload ? payload.status : ''
     const patch = {}
 
+    if (status === COMPETITION_REGISTRATION_RECORD_STATUS.ADMITTED) {
+      await handleAdmitSelectedRegistration()
+      return
+    }
+
     if (stageId) {
       const stage = buildAccountCompetitionStages().find((item) => item.id === stageId)
 
@@ -548,6 +554,86 @@ export function useAccountCompetitionRegistrationsAdmin() {
     }
   }
 
+  async function queueAdmissionEmail(registration) {
+    const recipientEmail = registration?.ownerEmail || registration?.participantEmail || ''
+
+    if (!recipientEmail) {
+      showToast('Допуск сохранен, но письмо не создано: у пользователя не указана почта.', {
+        type: 'error',
+      })
+      return
+    }
+
+    try {
+      await createQueuedEmailMessageForAdmin({
+        audienceType: 'single_user',
+        contextType: 'admission',
+        contextId: registration.id,
+        subject: `Допуск к старту: ${registration.competitionName || 'Smart Swim'}`,
+        body: [
+          `Здравствуйте, ${registration.ownerName || registration.participantName || 'участник'}!`,
+          '',
+          `Участник ${registration.participantName || 'без имени'} допущен к старту.`,
+          `Соревнование: ${registration.competitionName || 'не указано'}.`,
+          `Этап: ${registration.stageLabel || 'не указан'}.`,
+          `Дата: ${registration.competitionDateLabel || 'будет уточнена'}.`,
+          '',
+          'Это письмо поставлено в очередь Smart Swim. Production-отправка будет доступна после подключения email-провайдера.',
+        ].join('\n'),
+        recipients: [
+          {
+            ownerUserId: registration.sourceUserKey,
+            email: recipientEmail,
+            name: registration.ownerName || registration.participantName,
+            recipientType: 'participant',
+          },
+        ],
+      })
+      showToast('Письмо о допуске поставлено в очередь')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось создать письмо о допуске', {
+        type: 'error',
+      })
+    }
+  }
+
+  async function handleAdmitSelectedRegistration() {
+    const registration = selectedRegistration.value
+    const documentsStatus = selectedRegistrationDocumentsStatus.value
+    const paymentSummary = getRegistrationPaymentSummary(registration)
+    const refund = getRegistrationRefund(registration)
+
+    if (!registration) {
+      return null
+    }
+
+    if (documentsStatus?.status !== 'admitted') {
+      showToast('Допуск невозможен: документы еще не одобрены.', { type: 'error' })
+      return null
+    }
+
+    if (paymentSummary.applicationStatus !== 'paid') {
+      showToast('Допуск невозможен: оплата еще не подтверждена.', { type: 'error' })
+      return null
+    }
+
+    if (refund && hasActiveRefund(refund)) {
+      showToast('Допуск невозможен: по заявке есть активный запрос возврата.', { type: 'error' })
+      return null
+    }
+
+    const updatedRegistration = await updateSelectedRegistration(
+      { status: COMPETITION_REGISTRATION_RECORD_STATUS.ADMITTED },
+      { closeDialog: true, toastMessage: 'Участник допущен к старту' },
+    )
+
+    if (updatedRegistration) {
+      await queueAdmissionEmail(updatedRegistration)
+    }
+
+    return updatedRegistration
+  }
+
   function handleWithdrawSelectedRegistration() {
     const registration = selectedRegistration.value
 
@@ -682,6 +768,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     handleMarkPaymentSucceeded,
     handleMarkPaymentFailed,
     handleResolveRefund,
+    handleAdmitSelectedRegistration,
     competitionRegistrationRecordStatusType,
     formatCompetitionRegistrationRecordStatus,
     formatCompactDateTime,
