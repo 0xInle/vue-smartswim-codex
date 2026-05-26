@@ -42,6 +42,7 @@
                 </th>
                 <th>Соревнование</th>
                 <th>Статус</th>
+                <th>Оплата</th>
                 <th>Действие</th>
               </tr>
             </thead>
@@ -70,6 +71,20 @@
                     </ElTag>
                     <span class="account-competition-registrations__next-action">
                       {{ getRegistrationLifecycleSummary(record).nextAction }}
+                    </span>
+                  </div>
+                </td>
+                <td class="account__native-table-cell account__native-table-cell--center">
+                  <div class="account-competition-registrations__status-cell">
+                    <ElTag
+                      :type="getRegistrationPaymentSummary(record).tagType"
+                      effect="light"
+                      round
+                    >
+                      {{ getRegistrationPaymentSummary(record).label }}
+                    </ElTag>
+                    <span class="account-competition-registrations__next-action">
+                      {{ getRegistrationPaymentSummary(record).description }}
                     </span>
                   </div>
                 </td>
@@ -228,9 +243,17 @@
       :documents-status-tag-type="selectedHistoryRegistrationDocumentsStatus?.tagType || 'info'"
       :documents-status-label="selectedHistoryRegistrationDocumentsStatus?.label || ''"
       :documents-status-description="selectedHistoryRegistrationDocumentsStatus?.description || ''"
+      :payment-status-tag-type="selectedHistoryPaymentSummary?.tagType || 'info'"
+      :payment-status-label="selectedHistoryPaymentSummary?.label || 'Не требуется'"
+      :payment-status-description="selectedHistoryPaymentSummary?.description || ''"
+      :payment-mvp-notice="selectedHistoryPaymentMvpNotice"
+      :show-payment-button="selectedHistoryCanCreatePayment"
+      :show-refund-button="selectedHistoryCanRequestRefund"
       @close="closeHistoryDetails"
       @save="handleUpdateSelectedRegistration"
       @withdraw="handleWithdrawSelectedRegistration"
+      @create-payment="handleCreatePaymentForSelectedRegistration"
+      @request-refund="handleRequestRefundForSelectedRegistration"
     />
 
     <AccountCompetitionRegistrationDialog
@@ -296,6 +319,11 @@ const {
   handleRegistrationSubmit,
   handleWithdrawRegistration,
   updateSelectedRegistration,
+  handleCreatePayment,
+  handleRequestRefund,
+  getRegistrationPaymentSummary,
+  canCreatePayment,
+  canRequestRefund,
   getRegistrationStatusLabel,
   getRegistrationStatusTagType,
   getRegistrationDocumentsStatus,
@@ -335,8 +363,30 @@ const selectedHistoryRegistrationLifecycle = computed(() =>
     : null,
 )
 
+const selectedHistoryPaymentSummary = computed(() =>
+  selectedHistoryRegistration.value
+    ? getRegistrationPaymentSummary(selectedHistoryRegistration.value)
+    : null,
+)
+
+const selectedHistoryPaymentMvpNotice = computed(() => {
+  if (!selectedHistoryPaymentSummary.value?.payment) {
+    return ''
+  }
+
+  return 'Реальная операция в ЮKassa пока не выполняется.'
+})
+
 const selectedHistoryCanBeWithdrawn = computed(() =>
   Boolean(selectedHistoryRegistrationLifecycle.value?.isActive),
+)
+
+const selectedHistoryCanCreatePayment = computed(() =>
+  Boolean(selectedHistoryRegistration.value && canCreatePayment(selectedHistoryRegistration.value)),
+)
+
+const selectedHistoryCanRequestRefund = computed(() =>
+  Boolean(selectedHistoryRegistration.value && canRequestRefund(selectedHistoryRegistration.value)),
 )
 
 function handleOpenRegistration(stageId) {
@@ -418,6 +468,34 @@ async function handleWithdrawSelectedRegistration() {
   const isWithdrawn = await handleWithdrawRegistration(targetId)
 
   if (isWithdrawn) {
+    closeHistoryDetails()
+  }
+}
+
+async function handleCreatePaymentForSelectedRegistration() {
+  const targetId = selectedHistoryRegistration.value?.id
+
+  if (!targetId) {
+    return
+  }
+
+  const isCreated = await handleCreatePayment(targetId)
+
+  if (isCreated) {
+    closeHistoryDetails()
+  }
+}
+
+async function handleRequestRefundForSelectedRegistration() {
+  const targetId = selectedHistoryRegistration.value?.id
+
+  if (!targetId) {
+    return
+  }
+
+  const isRequested = await handleRequestRefund(targetId)
+
+  if (isRequested) {
     closeHistoryDetails()
   }
 }
@@ -677,22 +755,27 @@ watch(
 
 .account__native-table--competition-history th:nth-child(1),
 .account__native-table--competition-history td:nth-child(1) {
-  width: 24%;
+  width: 20%;
 }
 
 .account__native-table--competition-history th:nth-child(2),
 .account__native-table--competition-history td:nth-child(2) {
-  width: 34%;
+  width: 28%;
 }
 
 .account__native-table--competition-history th:nth-child(3),
 .account__native-table--competition-history td:nth-child(3) {
-  width: 26%;
+  width: 22%;
 }
 
 .account__native-table--competition-history th:nth-child(4),
 .account__native-table--competition-history td:nth-child(4) {
-  width: 16%;
+  width: 18%;
+}
+
+.account__native-table--competition-history th:nth-child(5),
+.account__native-table--competition-history td:nth-child(5) {
+  width: 12%;
 }
 
 .account-competition-registrations__history-row--withdrawn {

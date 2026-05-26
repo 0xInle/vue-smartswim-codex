@@ -28,6 +28,22 @@ import { getApplicationTransitionOptions } from '@/domains/competition-applicati
 import { resolveCompetitionRegistrationState } from '@/utils/competitionRegistration'
 import { formatCompetitionDateLabel } from '@/utils/competitionRegistration'
 import { showToast } from '@/utils/toast'
+import {
+  loadAllPaymentsForAdmin,
+  loadAllRefundsForAdmin,
+  markCompetitionPaymentFailed,
+  markCompetitionPaymentSucceeded,
+  resolveCompetitionRefundForAdmin,
+  subscribeToCompetitionPaymentChanges,
+  subscribeToCompetitionRefundChanges,
+} from '@/domains/payments/paymentRepository'
+import {
+  COMPETITION_REFUND_STATUS,
+  getApplicationPaymentStatusMeta,
+  getCompetitionPaymentStatusMeta,
+  getCompetitionRefundStatusMeta,
+  hasActiveRefund,
+} from '@/domains/payments/paymentLifecycle'
 
 function normalizeSearchValue(value) {
   return String(value || '')
@@ -65,8 +81,11 @@ function buildStagePatch(stage) {
 
 export function useAccountCompetitionRegistrationsAdmin() {
   const registrations = ref([])
+  const payments = ref([])
+  const refunds = ref([])
   const search = ref('')
   const statusFilter = ref('all')
+  const paymentStatusFilter = ref('all')
   const selectedRegistrationId = ref('')
   const isDetailsDialogOpen = ref(false)
   const isRegistrationsLoading = ref(false)
@@ -78,6 +97,8 @@ export function useAccountCompetitionRegistrationsAdmin() {
   let unsubscribeFromAccountData = null
   let unsubscribeFromDocuments = null
   let unsubscribeFromAdmissions = null
+  let unsubscribeFromPayments = null
+  let unsubscribeFromRefunds = null
 
   async function loadRegistrations() {
     const requestId = loadRequestId + 1
@@ -108,6 +129,21 @@ export function useAccountCompetitionRegistrationsAdmin() {
       accountUsers.value = await loadAllAccountUsersForAdmin()
     } catch {
       accountUsers.value = []
+    }
+  }
+
+  async function loadPaymentRecords() {
+    try {
+      const [nextPayments, nextRefunds] = await Promise.all([
+        loadAllPaymentsForAdmin(),
+        loadAllRefundsForAdmin(),
+      ])
+
+      payments.value = nextPayments
+      refunds.value = nextRefunds
+    } catch (error) {
+      registrationsError.value =
+        error instanceof Error ? error.message : 'Не удалось загрузить оплаты.'
     }
   }
 
@@ -202,6 +238,13 @@ export function useAccountCompetitionRegistrationsAdmin() {
           return false
         }
 
+        if (
+          paymentStatusFilter.value !== 'all' &&
+          getRegistrationPaymentSummary(registration).applicationStatus !== paymentStatusFilter.value
+        ) {
+          return false
+        }
+
         if (!normalizedSearch) {
           return true
         }
@@ -234,6 +277,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     withdrawn: registrations.value.filter(
       (registration) => registration.status === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN,
     ).length,
+    refunds: refunds.value.filter((refund) => hasActiveRefund(refund)).length,
   }))
 
   function openDetailsDialog(registration) {
@@ -334,6 +378,176 @@ export function useAccountCompetitionRegistrationsAdmin() {
     })
   }
 
+  function getRegistrationPayment(registration) {
+    if (!registration?.id) {
+      return null
+    }
+
+    return (
+      payments.value.find(
+        (payment) =>
+          payment.applicationId === registration.id &&
+          !['failed', 'canceled'].includes(payment.status),
+      ) ||
+      payments.value.find((payment) => payment.applicationId === registration.id) ||
+      null
+    )
+  }
+
+  function getRegistrationRefund(registration) {
+    const payment = getRegistrationPayment(registration)
+
+    if (!payment?.id) {
+      return null
+    }
+
+    return (
+      refunds.value.find((refund) => refund.paymentId === payment.id && hasActiveRefund(refund)) ||
+      refunds.value.find((refund) => refund.paymentId === payment.id) ||
+      null
+    )
+  }
+
+  function getRegistrationPaymentSummary(registration) {
+    const payment = getRegistrationPayment(registration)
+    const refund = getRegistrationRefund(registration)
+
+    if (refund) {
+      const refundMeta = getCompetitionRefundStatusMeta(refund.status)
+
+      return {
+        applicationStatus: refund.status === COMPETITION_REFUND_STATUS.SUCCEEDED ? 'refunded' : 'paid',
+        status: refund.status,
+        label: refundMeta.label,
+        description: refundMeta.description,
+        tagType: refundMeta.tagType,
+        payment,
+        refund,
+      }
+    }
+
+    if (payment) {
+      const paymentMeta = getCompetitionPaymentStatusMeta(payment.status)
+
+      return {
+        applicationStatus: payment.status === 'succeeded' ? 'paid' : registration?.paymentStatus || 'pending',
+        status: payment.status,
+        label: paymentMeta.label,
+        description: paymentMeta.description,
+        tagType: paymentMeta.tagType,
+        payment,
+        refund: null,
+      }
+    }
+
+    const applicationPaymentMeta = getApplicationPaymentStatusMeta(registration?.paymentStatus)
+
+    return {
+      applicationStatus: registration?.paymentStatus || 'not_required',
+      status: registration?.paymentStatus || 'not_required',
+      label: applicationPaymentMeta.label,
+      description: applicationPaymentMeta.description,
+      tagType: applicationPaymentMeta.tagType,
+      payment: null,
+      refund: null,
+    }
+  }
+
+  function getRegistrationCompetitionDateSortValue(registration) {
+    const stage = buildAccountCompetitionStages().find((item) => item.id === registration?.stageId)
+
+    return stage?.date || registration?.competitionDateLabel || ''
+  }
+
+  const activeRefundRequests = computed(() =>
+    refunds.value
+      .filter((refund) => hasActiveRefund(refund))
+      .map((refund) => ({
+        refund,
+        payment: payments.value.find((payment) => payment.id === refund.paymentId) || null,
+        registration:
+          registrations.value.find((registration) => registration.id === refund.applicationId) || null,
+      }))
+      .sort((left, right) => {
+        const leftTime = Date.parse(left.refund.updatedAt || left.refund.requestedAt || 0) || 0
+        const rightTime = Date.parse(right.refund.updatedAt || right.refund.requestedAt || 0) || 0
+
+        return rightTime - leftTime
+      }),
+  )
+
+  async function handleMarkPaymentSucceeded(registrationId) {
+    const registration = registrations.value.find((item) => item.id === registrationId)
+    const payment = getRegistrationPayment(registration)
+
+    if (!payment?.id) {
+      showToast('Платеж по заявке не найден', { type: 'error' })
+      return null
+    }
+
+    try {
+      const updatedPayment = await markCompetitionPaymentSucceeded(payment.id, 'admin')
+      await Promise.all([loadPaymentRecords(), loadRegistrations()])
+      showToast('Оплата отмечена как успешная')
+      return updatedPayment
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось обновить оплату', {
+        type: 'error',
+      })
+      return null
+    }
+  }
+
+  async function handleMarkPaymentFailed(registrationId) {
+    const registration = registrations.value.find((item) => item.id === registrationId)
+    const payment = getRegistrationPayment(registration)
+
+    if (!payment?.id) {
+      showToast('Платеж по заявке не найден', { type: 'error' })
+      return null
+    }
+
+    try {
+      const updatedPayment = await markCompetitionPaymentFailed(payment.id, 'admin')
+      await Promise.all([loadPaymentRecords(), loadRegistrations()])
+      showToast('Оплата отмечена как ошибка')
+      return updatedPayment
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось обновить оплату', {
+        type: 'error',
+      })
+      return null
+    }
+  }
+
+  async function handleResolveRefund(refundId, status) {
+    if (!refundId || !status) {
+      return null
+    }
+
+    try {
+      const updatedRefund = await resolveCompetitionRefundForAdmin(refundId, {
+        status,
+        adminNote:
+          status === COMPETITION_REFUND_STATUS.SUCCEEDED
+            ? 'Возврат отмечен вручную в MVP'
+            : 'Запрос возврата отклонен вручную в MVP',
+      })
+      await Promise.all([loadPaymentRecords(), loadRegistrations()])
+      showToast(
+        status === COMPETITION_REFUND_STATUS.SUCCEEDED
+          ? 'Возврат отмечен как выполненный'
+          : 'Возврат отклонен',
+      )
+      return updatedRefund
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось обновить возврат', {
+        type: 'error',
+      })
+      return null
+    }
+  }
+
   function handleWithdrawSelectedRegistration() {
     const registration = selectedRegistration.value
 
@@ -376,6 +590,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
   onMounted(() => {
     void loadRegistrations()
     void loadAccountUsersLookup()
+    void loadPaymentRecords()
 
     unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
       void loadRegistrations()
@@ -391,6 +606,14 @@ export function useAccountCompetitionRegistrationsAdmin() {
     })
     unsubscribeFromAdmissions = subscribeToAccountAdmissionWorkflowChanges(() => {
       void loadAccountUsersLookup()
+    })
+    unsubscribeFromPayments = subscribeToCompetitionPaymentChanges(() => {
+      void loadPaymentRecords()
+      void loadRegistrations()
+    })
+    unsubscribeFromRefunds = subscribeToCompetitionRefundChanges(() => {
+      void loadPaymentRecords()
+      void loadRegistrations()
     })
   })
 
@@ -419,14 +642,26 @@ export function useAccountCompetitionRegistrationsAdmin() {
       unsubscribeFromAdmissions()
       unsubscribeFromAdmissions = null
     }
+
+    if (unsubscribeFromPayments) {
+      unsubscribeFromPayments()
+      unsubscribeFromPayments = null
+    }
+
+    if (unsubscribeFromRefunds) {
+      unsubscribeFromRefunds()
+      unsubscribeFromRefunds = null
+    }
   })
 
   return {
     registrations,
     search,
     statusFilter,
+    paymentStatusFilter,
     filteredRegistrations,
     summary,
+    activeRefundRequests,
     isRegistrationsLoading,
     registrationsError,
     stageOptions,
@@ -438,8 +673,15 @@ export function useAccountCompetitionRegistrationsAdmin() {
     selectedRegistrationLifecycleSummary,
     selectedRegistrationStatusOptions,
     getRegistrationLifecycleSummary,
+    getRegistrationPayment,
+    getRegistrationRefund,
+    getRegistrationPaymentSummary,
+    getRegistrationCompetitionDateSortValue,
     handleRegistrationSave,
     handleWithdrawSelectedRegistration,
+    handleMarkPaymentSucceeded,
+    handleMarkPaymentFailed,
+    handleResolveRefund,
     competitionRegistrationRecordStatusType,
     formatCompetitionRegistrationRecordStatus,
     formatCompactDateTime,

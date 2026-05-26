@@ -1,4 +1,4 @@
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import {
@@ -28,6 +28,21 @@ import {
 } from '@/domains/account-data/accountDataRepository'
 import { loadAccountDocumentsForCurrentUser } from '@/domains/account-documents/documentRepository'
 import { createEmptyAccountProfile } from '@/domains/account-data/accountDataMappers'
+import {
+  createPendingCompetitionPaymentForCurrentUser,
+  loadPaymentsForCurrentUser,
+  loadRefundsForCurrentUser,
+  requestCompetitionRefundForCurrentUser,
+  subscribeToCompetitionPaymentChanges,
+  subscribeToCompetitionRefundChanges,
+} from '@/domains/payments/paymentRepository'
+import {
+  canRequestCompetitionRefund,
+  getApplicationPaymentStatusMeta,
+  getCompetitionPaymentStatusMeta,
+  getCompetitionRefundStatusMeta,
+  hasActiveRefund,
+} from '@/domains/payments/paymentLifecycle'
 
 const DEFAULT_PARTICIPANT_KIND = 'owner'
 const DEFAULT_REGISTRATION_KIND = 'individual'
@@ -60,7 +75,10 @@ function formatParticipantLabel(participant) {
 
 export function useAccountCompetitionRegistrations({ currentUser }) {
   const registrations = ref([])
+  const payments = ref([])
+  const refunds = ref([])
   const isRegistrationsLoading = ref(false)
+  const isPaymentsLoading = ref(false)
   const registrationsError = ref('')
   const isRegistrationDialogOpen = ref(false)
   const selectedCompetitionStageId = ref('')
@@ -192,6 +210,9 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
   }
 
   let loadRequestId = 0
+  let paymentsLoadRequestId = 0
+  let unsubscribeFromPayments = null
+  let unsubscribeFromRefunds = null
 
   async function loadRegistrations() {
     const requestId = loadRequestId + 1
@@ -213,6 +234,33 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     } finally {
       if (requestId === loadRequestId) {
         isRegistrationsLoading.value = false
+      }
+    }
+  }
+
+  async function loadPaymentRecords() {
+    const requestId = paymentsLoadRequestId + 1
+    paymentsLoadRequestId = requestId
+    isPaymentsLoading.value = true
+
+    try {
+      const [nextPayments, nextRefunds] = await Promise.all([
+        loadPaymentsForCurrentUser(),
+        loadRefundsForCurrentUser(),
+      ])
+
+      if (requestId === paymentsLoadRequestId) {
+        payments.value = nextPayments
+        refunds.value = nextRefunds
+      }
+    } catch (error) {
+      if (requestId === paymentsLoadRequestId) {
+        registrationsError.value =
+          error instanceof Error ? error.message : 'Не удалось загрузить оплаты.'
+      }
+    } finally {
+      if (requestId === paymentsLoadRequestId) {
+        isPaymentsLoading.value = false
       }
     }
   }
@@ -466,6 +514,184 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     return updatedRegistration
   }
 
+  function getRegistrationPayment(registration) {
+    if (!registration?.id) {
+      return null
+    }
+
+    return (
+      payments.value.find(
+        (payment) =>
+          payment.applicationId === registration.id &&
+          !['failed', 'canceled'].includes(payment.status),
+      ) ||
+      payments.value.find((payment) => payment.applicationId === registration.id) ||
+      null
+    )
+  }
+
+  function getRegistrationRefund(registration) {
+    const payment = getRegistrationPayment(registration)
+
+    if (!payment?.id) {
+      return null
+    }
+
+    return (
+      refunds.value.find((refund) => refund.paymentId === payment.id && hasActiveRefund(refund)) ||
+      refunds.value.find((refund) => refund.paymentId === payment.id) ||
+      null
+    )
+  }
+
+  function getRegistrationStage(registration) {
+    if (!registration?.stageId) {
+      return null
+    }
+
+    return buildAccountCompetitionStages().find((stage) => stage.id === registration.stageId) || null
+  }
+
+  function getRegistrationPaymentSummary(registration) {
+    const payment = getRegistrationPayment(registration)
+    const refund = getRegistrationRefund(registration)
+
+    if (refund) {
+      const refundMeta = getCompetitionRefundStatusMeta(refund.status)
+
+      return {
+        status: refund.status,
+        label: refundMeta.label,
+        description: refundMeta.description,
+        tagType: refundMeta.tagType,
+        payment,
+        refund,
+      }
+    }
+
+    if (payment) {
+      const paymentMeta = getCompetitionPaymentStatusMeta(payment.status)
+
+      return {
+        status: payment.status,
+        label: paymentMeta.label,
+        description: paymentMeta.description,
+        tagType: paymentMeta.tagType,
+        payment,
+        refund: null,
+      }
+    }
+
+    const applicationPaymentMeta = getApplicationPaymentStatusMeta(registration?.paymentStatus)
+
+    return {
+      status: registration?.paymentStatus || 'not_required',
+      label: applicationPaymentMeta.label,
+      description: applicationPaymentMeta.description,
+      tagType: applicationPaymentMeta.tagType,
+      payment: null,
+      refund: null,
+    }
+  }
+
+  function canCreatePayment(registration) {
+    if (!registration?.id) {
+      return false
+    }
+
+    if (!['approved', 'payment_pending'].includes(registration.status)) {
+      return false
+    }
+
+    const payment = getRegistrationPayment(registration)
+
+    return !payment || ['failed', 'canceled'].includes(payment.status)
+  }
+
+  function canRequestRefund(registration) {
+    const stage = getRegistrationStage(registration)
+
+    return canRequestCompetitionRefund({
+      payment: getRegistrationPayment(registration),
+      refund: getRegistrationRefund(registration),
+      stageDate: stage?.date || '',
+    })
+  }
+
+  async function handleCreatePayment(registrationId) {
+    const registration = registrations.value.find((item) => item.id === registrationId)
+
+    if (!registration || !canCreatePayment(registration)) {
+      return false
+    }
+
+    try {
+      const payment = await createPendingCompetitionPaymentForCurrentUser(registration, {
+        amountValue: 0,
+      })
+      payments.value = [
+        payment,
+        ...payments.value.filter((item) => item.id !== payment.id),
+      ]
+      await loadRegistrations()
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось создать платеж', {
+        type: 'error',
+      })
+      return false
+    }
+
+    showToast('Оплата будет доступна после подключения ЮKassa. Заявка сохранена.')
+    return true
+  }
+
+  async function handleRequestRefund(registrationId) {
+    const registration = registrations.value.find((item) => item.id === registrationId)
+    const payment = getRegistrationPayment(registration)
+
+    if (!registration || !payment || !canRequestRefund(registration)) {
+      return false
+    }
+
+    try {
+      await ElMessageBox.confirm(
+        'Запросить полный возврат оплаты? Администратор проверит заявку и отметит возврат вручную.',
+        'Запрос возврата',
+        {
+          customClass: 'account__confirm-messagebox',
+          confirmButtonText: 'Запросить возврат',
+          cancelButtonText: 'Отмена',
+          confirmButtonClass: 'account__submit btn-reset',
+          cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
+          type: 'warning',
+          autofocus: false,
+          closeOnClickModal: false,
+          closeOnPressEscape: true,
+        },
+      )
+    } catch {
+      return false
+    }
+
+    try {
+      const refund = await requestCompetitionRefundForCurrentUser(payment, registration, {
+        reason: 'Запрос пользователя из личного кабинета',
+      })
+      refunds.value = [
+        refund,
+        ...refunds.value.filter((item) => item.id !== refund.id),
+      ]
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось запросить возврат', {
+        type: 'error',
+      })
+      return false
+    }
+
+    showToast('Запрос возврата отправлен администратору')
+    return true
+  }
+
   function getRegistrationStatusLabel(status) {
     return formatCompetitionRegistrationRecordStatus(status)
   }
@@ -519,7 +745,34 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
   watch(currentUserKey, () => {
     void syncSnapshots()
     void loadRegistrations()
+    void loadPaymentRecords()
+
+    if (!unsubscribeFromPayments) {
+      unsubscribeFromPayments = subscribeToCompetitionPaymentChanges(() => {
+        void loadPaymentRecords()
+        void loadRegistrations()
+      })
+    }
+
+    if (!unsubscribeFromRefunds) {
+      unsubscribeFromRefunds = subscribeToCompetitionRefundChanges(() => {
+        void loadPaymentRecords()
+        void loadRegistrations()
+      })
+    }
   }, { immediate: true })
+
+  onBeforeUnmount(() => {
+    if (unsubscribeFromPayments) {
+      unsubscribeFromPayments()
+      unsubscribeFromPayments = null
+    }
+
+    if (unsubscribeFromRefunds) {
+      unsubscribeFromRefunds()
+      unsubscribeFromRefunds = null
+    }
+  })
 
   return {
     ownerSnapshot,
@@ -535,6 +788,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     registrationsCount,
     activeRegistrationsCount,
     isRegistrationsLoading,
+    isPaymentsLoading,
     registrationsError,
     registrationForm,
     registrationErrors,
@@ -545,6 +799,13 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     handleRegistrationSubmit,
     handleWithdrawRegistration,
     updateSelectedRegistration,
+    handleCreatePayment,
+    handleRequestRefund,
+    getRegistrationPayment,
+    getRegistrationRefund,
+    getRegistrationPaymentSummary,
+    canCreatePayment,
+    canRequestRefund,
     getRegistrationStatusLabel,
     getRegistrationStatusTagType,
     getRegistrationDocumentsStatus,

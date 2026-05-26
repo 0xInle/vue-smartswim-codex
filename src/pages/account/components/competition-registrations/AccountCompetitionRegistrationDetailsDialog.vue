@@ -135,9 +135,23 @@
           </div>
 
           <div class="account-competition-registration-details__card">
-            <span class="account-competition-registration-details__label">Оплата и статус</span>
-            <span class="account-competition-registration-details__meta">
-              Оплата: {{ paymentStatusLabel }}
+            <div class="account-competition-registration-details__card-head">
+              <span class="account-competition-registration-details__label">Оплата</span>
+              <ElTag :type="paymentStatusTagType" effect="light" round>
+                {{ paymentStatusLabel }}
+              </ElTag>
+            </div>
+            <strong
+              v-if="paymentStatusDescription"
+              class="account-competition-registration-details__value"
+            >
+              {{ paymentStatusDescription }}
+            </strong>
+            <span
+              v-if="paymentMvpNotice"
+              class="account-competition-registration-details__meta account-competition-registration-details__meta--attention"
+            >
+              {{ paymentMvpNotice }}
             </span>
             <span class="account-competition-registration-details__meta">
               Создана: {{ formatCompactDateTime(registration.createdAt) }}
@@ -242,6 +256,54 @@
           Сохранить
         </button>
         <button
+          v-if="showPaymentButton"
+          type="button"
+          class="account__table-action account__table-action--success btn-reset"
+          @click="emit('create-payment')"
+        >
+          {{ paymentButtonLabel }}
+        </button>
+        <button
+          v-if="showRefundButton"
+          type="button"
+          class="account__table-action account__table-action--edit btn-reset"
+          @click="emit('request-refund')"
+        >
+          {{ refundButtonLabel }}
+        </button>
+        <button
+          v-if="showMarkPaymentSucceededButton"
+          type="button"
+          class="account__table-action account__table-action--success btn-reset"
+          @click="emit('mark-payment-succeeded')"
+        >
+          Отметить оплаченной
+        </button>
+        <button
+          v-if="showMarkPaymentFailedButton"
+          type="button"
+          class="account__table-action account__table-action--delete btn-reset"
+          @click="emit('mark-payment-failed')"
+        >
+          Ошибка оплаты
+        </button>
+        <button
+          v-if="showResolveRefundSucceededButton"
+          type="button"
+          class="account__table-action account__table-action--success btn-reset"
+          @click="emit('resolve-refund-succeeded')"
+        >
+          Возврат выполнен
+        </button>
+        <button
+          v-if="showResolveRefundRejectedButton"
+          type="button"
+          class="account__table-action account__table-action--delete btn-reset"
+          @click="emit('resolve-refund-rejected')"
+        >
+          Возврат отклонен
+        </button>
+        <button
           v-if="showWithdrawButton && registration.status !== 'withdrawn' && registration.status !== 'rejected'"
           type="button"
           class="account__table-action account__table-action--delete btn-reset"
@@ -337,13 +399,71 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  paymentStatusTagType: {
+    type: String,
+    default: 'info',
+  },
+  paymentStatusLabel: {
+    type: String,
+    default: 'Не требуется',
+  },
+  paymentStatusDescription: {
+    type: String,
+    default: '',
+  },
+  paymentMvpNotice: {
+    type: String,
+    default: '',
+  },
+  showPaymentButton: {
+    type: Boolean,
+    default: false,
+  },
+  paymentButtonLabel: {
+    type: String,
+    default: 'Оплатить',
+  },
+  showRefundButton: {
+    type: Boolean,
+    default: false,
+  },
+  refundButtonLabel: {
+    type: String,
+    default: 'Запросить возврат',
+  },
+  showMarkPaymentSucceededButton: {
+    type: Boolean,
+    default: false,
+  },
+  showMarkPaymentFailedButton: {
+    type: Boolean,
+    default: false,
+  },
+  showResolveRefundSucceededButton: {
+    type: Boolean,
+    default: false,
+  },
+  showResolveRefundRejectedButton: {
+    type: Boolean,
+    default: false,
+  },
   statusOptions: {
     type: Array,
     default: () => COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS,
   },
 })
 
-const emit = defineEmits(['close', 'save', 'withdraw'])
+const emit = defineEmits([
+  'close',
+  'save',
+  'withdraw',
+  'create-payment',
+  'request-refund',
+  'mark-payment-succeeded',
+  'mark-payment-failed',
+  'resolve-refund-succeeded',
+  'resolve-refund-rejected',
+])
 
 const form = reactive({
   stageId: '',
@@ -374,18 +494,6 @@ const competitionDateLabel = computed(
 const competitionWindowLabel = computed(
   () => props.registration?.competitionWindowLabel || 'Окно регистрации не указано',
 )
-
-const paymentStatusLabel = computed(() => {
-  if (form.status === COMPETITION_REGISTRATION_RECORD_STATUS.PAID) {
-    return 'Оплачено'
-  }
-
-  if (form.status === COMPETITION_REGISTRATION_RECORD_STATUS.PAYMENT_PENDING) {
-    return 'Ожидает оплаты'
-  }
-
-  return props.registration?.paymentOptionTitle || 'Не указана'
-})
 
 const closeButtonLabel = computed(() =>
   props.canEditStage || props.canEditRegistrationKind || props.showSaveButton || props.showWithdrawButton
