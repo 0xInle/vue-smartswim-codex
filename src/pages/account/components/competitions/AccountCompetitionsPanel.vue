@@ -90,6 +90,8 @@
             <th>Дата</th>
             <th>Протокол</th>
             <th>Фото</th>
+            <th>Сертификаты</th>
+            <th>Памятка</th>
             <th>Регистрация</th>
             <th>Места</th>
           </tr>
@@ -217,6 +219,100 @@
                   </div>
                 </td>
                 <td class="account__native-table-cell account__native-table-cell--center">
+                  <div
+                    ref="linkEditorRefs"
+                    class="account__competition-file"
+                    :data-link-editor-id="getLinkEditorId(row, 'certificate')"
+                  >
+                    <button
+                      type="button"
+                      class="account__table-action account__table-action--icon account__table-action--protocol btn-reset"
+                      :title="
+                        row.certificateUrl
+                          ? 'Архив сертификатов добавлен'
+                          : 'Добавить ссылку на сертификаты'
+                      "
+                      :aria-label="
+                        row.certificateUrl
+                          ? 'Архив сертификатов добавлен'
+                          : 'Добавить ссылку на сертификаты'
+                      "
+                      @click="toggleLinkEditor(row, 'certificate')"
+                    >
+                      <ElIcon>
+                        <Link v-if="row.certificateUrl" />
+                        <Upload v-else />
+                      </ElIcon>
+                    </button>
+
+                    <form
+                      v-if="isLinkEditorOpen(row, 'certificate')"
+                      class="account__competition-link-form"
+                      @submit.prevent="saveLinkEditor(row, 'certificate')"
+                    >
+                      <input
+                        v-model="linkForm.url"
+                        class="account__input account__input--compact"
+                        type="url"
+                        placeholder="Ссылка на архив сертификатов"
+                      />
+                      <button
+                        type="submit"
+                        class="account__table-action account__table-action--icon account__table-action--success btn-reset"
+                        aria-label="Сохранить ссылку на сертификаты"
+                        title="Сохранить"
+                      >
+                        <ElIcon>
+                          <Check />
+                        </ElIcon>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+                <td class="account__native-table-cell account__native-table-cell--center">
+                  <div
+                    ref="linkEditorRefs"
+                    class="account__competition-file"
+                    :data-link-editor-id="getLinkEditorId(row, 'memo')"
+                  >
+                    <button
+                      type="button"
+                      class="account__table-action account__table-action--icon account__table-action--photo btn-reset"
+                      :title="row.memoUrl ? 'Памятка добавлена' : 'Добавить ссылку на памятку'"
+                      :aria-label="row.memoUrl ? 'Памятка добавлена' : 'Добавить ссылку на памятку'"
+                      @click="toggleLinkEditor(row, 'memo')"
+                    >
+                      <ElIcon>
+                        <Link v-if="row.memoUrl" />
+                        <Upload v-else />
+                      </ElIcon>
+                    </button>
+
+                    <form
+                      v-if="isLinkEditorOpen(row, 'memo')"
+                      class="account__competition-link-form"
+                      @submit.prevent="saveLinkEditor(row, 'memo')"
+                    >
+                      <input
+                        v-model="linkForm.url"
+                        class="account__input account__input--compact"
+                        type="url"
+                        placeholder="Ссылка на памятку"
+                      />
+                      <button
+                        type="submit"
+                        class="account__table-action account__table-action--icon account__table-action--success btn-reset"
+                        aria-label="Сохранить ссылку на памятку"
+                        title="Сохранить"
+                      >
+                        <ElIcon>
+                          <Check />
+                        </ElIcon>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+                <td class="account__native-table-cell account__native-table-cell--center">
                   <div class="account__competition-registration">
                     <span
                       class="account__competition-registration-dot"
@@ -249,7 +345,7 @@
               v-if="competitionViewFilter === 'active'"
               class="account__native-table-row account__native-table-row--actions"
             >
-              <td class="account__native-table-cell" colspan="7">
+              <td class="account__native-table-cell" colspan="9">
                 <div class="account__competition-actions-row">
                   <button
                     type="button"
@@ -547,7 +643,27 @@ function toggleLinkEditor(row, type) {
 
   linkEditor.stageId = row.id
   linkEditor.type = type
-  linkForm.url = type === 'protocol' ? row.protocolUrl || '' : row.photoUrl || ''
+  linkForm.url = getStageLinkValue(row, type)
+}
+
+function getStageLinkValue(row, type) {
+  if (type === 'protocol') {
+    return row.protocolUrl || ''
+  }
+
+  if (type === 'photo') {
+    return row.photoUrl || ''
+  }
+
+  if (type === 'certificate') {
+    return row.certificateUrl || ''
+  }
+
+  if (type === 'memo') {
+    return row.memoUrl || ''
+  }
+
+  return ''
 }
 
 function closeLinkEditor() {
@@ -561,6 +677,8 @@ function saveLinkEditor(row, type) {
     stageId: row.id,
     protocolUrl: type === 'protocol' ? linkForm.url : undefined,
     photoUrl: type === 'photo' ? linkForm.url : undefined,
+    certificateUrl: type === 'certificate' ? linkForm.url : undefined,
+    memoUrl: type === 'memo' ? linkForm.url : undefined,
   })
 
   closeLinkEditor()

@@ -102,6 +102,28 @@
         </label>
       </div>
 
+      <div class="account__field-grid">
+        <label class="account__field">
+          <span class="account__field-label">Сертификаты</span>
+          <input
+            v-model="form.certificateUrl"
+            class="account__input"
+            type="url"
+            placeholder="Ссылка на архив сертификатов"
+          />
+        </label>
+
+        <label class="account__field">
+          <span class="account__field-label">Памятка</span>
+          <input
+            v-model="form.memoUrl"
+            class="account__input"
+            type="url"
+            placeholder="Ссылка на памятку"
+          />
+        </label>
+      </div>
+
       <div class="account__dialog-actions">
         <button
           type="button"
@@ -152,6 +174,8 @@ const form = reactive({
   registrationLimit: 0,
   protocolUrl: '',
   photoUrl: '',
+  certificateUrl: '',
+  memoUrl: '',
 })
 
 const editableCompetitionOptions = computed(() =>
@@ -183,6 +207,8 @@ watch(
     )
     form.protocolUrl = props.stage.protocolUrl || ''
     form.photoUrl = props.stage.photoUrl || ''
+    form.certificateUrl = props.stage.certificateUrl || ''
+    form.memoUrl = props.stage.memoUrl || ''
   },
   { immediate: true },
 )
@@ -201,6 +227,8 @@ function submitForm() {
     registrationLimit: Number(form.registrationLimit) || 0,
     protocolUrl: form.protocolUrl,
     photoUrl: form.photoUrl,
+    certificateUrl: form.certificateUrl,
+    memoUrl: form.memoUrl,
   })
 }
 
@@ -212,5 +240,7 @@ function resetForm() {
   form.registrationLimit = 0
   form.protocolUrl = ''
   form.photoUrl = ''
+  form.certificateUrl = ''
+  form.memoUrl = ''
 }
 </script>

@@ -51,6 +51,11 @@ const REQUIRED_OBJECTS = {
     'competition_faq_items_pkey',
     'competition_applications_stage_id_fkey',
   ],
+  column: [
+    'public.competition_stages.certificate_url',
+    'public.competition_stages.memo_url',
+    'public.competition_stages.registration_limit',
+  ],
   trigger: [
     'competitions_touch_updated_at',
     'competition_stages_touch_updated_at',
@@ -210,6 +215,16 @@ async function queryContract({ accessToken, projectRef }) {
               class.relname in (select table_name from target_tables)
               or class.relname = 'competition_applications'
             )
+
+          union all
+
+          select
+            'column' as object_type,
+            table_schema || '.' || table_name || '.' || column_name as object_name
+          from information_schema.columns
+          where table_schema = 'public'
+            and table_name = 'competition_stages'
+            and column_name in ('certificate_url', 'memo_url', 'registration_limit')
 
           union all
 
@@ -381,7 +396,7 @@ async function main() {
     }
 
     console.log(`Normalized competition catalog contract is ready in project ${resolvedProjectRef}.`)
-    console.log('Checked: tables, RLS, policies, constraints, triggers, indexes, realtime publication, seed rows.')
+    console.log('Checked: tables, columns, RLS, policies, constraints, triggers, indexes, realtime publication, seed rows.')
   } catch (error) {
     fail(
       error instanceof Error

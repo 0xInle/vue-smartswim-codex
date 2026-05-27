@@ -47,6 +47,8 @@ function createStageRow({
   date,
   protocolUrl = '',
   photoUrl = '',
+  certificateUrl = '',
+  memoUrl = '',
   registrationLimit = 0,
   registration = null,
 }) {
@@ -58,6 +60,8 @@ function createStageRow({
     date,
     protocolUrl,
     photoUrl,
+    certificateUrl,
+    memoUrl,
     registrationLimit,
     distanceSummary: 'Программа этапа будет уточняться.',
     registration: {
@@ -178,6 +182,8 @@ export function useCompetitionStages() {
       },
       protocolUrl: stage.protocolUrl || '',
       photoUrl: stage.photoUrl || '',
+      certificateUrl: stage.certificateUrl || '',
+      memoUrl: stage.memoUrl || '',
     }))
   }
 
@@ -286,7 +292,17 @@ export function useCompetitionStages() {
 
   async function updateCompetitionStage(
     stageId,
-    { competitionName, date, openAt, closeAt, protocolUrl, photoUrl, registrationLimit } = {},
+    {
+      competitionName,
+      date,
+      openAt,
+      closeAt,
+      protocolUrl,
+      photoUrl,
+      certificateUrl,
+      memoUrl,
+      registrationLimit,
+    } = {},
   ) {
     const targetStage = competitionStages.value.find((stage) => stage.id === stageId)
 
@@ -353,6 +369,14 @@ export function useCompetitionStages() {
       targetStage.photoUrl = photoUrl
     }
 
+    if (certificateUrl !== undefined) {
+      targetStage.certificateUrl = certificateUrl
+    }
+
+    if (memoUrl !== undefined) {
+      targetStage.memoUrl = memoUrl
+    }
+
     void saveCompetitionStageToSource(targetStage).catch(() => {
       showToast('Не удалось сохранить этап соревнования', { type: 'error' })
     })
@@ -402,6 +426,14 @@ export function useCompetitionStages() {
       direction.cards[directionCardIndex].photoUrl = photoUrl
     }
 
+    if (certificateUrl !== undefined) {
+      direction.cards[directionCardIndex].certificateUrl = certificateUrl
+    }
+
+    if (memoUrl !== undefined) {
+      direction.cards[directionCardIndex].memoUrl = memoUrl
+    }
+
     const nextCardRegistration = {
       ...direction.cards[directionCardIndex].registration,
       competitionDateLabel: formatCompetitionDateLabel(direction.cards[directionCardIndex].date),
@@ -429,8 +461,11 @@ export function useCompetitionStages() {
     }
   }
 
-  function updateCompetitionStageLinks(stageId, { protocolUrl, photoUrl } = {}) {
-    void updateCompetitionStage(stageId, { protocolUrl, photoUrl })
+  function updateCompetitionStageLinks(
+    stageId,
+    { protocolUrl, photoUrl, certificateUrl, memoUrl } = {},
+  ) {
+    void updateCompetitionStage(stageId, { protocolUrl, photoUrl, certificateUrl, memoUrl })
   }
 
   async function deleteCompetitionStage(stageId) {
@@ -549,6 +584,8 @@ export function useCompetitionStages() {
     closeAt,
     protocolUrl = '',
     photoUrl = '',
+    certificateUrl = '',
+    memoUrl = '',
   } = {}) {
     const normalizedName = String(competitionName || '').trim()
     const normalizedDate = String(date || '').trim()
@@ -588,6 +625,8 @@ export function useCompetitionStages() {
       date: normalizedDate,
       protocolUrl,
       photoUrl,
+      certificateUrl,
+      memoUrl,
       registration,
     })
     const card = {
@@ -599,6 +638,8 @@ export function useCompetitionStages() {
       status: 'Этап сезона',
       protocolUrl,
       photoUrl,
+      certificateUrl,
+      memoUrl,
       registration: {
         ...registration,
       },

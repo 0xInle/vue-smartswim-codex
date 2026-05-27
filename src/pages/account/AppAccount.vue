@@ -263,6 +263,10 @@
                 @consume-target="handleCompetitionTargetConsumed"
               />
 
+              <AccountMaterialsPanel
+                v-show="activeSection === 'materials'"
+              />
+
               <AccountSettingsPanel
                 v-show="activeSection === 'settings'"
                 :form="passwordChangeForm"
@@ -285,7 +289,16 @@
 </template>
 
 <script setup>
-import { Calendar, Document, Message, Monitor, Setting, Trophy, User } from '@element-plus/icons-vue'
+import {
+  Calendar,
+  Collection,
+  Document,
+  Message,
+  Monitor,
+  Setting,
+  Trophy,
+  User,
+} from '@element-plus/icons-vue'
 import { ElAlert, ElContainer, ElMain } from 'element-plus'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -302,6 +315,7 @@ import AccountDashboardPanel from '@/pages/account/components/dashboard/AccountD
 import AccountEmailPanel from '@/pages/account/components/email/AccountEmailPanel.vue'
 import AccountAthletesPanel from '@/pages/account/components/athletes/AccountAthletesPanel.vue'
 import AccountHeaderBar from '@/pages/account/components/layout/AccountHeaderBar.vue'
+import AccountMaterialsPanel from '@/pages/account/components/materials/AccountMaterialsPanel.vue'
 import AccountProfilePanel from '@/pages/account/components/profile/AccountProfilePanel.vue'
 import AccountUserDashboardPanel from '@/pages/account/components/dashboard/AccountUserDashboardPanel.vue'
 import AccountSettingsPanel from '@/pages/account/components/profile/AccountSettingsPanel.vue'
@@ -606,6 +620,7 @@ const navigationItems = computed(() => {
     { id: 'profile', label: 'Личная информация', icon: User },
     { id: 'athletes', label: 'Спортсмены', icon: Trophy },
     { id: 'competitions', label: 'Соревнования', icon: Trophy },
+    { id: 'materials', label: 'Материалы', icon: Collection },
     { id: 'settings', label: 'Настройки', icon: Setting },
   ]
 })
@@ -640,6 +655,7 @@ const sectionContent = computed(() => {
     profile: { title: 'Личная информация' },
     athletes: { title: 'Спортсмены' },
     competitions: { title: 'Соревнования' },
+    materials: { title: 'Материалы' },
     settings: { title: 'Настройки' },
   }
 })

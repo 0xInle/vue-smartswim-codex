@@ -50,6 +50,8 @@ const STAGE_SELECT = [
   'status',
   'protocol_url',
   'photo_url',
+  'certificate_url',
+  'memo_url',
   'registration_status',
   'registration_open_at',
   'registration_close_at',

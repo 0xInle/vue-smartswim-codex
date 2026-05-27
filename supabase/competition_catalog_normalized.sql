@@ -33,6 +33,8 @@ create table if not exists public.competition_stages (
   status text not null default '',
   protocol_url text not null default '',
   photo_url text not null default '',
+  certificate_url text not null default '',
+  memo_url text not null default '',
   registration_status text,
   registration_open_at timestamptz,
   registration_close_at timestamptz,
@@ -111,6 +113,12 @@ for each row execute procedure public.touch_competition_catalog_updated_at();
 
 alter table public.competition_stages
   add column if not exists registration_limit integer;
+
+alter table public.competition_stages
+  add column if not exists certificate_url text not null default '';
+
+alter table public.competition_stages
+  add column if not exists memo_url text not null default '';
 
 create index if not exists competitions_sort_order_idx on public.competitions (sort_order);
 create index if not exists competition_stages_competition_sort_idx on public.competition_stages (competition_id, sort_order);
@@ -271,6 +279,8 @@ insert into public.competition_stages (
   status,
   protocol_url,
   photo_url,
+  certificate_url,
+  memo_url,
   registration_status,
   registration_open_at,
   registration_close_at,
@@ -296,6 +306,8 @@ select
   coalesce(card ->> 'status', ''),
   coalesce(card ->> 'protocolUrl', ''),
   coalesce(card ->> 'photoUrl', ''),
+  coalesce(card ->> 'certificateUrl', ''),
+  coalesce(card ->> 'memoUrl', ''),
   card #>> '{registration,status}',
   nullif(card #>> '{registration,openAt}', '')::timestamptz,
   nullif(card #>> '{registration,closeAt}', '')::timestamptz,
@@ -320,6 +332,8 @@ select
   'Предсезонный этап',
   'Программа этапа будет уточняться.',
   'Этап сезона',
+  '',
+  '',
   '',
   '',
   null,
@@ -347,6 +361,8 @@ set
   status = excluded.status,
   protocol_url = excluded.protocol_url,
   photo_url = excluded.photo_url,
+  certificate_url = excluded.certificate_url,
+  memo_url = excluded.memo_url,
   registration_status = excluded.registration_status,
   registration_open_at = excluded.registration_open_at,
   registration_close_at = excluded.registration_close_at,

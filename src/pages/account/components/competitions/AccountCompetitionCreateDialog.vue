@@ -110,6 +110,52 @@
         </div>
       </div>
 
+      <div class="account__field-grid">
+        <div class="account__field">
+          <span class="account__field-label">Сертификаты</span>
+          <button
+            type="button"
+            class="account__table-action account__table-action--protocol account__dialog-link-toggle btn-reset"
+            @click="form.showCertificateUrl = true"
+          >
+            <ElIcon>
+              <Link v-if="form.certificateUrl" />
+              <Upload v-else />
+            </ElIcon>
+            {{ form.certificateUrl ? 'Ссылка добавлена' : 'Добавить ссылку' }}
+          </button>
+          <input
+            v-if="form.showCertificateUrl"
+            v-model="form.certificateUrl"
+            class="account__input"
+            type="url"
+            placeholder="Ссылка на архив сертификатов"
+          />
+        </div>
+
+        <div class="account__field">
+          <span class="account__field-label">Памятка</span>
+          <button
+            type="button"
+            class="account__table-action account__table-action--photo account__dialog-link-toggle btn-reset"
+            @click="form.showMemoUrl = true"
+          >
+            <ElIcon>
+              <Link v-if="form.memoUrl" />
+              <Upload v-else />
+            </ElIcon>
+            {{ form.memoUrl ? 'Ссылка добавлена' : 'Добавить ссылку' }}
+          </button>
+          <input
+            v-if="form.showMemoUrl"
+            v-model="form.memoUrl"
+            class="account__input"
+            type="url"
+            placeholder="Ссылка на памятку"
+          />
+        </div>
+      </div>
+
       <div class="account__dialog-actions">
         <button
           type="button"
@@ -147,8 +193,12 @@ const form = reactive({
   closeDate: '',
   protocolUrl: '',
   photoUrl: '',
+  certificateUrl: '',
+  memoUrl: '',
   showProtocolUrl: false,
   showPhotoUrl: false,
+  showCertificateUrl: false,
+  showMemoUrl: false,
 })
 
 watch(
@@ -169,6 +219,8 @@ function submitForm() {
     closeAt: form.closeDate,
     protocolUrl: form.protocolUrl,
     photoUrl: form.photoUrl,
+    certificateUrl: form.certificateUrl,
+    memoUrl: form.memoUrl,
   })
 }
 
@@ -180,7 +232,11 @@ function resetForm() {
   form.closeDate = ''
   form.protocolUrl = ''
   form.photoUrl = ''
+  form.certificateUrl = ''
+  form.memoUrl = ''
   form.showProtocolUrl = false
   form.showPhotoUrl = false
+  form.showCertificateUrl = false
+  form.showMemoUrl = false
 }
 </script>
