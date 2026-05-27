@@ -22,6 +22,7 @@ function createCompetitionStageRow({
   protocolUrl = '',
   photoUrl = '',
   distanceSummary = '',
+  registrationLimit = 0,
   registrationNote = DEFAULT_REGISTRATION_NOTE,
   registration = null,
 }) {
@@ -35,10 +36,12 @@ function createCompetitionStageRow({
     protocolUrl,
     photoUrl,
     distanceSummary,
+    registrationLimit,
     registration: {
       ...buildCompetitionRegistrationWindow(date),
       competitionDateLabel: formatCompetitionDateLabel(date),
       closeNote: registrationNote,
+      participantLimit: registrationLimit,
       ...(registration || {}),
     },
   }
@@ -82,6 +85,7 @@ function buildCompetitionSeriesStages(direction) {
         stage,
         title: card.title || String(stage),
         date: card.date,
+        registrationLimit: Number(card.registrationLimit || card.registration?.participantLimit || 0),
         distanceSummary: card.description || 'Программа этапа будет уточняться.',
         registration: nextRegistration,
       }),

@@ -42,6 +42,7 @@ create table if not exists public.competition_stages (
   registration_close_note text,
   registration_closed_title text,
   registration_closed_text text,
+  registration_limit integer,
   is_public boolean not null default true,
   sort_order integer not null default 0,
   created_at timestamptz not null default timezone('utc', now()),
@@ -108,9 +109,13 @@ create trigger competition_stages_touch_updated_at
 before update on public.competition_stages
 for each row execute procedure public.touch_competition_catalog_updated_at();
 
+alter table public.competition_stages
+  add column if not exists registration_limit integer;
+
 create index if not exists competitions_sort_order_idx on public.competitions (sort_order);
 create index if not exists competition_stages_competition_sort_idx on public.competition_stages (competition_id, sort_order);
 create index if not exists competition_stages_public_idx on public.competition_stages (is_public);
+create index if not exists competition_stages_registration_limit_idx on public.competition_stages (registration_limit);
 create index if not exists competition_stage_distances_stage_sort_idx on public.competition_stage_distances (stage_id, sort_order);
 create index if not exists competition_registration_options_competition_sort_idx on public.competition_registration_options (competition_id, sort_order);
 create index if not exists competition_faq_sections_competition_sort_idx on public.competition_faq_sections (competition_id, placement, sort_order);
@@ -122,6 +127,16 @@ alter table public.competition_stage_distances enable row level security;
 alter table public.competition_registration_options enable row level security;
 alter table public.competition_faq_sections enable row level security;
 alter table public.competition_faq_items enable row level security;
+
+alter table public.competition_stages
+  add column if not exists registration_limit integer;
+
+alter table public.competition_stages
+  drop constraint if exists competition_stages_registration_limit_check;
+
+alter table public.competition_stages
+  add constraint competition_stages_registration_limit_check
+  check (registration_limit is null or registration_limit > 0);
 
 drop policy if exists "Allow public read competitions" on public.competitions;
 drop policy if exists "Allow admin write competitions" on public.competitions;

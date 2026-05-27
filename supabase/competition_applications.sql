@@ -216,6 +216,28 @@ create index if not exists competition_applications_status_idx
 create index if not exists competition_applications_updated_at_idx
   on public.competition_applications (updated_at desc);
 
+create or replace function public.get_competition_stage_active_registration_count(target_stage_id text)
+returns integer
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select count(*)::integer
+  from public.competition_applications as application
+  where application.stage_id = target_stage_id
+    and application.status in (
+      'submitted',
+      'reviewing',
+      'needs_fix',
+      'approved',
+      'payment_pending',
+      'paid'
+    );
+$$;
+
+grant execute on function public.get_competition_stage_active_registration_count(text) to authenticated;
+
 create index if not exists competition_applications_created_at_idx
   on public.competition_applications (created_at desc);
 

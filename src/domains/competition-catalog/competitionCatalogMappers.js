@@ -77,6 +77,10 @@ function mapStageRegistration(row = {}) {
     registration.closedText = row.registration_closed_text
   }
 
+  if (row.registration_limit) {
+    registration.participantLimit = normalizeSortNumber(row.registration_limit)
+  }
+
   return registration
 }
 
@@ -209,6 +213,7 @@ export function mapNormalizedCompetitionCatalog({
             status: stage.status || '',
             protocolUrl: stage.protocol_url || '',
             photoUrl: stage.photo_url || '',
+            registrationLimit: normalizeSortNumber(stage.registration_limit, 0),
             registration: mapStageRegistration(stage),
           })),
         faqSections: detailFaqSections,
@@ -266,6 +271,7 @@ export function mapStageUpsertPayload(stage = {}) {
     registration_close_note: registration.closeNote || DEFAULT_REGISTRATION_NOTE,
     registration_closed_title: registration.closedTitle || null,
     registration_closed_text: registration.closedText || null,
+    registration_limit: normalizeSortNumber(stage.registrationLimit || registration.participantLimit, 0) || null,
     is_public: stage.isPublic !== false,
     sort_order: normalizeSortNumber(stage.sortOrder, normalizeSortNumber(stage.stage)),
   }

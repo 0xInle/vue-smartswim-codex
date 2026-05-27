@@ -6,6 +6,7 @@ import {
 } from './applicationRecords.js'
 import {
   createSupabaseCompetitionApplication,
+  countActiveCompetitionApplicationsByStageId,
   fetchAllCompetitionApplicationsForAdmin,
   fetchCompetitionApplicationsForCurrentUser,
   subscribeToCompetitionApplications,
@@ -97,6 +98,10 @@ export async function countCompetitionApplicationsByStageIdFromSource(
   stageId,
   { status = 'active' } = {},
 ) {
+  if (status === 'active') {
+    return countActiveCompetitionApplicationsByStageId(stageId)
+  }
+
   const applications = await fetchAllCompetitionApplicationsForAdmin()
 
   return countApplicationsByStageId(applications, stageId, { status })

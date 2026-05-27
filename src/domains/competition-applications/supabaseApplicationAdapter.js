@@ -110,6 +110,21 @@ export async function fetchAllCompetitionApplicationsForAdmin() {
   return (data ?? []).map(mapSupabaseCompetitionApplicationRow)
 }
 
+export async function countActiveCompetitionApplicationsByStageId(stageId) {
+  await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
+
+  const { data, error } = await getSupabaseClient()
+    .rpc('get_competition_stage_active_registration_count', {
+      target_stage_id: stageId,
+    })
+
+  if (error) {
+    throwCompetitionApplicationError(error, 'Не удалось проверить лимит мест этапа.')
+  }
+
+  return Number(data) || 0
+}
+
 export async function createSupabaseCompetitionApplication(application) {
   const session = await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
   const payload = mapCompetitionApplicationInsertPayload(application, {

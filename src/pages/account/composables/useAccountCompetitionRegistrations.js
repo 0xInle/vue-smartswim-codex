@@ -2,6 +2,7 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import {
+  countCompetitionRegistrationsByStageIdFromSource,
   createCompetitionRegistration,
   createCompetitionRegistrationRecord,
   loadCompetitionRegistrationsForCurrentUser,
@@ -90,6 +91,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     paymentOptionId: '',
     teamName: '',
     seedTime: '',
+    stageLimit: '',
   })
 
   const currentUserKey = computed(() => {
@@ -270,6 +272,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     registrationErrors.paymentOptionId = ''
     registrationErrors.teamName = ''
     registrationErrors.seedTime = ''
+    registrationErrors.stageLimit = ''
   }
 
   function resetRegistrationForm() {
@@ -330,7 +333,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     resetRegistrationForm()
   }
 
-  function validateRegistrationForm() {
+  async function validateRegistrationForm() {
     resetRegistrationErrors()
 
     if (!selectedStage.value) {
@@ -367,11 +370,32 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
       showToast('Активная заявка на этот этап уже создана', { type: 'error' })
     }
 
+    const stageLimit = Number(
+      selectedStage.value.registrationLimit || selectedStage.value.registration?.participantLimit || 0,
+    )
+
+    if (stageLimit > 0) {
+      try {
+        const activeCount = await countCompetitionRegistrationsByStageIdFromSource(
+          selectedStage.value.id,
+          { status: 'active' },
+        )
+
+        if (activeCount >= stageLimit) {
+          registrationErrors.stageLimit = 'Лимит мест на этот этап уже достигнут.'
+          showToast('Регистрация закрыта: лимит мест достигнут.', { type: 'error' })
+        }
+      } catch (error) {
+        registrationErrors.stageLimit =
+          error instanceof Error ? error.message : 'Не удалось проверить лимит мест этапа.'
+      }
+    }
+
     return !Object.values(registrationErrors).some(Boolean)
   }
 
   async function handleRegistrationSubmit() {
-    if (!validateRegistrationForm() || !selectedStage.value) {
+    if (!(await validateRegistrationForm()) || !selectedStage.value) {
       return false
     }
 

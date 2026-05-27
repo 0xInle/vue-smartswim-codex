@@ -47,6 +47,7 @@ function createStageRow({
   date,
   protocolUrl = '',
   photoUrl = '',
+  registrationLimit = 0,
   registration = null,
 }) {
   return {
@@ -57,11 +58,13 @@ function createStageRow({
     date,
     protocolUrl,
     photoUrl,
+    registrationLimit,
     distanceSummary: 'Программа этапа будет уточняться.',
     registration: {
       ...buildCompetitionRegistrationWindow(date),
       competitionDateLabel: formatCompetitionDateLabel(date),
       closeNote: DEFAULT_REGISTRATION_NOTE,
+      participantLimit: registrationLimit || 0,
       ...(registration || {}),
     },
   }
@@ -168,7 +171,11 @@ export function useCompetitionStages() {
   function buildCompetitionStageRows() {
     return buildAccountCompetitionStages().map((stage) => ({
       ...stage,
-      registration: { ...stage.registration },
+      registrationLimit: Number(stage.registrationLimit || stage.registration?.participantLimit || 0),
+      registration: {
+        ...stage.registration,
+        participantLimit: Number(stage.registrationLimit || stage.registration?.participantLimit || 0),
+      },
       protocolUrl: stage.protocolUrl || '',
       photoUrl: stage.photoUrl || '',
     }))
@@ -279,7 +286,7 @@ export function useCompetitionStages() {
 
   async function updateCompetitionStage(
     stageId,
-    { competitionName, date, openAt, closeAt, protocolUrl, photoUrl } = {},
+    { competitionName, date, openAt, closeAt, protocolUrl, photoUrl, registrationLimit } = {},
   ) {
     const targetStage = competitionStages.value.find((stage) => stage.id === stageId)
 
@@ -316,6 +323,12 @@ export function useCompetitionStages() {
     const nextRegistration = {
       ...targetStage.registration,
       competitionDateLabel: formatCompetitionDateLabel(targetStage.date),
+    }
+
+    if (registrationLimit !== undefined) {
+      const nextLimit = Number(registrationLimit) || 0
+      targetStage.registrationLimit = nextLimit
+      nextRegistration.participantLimit = nextLimit
     }
 
     if (openAt !== undefined) {
@@ -392,6 +405,11 @@ export function useCompetitionStages() {
     const nextCardRegistration = {
       ...direction.cards[directionCardIndex].registration,
       competitionDateLabel: formatCompetitionDateLabel(direction.cards[directionCardIndex].date),
+    }
+
+    if (registrationLimit !== undefined) {
+      direction.cards[directionCardIndex].registrationLimit = Number(registrationLimit) || 0
+      nextCardRegistration.participantLimit = Number(registrationLimit) || 0
     }
 
     if (openAt !== undefined) {

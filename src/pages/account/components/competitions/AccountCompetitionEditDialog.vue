@@ -68,6 +68,20 @@
 
       <div class="account__field-grid">
         <label class="account__field">
+          <span class="account__field-label">Лимит мест</span>
+          <input
+            v-model.number="form.registrationLimit"
+            class="account__input"
+            type="number"
+            min="0"
+            inputmode="numeric"
+            placeholder="0 - без лимита"
+          />
+        </label>
+      </div>
+
+      <div class="account__field-grid">
+        <label class="account__field">
           <span class="account__field-label">Протокол</span>
           <input
             v-model="form.protocolUrl"
@@ -135,6 +149,7 @@ const form = reactive({
   date: '',
   openDate: '',
   closeDate: '',
+  registrationLimit: 0,
   protocolUrl: '',
   photoUrl: '',
 })
@@ -163,6 +178,9 @@ watch(
     form.date = formatCompetitionDateForInput(props.stage.date)
     form.openDate = formatCompetitionDateForInput(props.stage.registration?.openAt)
     form.closeDate = formatCompetitionDateForInput(props.stage.registration?.closeAt)
+    form.registrationLimit = Number(
+      props.stage.registrationLimit || props.stage.registration?.participantLimit || 0,
+    )
     form.protocolUrl = props.stage.protocolUrl || ''
     form.photoUrl = props.stage.photoUrl || ''
   },
@@ -180,6 +198,7 @@ function submitForm() {
     date: form.date,
     openAt: form.openDate,
     closeAt: form.closeDate,
+    registrationLimit: Number(form.registrationLimit) || 0,
     protocolUrl: form.protocolUrl,
     photoUrl: form.photoUrl,
   })
@@ -190,6 +209,7 @@ function resetForm() {
   form.date = ''
   form.openDate = ''
   form.closeDate = ''
+  form.registrationLimit = 0
   form.protocolUrl = ''
   form.photoUrl = ''
 }

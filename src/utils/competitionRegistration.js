@@ -157,6 +157,29 @@ export function toCompetitionDateTime(value, { endOfDay = false } = {}) {
   return `${dateValue}T${endOfDay ? '23:59:59' : '00:00:00'}${COMPETITION_TIME_ZONE_SUFFIX}`
 }
 
+export function formatCompetitionCountdown(targetValue, now = Date.now()) {
+  const targetTimestamp = normalizeCompetitionTimestamp(targetValue)
+
+  if (targetTimestamp === null) {
+    return ''
+  }
+
+  const diff = Math.max(targetTimestamp - now, 0)
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+
+  if (days > 0) {
+    return `${days} д. ${hours} ч.`
+  }
+
+  if (hours > 0) {
+    return `${hours} ч. ${minutes} мин.`
+  }
+
+  return `${minutes} мин.`
+}
+
 export function buildCompetitionRegistrationWindow(stageDate) {
   const openDate = shiftCompetitionDateValue(stageDate, -21)
   const closeDate = shiftCompetitionDateValue(stageDate, -3)

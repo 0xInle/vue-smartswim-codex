@@ -15,6 +15,9 @@
 
     <div class="competition-detail-card__body">
       <div class="competition-detail-card__date">{{ cardDateLabel }}</div>
+      <div v-if="registrationCountdownLabel" class="competition-detail-card__registration-countdown">
+        {{ registrationCountdownLabel }}
+      </div>
       <div v-if="normalizedPlace" class="competition-detail-card__place">
         {{ normalizedPlace }}
       </div>
@@ -55,6 +58,7 @@
 import { computed } from 'vue'
 import {
   formatCompetitionDateLabel,
+  formatCompetitionCountdown,
   resolveCompetitionRegistrationState,
 } from '@/utils/competitionRegistration'
 
@@ -95,6 +99,28 @@ const cardDateLabel = computed(() => {
   }
 
   return registrationOpenDateLabel.value || '—'
+})
+
+const registrationCountdownLabel = computed(() => {
+  const registration = props.card.registration
+
+  if (!registration) {
+    return ''
+  }
+
+  const state = resolveCompetitionRegistrationState(registration)
+
+  if (state.mode === 'upcoming') {
+    const countdown = formatCompetitionCountdown(state.openAt)
+    return countdown ? `Регистрация откроется через ${countdown}` : ''
+  }
+
+  if (state.mode === 'open') {
+    const countdown = formatCompetitionCountdown(state.closeAt)
+    return countdown ? `Регистрация закроется через ${countdown}` : ''
+  }
+
+  return state.closedText || ''
 })
 
 function formatCardDescription(description = '') {
@@ -209,6 +235,17 @@ const descriptionParts = computed(() => formatCardDescription(props.card.descrip
 .competition-detail-card__place {
   font-size: 14px;
   font-weight: 900;
+}
+
+.competition-detail-card__registration-countdown {
+  width: fit-content;
+  border: 1px solid color-mix(in srgb, var(--cyan) 36%, var(--white));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 46%, transparent);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 900;
+  color: color-mix(in srgb, var(--black) 82%, var(--cyan));
 }
 
 .competition-detail-card__text {

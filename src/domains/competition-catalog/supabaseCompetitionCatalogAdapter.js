@@ -59,6 +59,7 @@ const STAGE_SELECT = [
   'registration_close_note',
   'registration_closed_title',
   'registration_closed_text',
+  'registration_limit',
   'is_public',
   'sort_order',
 ].join(',')

@@ -46,6 +46,7 @@ const REQUIRED_OBJECTS = {
     'competition_applications_created_at_idx',
     'competition_application_events_application_id_idx',
   ],
+  function: ['public.get_competition_stage_active_registration_count'],
 }
 
 function parseDotEnv(content) {
@@ -196,6 +197,17 @@ async function queryCompetitionApplicationContract({ accessToken, projectRef }) 
               'competition_applications',
               'competition_application_events'
             )
+
+          union all
+
+          select
+            'function' as object_type,
+            namespace.nspname || '.' || procedure.proname as object_name
+          from pg_proc as procedure
+          join pg_namespace as namespace
+            on namespace.oid = procedure.pronamespace
+          where namespace.nspname = 'public'
+            and procedure.proname = 'get_competition_stage_active_registration_count'
         )
         select object_type, object_name
         from found_objects
@@ -299,7 +311,7 @@ async function main() {
     }
 
     console.log(`Competition applications contract is ready in project ${resolvedProjectRef}.`)
-    console.log('Checked: tables, RLS, policies, constraints, triggers, indexes.')
+    console.log('Checked: tables, RLS, policies, constraints, triggers, indexes, functions.')
   } catch (error) {
     fail(
       error instanceof Error

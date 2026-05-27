@@ -25,6 +25,10 @@
       </div>
 
       <div class="account-competition-registration__grid">
+        <p v-if="errors.stageLimit" class="account__field-error account-competition-registration__limit-error">
+          {{ errors.stageLimit }}
+        </p>
+
         <label class="account__field account-competition-registration__participant-field">
           <span class="account__field-label">Участник</span>
           <ElSelect

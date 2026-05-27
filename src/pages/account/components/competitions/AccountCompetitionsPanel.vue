@@ -91,6 +91,7 @@
             <th>Протокол</th>
             <th>Фото</th>
             <th>Регистрация</th>
+            <th>Места</th>
           </tr>
         </thead>
 
@@ -228,7 +229,18 @@
                     >
                       {{ formatCompetitionRegistrationWindow(row.registration) }}
                     </span>
+                    <span
+                      v-if="formatRegistrationCountdown(row.registration)"
+                      class="account__competition-registration-window"
+                    >
+                      {{ formatRegistrationCountdown(row.registration) }}
+                    </span>
                   </div>
+                </td>
+                <td class="account__native-table-cell account__native-table-cell--center">
+                  <span class="account__competition-registration-window">
+                    {{ formatStageCapacity(row) }}
+                  </span>
                 </td>
               </template>
             </tr>
@@ -237,7 +249,7 @@
               v-if="competitionViewFilter === 'active'"
               class="account__native-table-row account__native-table-row--actions"
             >
-              <td class="account__native-table-cell" colspan="6">
+              <td class="account__native-table-cell" colspan="7">
                 <div class="account__competition-actions-row">
                   <button
                     type="button"
@@ -318,6 +330,7 @@ import AccountCompetitionDistanceDialog from '@/pages/account/components/competi
 import AccountCompetitionEditDialog from '@/pages/account/components/competitions/AccountCompetitionEditDialog.vue'
 import {
   resolveCompetitionRegistrationState,
+  formatCompetitionCountdown,
   toCompetitionDateTime,
 } from '@/utils/competitionRegistration'
 
@@ -431,6 +444,33 @@ function isCompetitionArchived(row, now = Date.now()) {
 
 function competitionRegistrationState(registration) {
   return resolveCompetitionRegistrationState(registration).mode === 'open' ? 'open' : 'closed'
+}
+
+function formatStageCapacity(row) {
+  const activeCount = props.getStageActiveRegistrationsCount(row.id)
+  const limit = Number(row.registrationLimit || row.registration?.participantLimit || 0)
+
+  if (!limit) {
+    return `${activeCount} / без лимита`
+  }
+
+  return `${activeCount} / ${limit}`
+}
+
+function formatRegistrationCountdown(registration) {
+  const state = resolveCompetitionRegistrationState(registration)
+
+  if (state.mode === 'upcoming') {
+    const countdown = formatCompetitionCountdown(state.openAt)
+    return countdown ? `Откроется через ${countdown}` : ''
+  }
+
+  if (state.mode === 'open') {
+    const countdown = formatCompetitionCountdown(state.closeAt)
+    return countdown ? `Закроется через ${countdown}` : ''
+  }
+
+  return ''
 }
 
 function openCompetitionDialog(row) {
