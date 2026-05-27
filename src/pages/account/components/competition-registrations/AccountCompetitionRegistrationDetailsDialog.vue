@@ -189,11 +189,22 @@
               {{ registration.ownerName || 'Не указан' }}
             </strong>
             <span class="account-competition-registration-details__meta">
+              Account ID: {{ registration.sourceUserKey || 'Не указан' }}
+            </span>
+            <span class="account-competition-registration-details__meta">
               Email: {{ registration.ownerEmail || 'Не указан' }}
             </span>
             <span class="account-competition-registration-details__meta">
               Телефон: {{ registration.ownerPhone || 'Не указан' }}
             </span>
+            <button
+              v-if="showAccountLink && registration.sourceUserKey"
+              type="button"
+              class="account__table-action account__table-action--ghost account-competition-registration-details__account-link btn-reset"
+              @click="emit('open-account', registration.sourceUserKey)"
+            >
+              Открыть аккаунт
+            </button>
           </div>
         </div>
 
@@ -463,6 +474,10 @@ const props = defineProps({
     type: String,
     default: 'Допустить',
   },
+  showAccountLink: {
+    type: Boolean,
+    default: false,
+  },
   statusOptions: {
     type: Array,
     default: () => COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS,
@@ -480,6 +495,7 @@ const emit = defineEmits([
   'resolve-refund-succeeded',
   'resolve-refund-rejected',
   'admit',
+  'open-account',
 ])
 
 const form = reactive({
@@ -636,6 +652,13 @@ watch(
 .account-competition-registration-details__status-tag {
   flex: 0 0 auto;
   margin-left: auto;
+}
+
+.account-competition-registration-details__account-link {
+  justify-self: start;
+  width: auto;
+  min-height: 32px;
+  margin-top: 4px;
 }
 
 .account-competition-registration-details__actions {

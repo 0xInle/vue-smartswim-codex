@@ -163,6 +163,22 @@
               <button
                 type="button"
                 class="account__table-sort-button account__table-sort-button--left btn-reset"
+                :class="{ 'account__table-sort-button--active': sortKey === 'documentsStatus' }"
+                :aria-label="getSortAriaLabel('статусу документов', 'documentsStatus')"
+                @click="toggleSort('documentsStatus')"
+              >
+                <span>Документы</span>
+                <span
+                  class="account__table-sort-indicator"
+                  :data-direction="getSortDirection('documentsStatus')"
+                  aria-hidden="true"
+                ></span>
+              </button>
+            </th>
+            <th class="account__native-table-head-cell--sortable">
+              <button
+                type="button"
+                class="account__table-sort-button account__table-sort-button--left btn-reset"
                 :class="{ 'account__table-sort-button--active': sortKey === 'paymentStatus' }"
                 :aria-label="getSortAriaLabel('статусу оплаты', 'paymentStatus')"
                 @click="toggleSort('paymentStatus')"
@@ -207,6 +223,20 @@
                 </ElTag>
                 <span class="account-competition-registrations-admin__status-hint">
                   {{ getRegistrationLifecycleSummary(registration).responsibleLabel }}
+                </span>
+              </div>
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <div class="account-competition-registrations-admin__status-cell">
+                <ElTag
+                  :type="getRegistrationDocumentsStatus(registration)?.tagType || 'info'"
+                  effect="light"
+                  round
+                >
+                  {{ getRegistrationDocumentsStatus(registration)?.label || 'Нет данных' }}
+                </ElTag>
+                <span class="account-competition-registrations-admin__status-hint">
+                  {{ getRegistrationDocumentsStatus(registration)?.description || 'Откройте карточку пользователя.' }}
                 </span>
               </div>
             </td>
@@ -277,6 +307,7 @@
       :show-resolve-refund-succeeded-button="selectedRegistrationCanResolveRefund"
       :show-resolve-refund-rejected-button="selectedRegistrationCanResolveRefund"
       :show-admit-button="selectedRegistrationCanAdmit"
+      show-account-link
       admit-button-label="Допустить"
       @close="closeDetailsDialog"
       @save="handleRegistrationSave"
@@ -285,6 +316,7 @@
       @resolve-refund-succeeded="handleResolveSelectedRefund(refundSucceededStatus)"
       @resolve-refund-rejected="handleResolveSelectedRefund(refundRejectedStatus)"
       @admit="handleAdmitSelectedRegistration"
+      @open-account="handleOpenSelectedAccount"
     />
   </ElCard>
 </template>
@@ -302,6 +334,8 @@ import {
   getCompetitionRefundStatusMeta,
   getPaymentSortRank,
 } from '@/domains/payments/paymentLifecycle'
+
+const emit = defineEmits(['open-account'])
 
 const {
   search,
@@ -321,6 +355,8 @@ const {
   selectedRegistrationLifecycleSummary,
   selectedRegistrationStatusOptions,
   getRegistrationLifecycleSummary,
+  getRegistrationDocumentsStatus,
+  getRegistrationDocumentsSortValue,
   getRegistrationPayment,
   getRegistrationRefund,
   getRegistrationPaymentSummary,
@@ -381,6 +417,11 @@ const sortedRegistrations = computed(() =>
 
       return `${getPaymentSortRank(summary.applicationStatus)} ${summary.label}`
     },
+    documentsStatus: (registration) =>
+      [
+        getRegistrationDocumentsSortValue(registration),
+        registration.participantName || '',
+      ].join(' '),
   }),
 )
 
@@ -416,6 +457,10 @@ async function handleResolveSelectedRefund(status) {
   }
 
   await handleResolveRefund(refund.id, status)
+}
+
+function handleOpenSelectedAccount(accountKey) {
+  emit('open-account', accountKey)
 }
 
 function getSortIndicator(columnKey) {

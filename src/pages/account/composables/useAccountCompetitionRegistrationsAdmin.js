@@ -172,8 +172,10 @@ export function useAccountCompetitionRegistrationsAdmin() {
   )
 
   const selectedRegistrationDocumentsStatus = computed(() => {
-    const registration = selectedRegistration.value
+    return getRegistrationDocumentsStatus(selectedRegistration.value)
+  })
 
+  function getRegistrationDocumentsStatus(registration) {
     if (!registration?.sourceUserKey) {
       return null
     }
@@ -220,7 +222,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     }
 
     return getAccountDocumentsAdmissionStatus(documents)
-  })
+  }
 
   const selectedRegistrationLifecycleSummary = computed(() =>
     getRegistrationLifecycleSummary(selectedRegistration.value),
@@ -457,6 +459,20 @@ export function useAccountCompetitionRegistrationsAdmin() {
       payment: null,
       refund: null,
     }
+  }
+
+  function getRegistrationDocumentsSortValue(registration) {
+    const status = getRegistrationDocumentsStatus(registration)?.status || 'unknown'
+    const rank = {
+      attention: 1,
+      missing: 2,
+      pending: 3,
+      ready: 4,
+      admitted: 5,
+      unknown: 6,
+    }
+
+    return `${rank[status] || rank.unknown} ${status}`
   }
 
   function getRegistrationCompetitionDateSortValue(registration) {
@@ -759,6 +775,8 @@ export function useAccountCompetitionRegistrationsAdmin() {
     selectedRegistrationLifecycleSummary,
     selectedRegistrationStatusOptions,
     getRegistrationLifecycleSummary,
+    getRegistrationDocumentsStatus,
+    getRegistrationDocumentsSortValue,
     getRegistrationPayment,
     getRegistrationRefund,
     getRegistrationPaymentSummary,

@@ -164,6 +164,7 @@
 
               <AccountCompetitionRegistrationsAdminPanel
                 v-show="activeSection === 'registrations'"
+                @open-account="handleOpenAccountFromRegistration"
               />
 
               <AccountEmailPanel
@@ -483,6 +484,17 @@ function handleCompetitionStageCreate(payload) {
 
 function handleCompetitionStageDelete(stageId) {
   deleteCompetitionStage(stageId)
+}
+
+function handleOpenAccountFromRegistration(accountKey) {
+  const normalizedAccountKey = String(accountKey || '').trim()
+
+  if (!normalizedAccountKey) {
+    return
+  }
+
+  usersSearch.value = normalizedAccountKey
+  activeSection.value = 'users'
 }
 
 function handleCompetitionTargetConsumed() {
