@@ -105,6 +105,22 @@ export async function fetchEmailMessagesForAdmin() {
   return (data ?? []).map(mapSupabaseEmailMessageRow)
 }
 
+export async function fetchEmailMessagesForCurrentUser() {
+  await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
+
+  const { data, error } = await getSupabaseClient()
+    .from(EMAIL_MESSAGES_TABLE)
+    .select(EMAIL_MESSAGE_SELECT)
+    .order('created_at', { ascending: false })
+    .limit(80)
+
+  if (error) {
+    throwAccountEmailError(error, EMAIL_MESSAGES_TABLE, 'Не удалось загрузить письма.')
+  }
+
+  return (data ?? []).map(mapSupabaseEmailMessageRow)
+}
+
 export async function insertQueuedEmailMessageForAdmin(message = {}) {
   const session = await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
   const recipients = dedupeEmailRecipients(message.recipients || [])

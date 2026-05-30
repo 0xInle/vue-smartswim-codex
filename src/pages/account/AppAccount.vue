@@ -268,6 +268,10 @@
                 v-show="activeSection === 'materials'"
               />
 
+              <AccountUserEmailPanel
+                v-show="activeSection === 'email'"
+              />
+
               <AccountSettingsPanel
                 v-show="activeSection === 'settings'"
                 :form="passwordChangeForm"
@@ -314,6 +318,7 @@ import AccountDocumentReviewsPanel from '@/pages/account/components/documents/Ac
 import AccountConsultationsPanel from '@/pages/account/components/consultations/AccountConsultationsPanel.vue'
 import AccountDashboardPanel from '@/pages/account/components/dashboard/AccountDashboardPanel.vue'
 import AccountEmailPanel from '@/pages/account/components/email/AccountEmailPanel.vue'
+import AccountUserEmailPanel from '@/pages/account/components/email/AccountUserEmailPanel.vue'
 import AccountAthletesPanel from '@/pages/account/components/athletes/AccountAthletesPanel.vue'
 import AccountHeaderBar from '@/pages/account/components/layout/AccountHeaderBar.vue'
 import AccountMaterialsPanel from '@/pages/account/components/materials/AccountMaterialsPanel.vue'
@@ -633,6 +638,7 @@ const navigationItems = computed(() => {
     { id: 'athletes', label: 'Спортсмены', icon: Trophy },
     { id: 'competitions', label: 'Соревнования', icon: Trophy },
     { id: 'materials', label: 'Материалы', icon: Collection },
+    { id: 'email', label: 'Письма', icon: Message },
     { id: 'settings', label: 'Настройки', icon: Setting },
   ]
 })
@@ -668,6 +674,7 @@ const sectionContent = computed(() => {
     athletes: { title: 'Спортсмены' },
     competitions: { title: 'Соревнования' },
     materials: { title: 'Материалы' },
+    email: { title: 'Письма' },
     settings: { title: 'Настройки' },
   }
 })
