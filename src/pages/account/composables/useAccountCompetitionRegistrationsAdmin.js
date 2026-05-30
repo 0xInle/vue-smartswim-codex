@@ -87,6 +87,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
   const search = ref('')
   const statusFilter = ref('all')
   const paymentStatusFilter = ref('all')
+  const documentsStatusFilter = ref('all')
   const selectedRegistrationId = ref('')
   const isDetailsDialogOpen = ref(false)
   const isRegistrationsLoading = ref(false)
@@ -244,6 +245,13 @@ export function useAccountCompetitionRegistrationsAdmin() {
         if (
           paymentStatusFilter.value !== 'all' &&
           getRegistrationPaymentSummary(registration).applicationStatus !== paymentStatusFilter.value
+        ) {
+          return false
+        }
+
+        if (
+          documentsStatusFilter.value !== 'all' &&
+          getRegistrationDocumentsStatus(registration)?.status !== documentsStatusFilter.value
         ) {
           return false
         }
@@ -761,6 +769,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     search,
     statusFilter,
     paymentStatusFilter,
+    documentsStatusFilter,
     filteredRegistrations,
     summary,
     activeRefundRequests,

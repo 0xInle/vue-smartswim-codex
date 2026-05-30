@@ -56,6 +56,23 @@
             />
           </ElSelect>
         </label>
+
+        <label class="account__field account__field--filter">
+          <span class="account__field-label">Документы</span>
+          <ElSelect
+            v-model="documentsStatusFilter"
+            class="account__select"
+            popper-class="account__select-popper"
+            placeholder="Все документы"
+          >
+            <ElOption
+              v-for="option in documentsStatusOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </ElSelect>
+        </label>
       </div>
     </div>
 
@@ -341,6 +358,7 @@ const {
   search,
   statusFilter,
   paymentStatusFilter,
+  documentsStatusFilter,
   filteredRegistrations,
   summary,
   activeRefundRequests,
@@ -372,6 +390,14 @@ const {
 
 const registrationStatusOptions = COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS
 const paymentStatusOptions = COMPETITION_PAYMENT_STATUS_OPTIONS
+const documentsStatusOptions = [
+  { value: 'all', label: 'Все документы' },
+  { value: 'admitted', label: 'Одобрены' },
+  { value: 'pending', label: 'На проверке' },
+  { value: 'attention', label: 'Требуют внимания' },
+  { value: 'missing', label: 'Не загружены' },
+  { value: 'unknown', label: 'Нет данных' },
+]
 const refundSucceededStatus = COMPETITION_REFUND_STATUS.SUCCEEDED
 const refundRejectedStatus = COMPETITION_REFUND_STATUS.REJECTED
 const { sortKey, toggleSort, getSortState, sortItems } =
@@ -507,7 +533,7 @@ function getSortAriaLabel(label, columnKey) {
 
 .account-competition-registrations-admin__filters {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px 240px;
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(180px, 240px));
   gap: 18px;
   align-items: end;
 }
