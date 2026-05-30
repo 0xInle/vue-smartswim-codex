@@ -52,6 +52,16 @@ function normalizeSearchValue(value) {
     .toLowerCase()
 }
 
+function getUuidOrEmpty(value) {
+  const normalizedValue = String(value || '').trim()
+
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    normalizedValue,
+  )
+    ? normalizedValue
+    : ''
+}
+
 function formatStageOptionLabel(stage) {
   const stageLabel = `Этап ${stage.stage}`
   const dateLabel = formatCompetitionDateLabel(stage.date)
@@ -519,6 +529,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
       const updatedPayment = await markCompetitionPaymentSucceeded(payment.id, 'admin')
       await Promise.all([loadPaymentRecords(), loadRegistrations()])
       showToast('Оплата отмечена как успешная')
+      await queuePaymentEmail(registration, 'succeeded')
       return updatedPayment
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Не удалось обновить оплату', {
@@ -541,6 +552,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
       const updatedPayment = await markCompetitionPaymentFailed(payment.id, 'admin')
       await Promise.all([loadPaymentRecords(), loadRegistrations()])
       showToast('Оплата отмечена как ошибка')
+      await queuePaymentEmail(registration, 'failed')
       return updatedPayment
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Не удалось обновить оплату', {
@@ -569,6 +581,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
           ? 'Возврат отмечен как выполненный'
           : 'Возврат отклонен',
       )
+      await queueRefundEmail(updatedRefund, status)
       return updatedRefund
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Не удалось обновить возврат', {
@@ -578,10 +591,112 @@ export function useAccountCompetitionRegistrationsAdmin() {
     }
   }
 
-  async function queueAdmissionEmail(registration) {
+  function getRegistrationEmailRecipient(registration) {
     const recipientEmail = registration?.ownerEmail || registration?.participantEmail || ''
 
     if (!recipientEmail) {
+      return null
+    }
+
+    return {
+      ownerUserId: getUuidOrEmpty(registration.sourceUserKey),
+      email: recipientEmail,
+      name: registration.ownerName || registration.participantName,
+      recipientType: 'participant',
+    }
+  }
+
+  async function queuePaymentEmail(registration, status) {
+    const recipient = getRegistrationEmailRecipient(registration)
+
+    if (!recipient) {
+      showToast('Статус оплаты сохранен, но письмо не создано: у пользователя не указана почта.', {
+        type: 'error',
+      })
+      return
+    }
+
+    const isSucceeded = status === 'succeeded'
+
+    try {
+      await createQueuedEmailMessageForAdmin({
+        audienceType: 'single_user',
+        contextType: 'payment',
+        contextId: registration.id,
+        subject: isSucceeded
+          ? `Оплата подтверждена: ${registration.competitionName || 'Smart Swim'}`
+          : `Оплата требует внимания: ${registration.competitionName || 'Smart Swim'}`,
+        body: [
+          `Здравствуйте, ${registration.ownerName || registration.participantName || 'участник'}!`,
+          '',
+          isSucceeded
+            ? 'Оплата по вашей заявке отмечена как успешная.'
+            : 'Оплата по вашей заявке отмечена как неуспешная.',
+          `Участник: ${registration.participantName || 'без имени'}.`,
+          `Соревнование: ${registration.competitionName || 'не указано'}.`,
+          `Этап: ${registration.stageLabel || 'не указан'}.`,
+          `Дата: ${registration.competitionDateLabel || 'будет уточнена'}.`,
+          '',
+          'Это письмо поставлено в очередь Smart Swim. Production-отправка будет доступна после подключения email-провайдера.',
+        ].join('\n'),
+        recipients: [recipient],
+      })
+      showToast('Письмо по оплате поставлено в очередь')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось создать письмо по оплате', {
+        type: 'error',
+      })
+    }
+  }
+
+  async function queueRefundEmail(refund, status) {
+    const registration = registrations.value.find((item) => item.id === refund?.applicationId)
+    const recipient = getRegistrationEmailRecipient(registration)
+
+    if (!recipient) {
+      showToast('Статус возврата сохранен, но письмо не создано: у пользователя не указана почта.', {
+        type: 'error',
+      })
+      return
+    }
+
+    const isSucceeded = status === COMPETITION_REFUND_STATUS.SUCCEEDED
+
+    try {
+      await createQueuedEmailMessageForAdmin({
+        audienceType: 'single_user',
+        contextType: 'refund',
+        contextId: refund.id,
+        subject: isSucceeded
+          ? `Возврат выполнен: ${registration.competitionName || 'Smart Swim'}`
+          : `Возврат отклонен: ${registration.competitionName || 'Smart Swim'}`,
+        body: [
+          `Здравствуйте, ${registration.ownerName || registration.participantName || 'участник'}!`,
+          '',
+          isSucceeded
+            ? 'Возврат по вашей заявке отмечен как выполненный.'
+            : 'Запрос возврата по вашей заявке отклонен администратором.',
+          `Участник: ${registration.participantName || 'без имени'}.`,
+          `Соревнование: ${registration.competitionName || 'не указано'}.`,
+          `Этап: ${registration.stageLabel || 'не указан'}.`,
+          `Дата: ${registration.competitionDateLabel || 'будет уточнена'}.`,
+          '',
+          'Это письмо поставлено в очередь Smart Swim. Production-отправка будет доступна после подключения email-провайдера.',
+        ].join('\n'),
+        recipients: [recipient],
+      })
+      showToast('Письмо по возврату поставлено в очередь')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось создать письмо по возврату', {
+        type: 'error',
+      })
+    }
+  }
+
+  async function queueAdmissionEmail(registration) {
+    const recipient = getRegistrationEmailRecipient(registration)
+
+    if (!recipient) {
       showToast('Допуск сохранен, но письмо не создано: у пользователя не указана почта.', {
         type: 'error',
       })
@@ -606,10 +721,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
         ].join('\n'),
         recipients: [
           {
-            ownerUserId: registration.sourceUserKey,
-            email: recipientEmail,
-            name: registration.ownerName || registration.participantName,
-            recipientType: 'participant',
+            ...recipient,
           },
         ],
       })
