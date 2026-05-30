@@ -153,6 +153,23 @@
             >
               {{ paymentMvpNotice }}
             </span>
+            <div
+              v-if="paymentFlowSteps.length"
+              class="account-competition-registration-details__payment-flow"
+              aria-label="Будущий сценарий оплаты ЮKassa"
+            >
+              <span
+                v-for="step in paymentFlowSteps"
+                :key="step.key"
+                class="account-competition-registration-details__payment-flow-step"
+                :class="{
+                  'account-competition-registration-details__payment-flow-step--done': step.done,
+                  'account-competition-registration-details__payment-flow-step--future': step.future,
+                }"
+              >
+                {{ step.label }}
+              </span>
+            </div>
             <span class="account-competition-registration-details__meta">
               Создана: {{ formatCompactDateTime(registration.createdAt) }}
             </span>
@@ -534,6 +551,44 @@ const closeButtonLabel = computed(() =>
     : 'Закрыть',
 )
 
+const paymentFlowSteps = computed(() => {
+  const normalizedLabel = String(props.paymentStatusLabel || '').trim()
+
+  if (!normalizedLabel || normalizedLabel === 'Не требуется') {
+    return []
+  }
+
+  const isPaid = normalizedLabel === 'Оплачено'
+  const isRefunded = normalizedLabel === 'Возврат' || normalizedLabel === 'Возврат выполнен'
+
+  return [
+    {
+      key: 'approved',
+      label: 'Заявка подтверждена',
+      done: true,
+      future: false,
+    },
+    {
+      key: 'smart-swim-payment',
+      label: 'Платеж Smart Swim',
+      done: true,
+      future: false,
+    },
+    {
+      key: 'yookassa',
+      label: 'Переход в ЮKassa позже',
+      done: isPaid || isRefunded,
+      future: !(isPaid || isRefunded),
+    },
+    {
+      key: 'status',
+      label: isRefunded ? 'Возврат в ЛК' : 'Статус в ЛК',
+      done: isPaid || isRefunded,
+      future: false,
+    },
+  ]
+})
+
 function formatRegistrationKindLabel(value) {
   if (value === 'relay') {
     return 'Эстафета'
@@ -649,6 +704,39 @@ watch(
   color: #c75f33;
 }
 
+.account-competition-registration-details__payment-flow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.account-competition-registration-details__payment-flow-step {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 18%, white);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 72%, var(--light-blue));
+  color: #526072;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.account-competition-registration-details__payment-flow-step--done {
+  border-color: color-mix(in srgb, var(--aqua) 34%, white);
+  background: color-mix(in srgb, var(--aqua) 14%, white);
+  color: color-mix(in srgb, var(--black) 78%, var(--aqua));
+}
+
+.account-competition-registration-details__payment-flow-step--future {
+  border-color: color-mix(in srgb, var(--orange) 32%, white);
+  background: color-mix(in srgb, var(--orange) 10%, white);
+  color: #a9552e;
+}
+
 .account-competition-registration-details__status-tag {
   flex: 0 0 auto;
   margin-left: auto;
@@ -671,6 +759,10 @@ watch(
 
 @media (max-width: 760px) {
   .account-competition-registration-details__pair {
+    grid-template-columns: 1fr;
+  }
+
+  .account-competition-registration-details__payment-flow {
     grid-template-columns: 1fr;
   }
 }
