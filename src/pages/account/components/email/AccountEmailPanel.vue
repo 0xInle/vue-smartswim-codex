@@ -152,9 +152,26 @@
           </button>
         </div>
 
-        <div v-if="messages.length" class="account-email__message-list">
+        <label class="account__field account-email__history-filter">
+          <span class="account__field-label">Контекст</span>
+          <ElSelect
+            v-model="messageContextFilter"
+            class="account__select"
+            popper-class="account__select-popper"
+            placeholder="Все письма"
+          >
+            <ElOption
+              v-for="option in emailContextOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </ElSelect>
+        </label>
+
+        <div v-if="filteredMessages.length" class="account-email__message-list">
           <article
-            v-for="message in messages"
+            v-for="message in filteredMessages"
             :key="message.id"
             class="account-email__message"
           >
@@ -164,7 +181,7 @@
                 {{ formatEmailAudienceType(message.audienceType) }} · {{ message.recipientCount }} получ.
               </span>
               <span class="account-email__message-meta">
-                {{ formatCompactDateTime(message.createdAt) }}
+                {{ formatEmailContextType(message.contextType) }} · {{ formatCompactDateTime(message.createdAt) }}
               </span>
             </div>
             <ElTag :type="getEmailStatusTagType(message.status)" effect="light" round>
@@ -173,7 +190,7 @@
           </article>
         </div>
 
-        <ElEmpty v-else :description="isLoading ? 'Загружаем письма...' : 'Писем пока нет.'" />
+        <ElEmpty v-else :description="emailEmptyDescription" />
       </section>
     </div>
   </ElCard>
@@ -214,11 +231,36 @@ const form = reactive({
   body: '',
 })
 const userSearch = ref('')
+const messageContextFilter = ref('all')
 const messages = ref([])
 const registrations = ref([])
 const isLoading = ref(false)
 const isSaving = ref(false)
 let unsubscribeFromEmail = null
+
+const emailContextOptions = [
+  { value: 'all', label: 'Все письма' },
+  { value: 'manual', label: 'Ручные' },
+  { value: 'stage', label: 'Этап' },
+  { value: 'admission', label: 'Допуск' },
+  { value: 'payment', label: 'Оплата' },
+  { value: 'refund', label: 'Возврат' },
+]
+
+const emailContextLabels = emailContextOptions.reduce((acc, option) => {
+  acc[option.value] = option.label
+  return acc
+}, {})
+
+function getUuidOrEmpty(value) {
+  const normalizedValue = String(value || '').trim()
+
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    normalizedValue,
+  )
+    ? normalizedValue
+    : ''
+}
 
 const stageOptions = computed(() =>
   buildAccountCompetitionStages().map((stage) => ({
@@ -259,7 +301,7 @@ const stageParticipantRecipients = computed(() =>
   registrations.value
     .filter((registration) => registration.stageId === form.stageId)
     .map((registration) => ({
-      ownerUserId: registration.sourceUserKey,
+      ownerUserId: getUuidOrEmpty(registration.sourceUserKey),
       email: registration.ownerEmail || registration.participantEmail,
       name: registration.participantName || registration.ownerName,
       recipientType: 'participant',
@@ -281,6 +323,30 @@ const isSubmitDisabled = computed(
     !form.body.trim() ||
     !recipientPreview.value.length,
 )
+
+const filteredMessages = computed(() => {
+  if (messageContextFilter.value === 'all') {
+    return messages.value
+  }
+
+  return messages.value.filter((message) => message.contextType === messageContextFilter.value)
+})
+
+const emailEmptyDescription = computed(() => {
+  if (isLoading.value) {
+    return 'Загружаем письма...'
+  }
+
+  if (messages.value.length && !filteredMessages.value.length) {
+    return 'Писем с таким контекстом пока нет.'
+  }
+
+  return 'Писем пока нет.'
+})
+
+function formatEmailContextType(contextType) {
+  return emailContextLabels[contextType] || 'Контекст не указан'
+}
 
 function resetForm() {
   form.selectedUserIds = []
@@ -409,6 +475,10 @@ onBeforeUnmount(() => {
   line-height: 1.35;
   color: color-mix(in srgb, var(--black) 58%, transparent);
   text-align: right;
+}
+
+.account-email__history-filter {
+  margin-bottom: 14px;
 }
 
 .account-email__form-grid {
