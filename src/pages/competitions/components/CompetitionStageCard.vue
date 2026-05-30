@@ -46,6 +46,19 @@
           </span>
         </div>
       </div>
+
+      <div v-if="materialLinks.length" class="competition-detail-card__materials">
+        <a
+          v-for="material in materialLinks"
+          :key="material.key"
+          class="competition-detail-card__material-link"
+          :href="material.url"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {{ material.label }}
+        </a>
+      </div>
     </div>
 
     <div class="competition-detail-card__status">
@@ -146,6 +159,15 @@ function formatCardDescription(description = '') {
 }
 
 const descriptionParts = computed(() => formatCardDescription(props.card.description))
+
+const materialLinks = computed(() =>
+  [
+    { key: 'protocol', label: 'Протокол', url: props.card.protocolUrl },
+    { key: 'photo', label: 'Фото', url: props.card.photoUrl },
+    { key: 'certificate', label: 'Сертификаты', url: props.card.certificateUrl },
+    { key: 'memo', label: 'Памятка', url: props.card.memoUrl },
+  ].filter((material) => Boolean(String(material.url || '').trim())),
+)
 </script>
 
 <style scoped>
@@ -279,6 +301,40 @@ const descriptionParts = computed(() => formatCardDescription(props.card.descrip
   align-items: center;
   line-height: 1.6;
   color: color-mix(in srgb, var(--black) 82%, var(--white));
+}
+
+.competition-detail-card__materials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.competition-detail-card__material-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 40%, var(--white));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--white) 58%, transparent);
+  color: color-mix(in srgb, var(--black) 84%, var(--cyan));
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.competition-detail-card__material-link:hover,
+.competition-detail-card__material-link:focus-visible {
+  border-color: color-mix(in srgb, var(--orange) 64%, var(--white));
+  background: var(--button-orange-bg);
+  color: var(--black);
 }
 
 .competition-detail-card__status {
