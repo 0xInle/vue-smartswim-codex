@@ -2,6 +2,7 @@ import { getCrmRoleLabel } from '@/utils/crmRoles'
 import {
   ACCOUNT_DOCUMENT_STATUS,
   getAccountDocumentStatusMeta,
+  isAccountDocumentExpiryRequired,
 } from '@/pages/account/utils/accountDocumentTypes'
 import {
   getApplicationStatusLabel,
@@ -332,6 +333,18 @@ export function getAccountDocumentDisplayStatus(document, now = Date.now()) {
     }
   }
 
+  if (
+    document.status === ACCOUNT_DOCUMENT_STATUS.VERIFIED &&
+    isAccountDocumentExpiryRequired(document.type) &&
+    !document.expiresAt
+  ) {
+    return {
+      status: 'attention',
+      label: 'Нет срока действия',
+      tagType: 'danger',
+    }
+  }
+
   const meta = getAccountDocumentStatusMeta(document.status)
 
   return {
@@ -355,6 +368,12 @@ export function getAccountDocumentsAdmissionStatus(documents = [], now = Date.no
       document.status === ACCOUNT_DOCUMENT_STATUS.NEEDS_REUPLOAD,
   )
   const hasExpired = normalizedDocuments.some((document) => isAccountDocumentExpired(document, now))
+  const hasMissingRequiredExpiry = normalizedDocuments.some(
+    (document) =>
+      document.status === ACCOUNT_DOCUMENT_STATUS.VERIFIED &&
+      isAccountDocumentExpiryRequired(document.type) &&
+      !document.expiresAt,
+  )
 
   if (hasRejected) {
     return {
@@ -370,6 +389,15 @@ export function getAccountDocumentsAdmissionStatus(documents = [], now = Date.no
       status: 'attention',
       label: 'Есть просроченные документы',
       description: 'Нужно обновить срок действия одного или нескольких документов.',
+      tagType: 'danger',
+    }
+  }
+
+  if (hasMissingRequiredExpiry) {
+    return {
+      status: 'attention',
+      label: 'Не указан срок действия',
+      description: 'Для меддопуска и страховки нужно указать срок действия.',
       tagType: 'danger',
     }
   }

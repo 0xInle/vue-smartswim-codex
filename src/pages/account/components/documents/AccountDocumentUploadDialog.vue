@@ -15,7 +15,7 @@
       <div class="account__dialog-copy">
         <p class="account__dialog-text">{{ dialogTitle }}</p>
         <p class="account__dialog-hint">
-          Загрузите файл и, если нужно, укажите срок действия документа.
+          {{ expiryHint }}
         </p>
       </div>
 
@@ -53,7 +53,12 @@
           type="text"
           inputmode="numeric"
           placeholder="дд.мм.гггг"
+          :required="isExpiryRequired"
         />
+        <span class="account__field-hint">
+          {{ isExpiryRequired ? 'Обязательно для меддопуска и страховки.' : 'Можно не заполнять для этого документа.' }}
+        </span>
+        <span v-if="expiresAtError" class="account__field-error">{{ expiresAtError }}</span>
       </label>
 
       <div class="account__dialog-actions">
@@ -74,7 +79,10 @@
 import { Close } from '@element-plus/icons-vue'
 import { computed, ref, watch } from 'vue'
 import { ElDialog } from 'element-plus'
-import { getAccountDocumentDefinition } from '@/pages/account/utils/accountDocumentTypes'
+import {
+  getAccountDocumentDefinition,
+  isAccountDocumentExpiryRequired,
+} from '@/pages/account/utils/accountDocumentTypes'
 
 const props = defineProps({
   modelValue: {
@@ -95,8 +103,15 @@ const selectedFileDataUrl = ref('')
 const selectedFileType = ref('')
 const expiresAt = ref('')
 const fileError = ref('')
+const expiresAtError = ref('')
 
 const dialogTitle = ref('')
+const isExpiryRequired = computed(() => isAccountDocumentExpiryRequired(props.documentType))
+const expiryHint = computed(() =>
+  isExpiryRequired.value
+    ? 'Загрузите файл и укажите срок действия документа.'
+    : 'Загрузите файл. Срок действия для этого документа не обязателен.',
+)
 const selectedFileSizeLabel = computed(() => {
   if (!selectedFile.value) {
     return ''
@@ -175,6 +190,13 @@ async function handleSubmit() {
     return
   }
 
+  expiresAtError.value = ''
+
+  if (isExpiryRequired.value && !expiresAt.value.trim()) {
+    expiresAtError.value = 'Укажите срок действия документа.'
+    return
+  }
+
   if (!selectedFileDataUrl.value) {
     try {
       selectedFileDataUrl.value = await readFileAsDataUrl(selectedFile.value)
@@ -200,6 +222,7 @@ function resetDialog() {
   selectedFileType.value = ''
   expiresAt.value = ''
   fileError.value = ''
+  expiresAtError.value = ''
 
   if (fileInputRef.value) {
     fileInputRef.value.value = ''

@@ -154,6 +154,28 @@
           </div>
         </div>
 
+        <div class="account-document-review__workflow">
+          <article class="account-document-review__workflow-card">
+            <span class="account-document-review__workflow-label">Документы</span>
+            <strong class="account-document-review__workflow-value">
+              {{ documentsWorkflowMeta.label }}
+            </strong>
+            <span class="account-document-review__workflow-description">
+              {{ documentsWorkflowMeta.description }}
+            </span>
+          </article>
+
+          <article class="account-document-review__workflow-card">
+            <span class="account-document-review__workflow-label">Финальный допуск</span>
+            <strong class="account-document-review__workflow-value">
+              {{ finalAdmissionWorkflowMeta.label }}
+            </strong>
+            <span class="account-document-review__workflow-description">
+              {{ finalAdmissionWorkflowMeta.description }}
+            </span>
+          </article>
+        </div>
+
         <div class="account-document-review__document-list">
           <article
             v-for="document in selectedGroup.documents"
@@ -298,7 +320,7 @@ const GROUP_STATUS_OPTIONS = [
   { value: 'missing', label: 'Документ не загружен' },
   { value: 'pending', label: 'На проверке' },
   { value: 'ready', label: 'Готов к допуску' },
-  { value: 'admitted', label: 'Одобрен' },
+  { value: 'admitted', label: 'Допуск подтвержден' },
   { value: 'attention', label: 'Требует внимания' },
 ]
 
@@ -379,6 +401,66 @@ const groupDialogState = reactive({
 const selectedGroup = computed(
   () => groupedRows.value.find((group) => group.id === groupDialogState.selectedGroupId) || null,
 )
+
+const documentsWorkflowMeta = computed(() => {
+  const group = selectedGroup.value
+
+  if (!group) {
+    return {
+      label: 'Нет данных',
+      description: 'Выберите участника, чтобы увидеть статус документов.',
+    }
+  }
+
+  if (group.statusMeta.status === 'admitted') {
+    return {
+      label: 'Документы одобрены',
+      description: 'Документы были проверены, финальный допуск уже подтвержден.',
+    }
+  }
+
+  if (group.statusMeta.status === 'ready') {
+    return {
+      label: 'Документы готовы',
+      description: 'Все обязательные документы одобрены. Осталось подтвердить финальный допуск.',
+    }
+  }
+
+  return {
+    label: group.statusMeta.label,
+    description: group.statusMeta.description,
+  }
+})
+
+const finalAdmissionWorkflowMeta = computed(() => {
+  const group = selectedGroup.value
+
+  if (!group) {
+    return {
+      label: 'Нет данных',
+      description: 'Выберите участника, чтобы увидеть финальный допуск.',
+    }
+  }
+
+  if (group.statusMeta.status === 'admitted') {
+    return {
+      label: 'Допуск подтвержден',
+      description: group.statusMeta.description,
+    }
+  }
+
+  if (group.statusMeta.status === 'ready') {
+    return {
+      label: 'Ожидает решения',
+      description: 'Нажмите “Допустить спортсмена”, когда секретарь подтвердит участие.',
+    }
+  }
+
+  return {
+    label: 'Недоступен',
+    description: 'Финальный допуск станет доступен после одобрения обязательных документов.',
+  }
+})
 
 function openGroup(group) {
   groupDialogState.isOpen = true
@@ -588,6 +670,44 @@ watch(
   gap: 6px;
 }
 
+.account-document-review__workflow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.account-document-review__workflow-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.86);
+}
+
+.account-document-review__workflow-label {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.account-document-review__workflow-value {
+  color: var(--black);
+  font-family: 'Oswald', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.account-document-review__workflow-description {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .account-document-review__document-list {
   display: grid;
   gap: 10px;
@@ -700,6 +820,10 @@ watch(
   .account-document-review__dialog-head,
   .account-document-review__document-title-row {
     flex-direction: column;
+  }
+
+  .account-document-review__workflow {
+    grid-template-columns: 1fr;
   }
 
   .account-document-review__document-actions {

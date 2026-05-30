@@ -34,8 +34,17 @@ export const ACCOUNT_DOCUMENT_STATUS = Object.freeze({
   NEEDS_REUPLOAD: 'needs_reupload',
 })
 
+export const ACCOUNT_DOCUMENT_TYPES_REQUIRING_EXPIRY = Object.freeze([
+  'medical_certificate',
+  'accident_insurance',
+])
+
 export function getAccountDocumentDefinition(documentType) {
   return ACCOUNT_DOCUMENT_TYPES.find((item) => item.type === documentType) || null
+}
+
+export function isAccountDocumentExpiryRequired(documentType) {
+  return ACCOUNT_DOCUMENT_TYPES_REQUIRING_EXPIRY.includes(documentType)
 }
 
 export function createAccountDocumentState(definition) {
