@@ -8,8 +8,9 @@
     class="account__dialog"
     title="Загрузка документа"
     :close-icon="Close"
+    :before-close="handleDialogBeforeClose"
     @closed="$emit('close')"
-    @update:model-value="!$event && $emit('close')"
+    @update:model-value="handleModelValueUpdate"
   >
     <form class="account__dialog-form" @submit.prevent="handleSubmit">
       <div class="account__dialog-copy">
@@ -26,11 +27,13 @@
           class="account-documents-upload__file-input"
           type="file"
           accept=".pdf,.png,.jpg,.jpeg"
+          :disabled="isSubmitting"
           @change="handleFileChange"
         />
         <button
           type="button"
           class="account__table-action account__table-action--ghost btn-reset account-documents-upload__file-button"
+          :disabled="isSubmitting"
           @click="openFilePicker"
         >
           {{ selectedFile ? 'Файл выбран' : 'Выбрать файл' }}
@@ -53,7 +56,8 @@
           type="text"
           inputmode="numeric"
           placeholder="дд.мм.гггг"
-          :required="isExpiryRequired"
+          :aria-invalid="Boolean(expiresAtError)"
+          @input="expiresAtError = ''"
         />
         <span class="account__field-hint">
           {{ isExpiryRequired ? 'Обязательно для меддопуска и страховки.' : 'Можно не заполнять для этого документа.' }}
@@ -65,11 +69,14 @@
         <button
           type="button"
           class="account__table-action account__table-action--ghost btn-reset"
-          @click="$emit('close')"
+          :disabled="isSubmitting"
+          @click="handleClose"
         >
           Отмена
         </button>
-        <button type="submit" class="account__submit btn-reset">Загрузить</button>
+        <button type="submit" class="account__submit btn-reset" :disabled="isSubmitting">
+          {{ isSubmitting ? 'Сохраняем...' : 'Загрузить' }}
+        </button>
       </div>
     </form>
   </ElDialog>
@@ -93,6 +100,14 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  initialExpiresAt: {
+    type: String,
+    default: '',
+  },
+  isSubmitting: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -106,6 +121,7 @@ const fileError = ref('')
 const expiresAtError = ref('')
 
 const dialogTitle = ref('')
+const DATE_PATTERN = /^\d{2}\.\d{2}\.\d{4}$/
 const isExpiryRequired = computed(() => isAccountDocumentExpiryRequired(props.documentType))
 const expiryHint = computed(() =>
   isExpiryRequired.value
@@ -134,12 +150,30 @@ watch(
 
     if (!props.modelValue) {
       resetDialog()
+      return
     }
+
+    expiresAt.value = props.initialExpiresAt || ''
+    expiresAtError.value = ''
+    fileError.value = ''
   },
   { immediate: true },
 )
 
+watch(
+  () => props.initialExpiresAt,
+  (value) => {
+    if (props.modelValue && !selectedFile.value) {
+      expiresAt.value = value || ''
+    }
+  },
+)
+
 function handleFileChange(event) {
+  if (props.isSubmitting) {
+    return
+  }
+
   const nextFile = event.target.files?.[0] || null
   selectedFile.value = nextFile
   fileError.value = ''
@@ -165,7 +199,35 @@ function handleFileChange(event) {
 }
 
 function openFilePicker() {
+  if (props.isSubmitting) {
+    return
+  }
+
   fileInputRef.value?.click()
+}
+
+function handleClose() {
+  if (props.isSubmitting) {
+    return
+  }
+
+  emit('close')
+}
+
+function handleDialogBeforeClose(done) {
+  if (props.isSubmitting) {
+    return
+  }
+
+  done()
+}
+
+function handleModelValueUpdate(value) {
+  if (value || props.isSubmitting) {
+    return
+  }
+
+  emit('close')
 }
 
 function readFileAsDataUrl(file) {
@@ -197,6 +259,11 @@ async function handleSubmit() {
     return
   }
 
+  if (expiresAt.value.trim() && !DATE_PATTERN.test(expiresAt.value.trim())) {
+    expiresAtError.value = 'Введите дату в формате дд.мм.гггг.'
+    return
+  }
+
   if (!selectedFileDataUrl.value) {
     try {
       selectedFileDataUrl.value = await readFileAsDataUrl(selectedFile.value)
@@ -212,8 +279,6 @@ async function handleSubmit() {
     fileType: selectedFileType.value,
     expiresAt: expiresAt.value,
   })
-
-  resetDialog()
 }
 
 function resetDialog() {

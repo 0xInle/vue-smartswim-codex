@@ -15,7 +15,7 @@
         <div class="account-email__section-head">
           <h4 class="account-email__section-title">Новое письмо</h4>
           <span class="account-email__section-meta">
-            Будет создана очередь в Supabase без фактической отправки
+            Отправитель MVP: почта текущего администратора. Фактическая отправка включится после подключения provider.
           </span>
         </div>
 
@@ -182,6 +182,12 @@
               </span>
               <span class="account-email__message-meta">
                 {{ formatEmailContextType(message.contextType) }} · {{ formatCompactDateTime(message.createdAt) }}
+              </span>
+              <span class="account-email__message-meta">
+                Отправитель: {{ message.createdByEmail || 'почта администратора системы' }}
+              </span>
+              <span v-if="message.deliveryNote" class="account-email__message-meta">
+                {{ message.deliveryNote }}
               </span>
             </div>
             <ElTag :type="getEmailStatusTagType(message.status)" effect="light" round>

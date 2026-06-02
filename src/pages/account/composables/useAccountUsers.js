@@ -6,10 +6,11 @@ import {
 } from '@/pages/account/utils/accountConstants'
 import {
   createAccountDocumentsState,
+  ACCOUNT_DOCUMENT_STATUS,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
 import { formatUserStatus } from '@/pages/account/utils/accountFormatters'
-import { formatRussianPhone, getRussianPhoneSearchValue } from '@/utils/phone'
+import { getPhoneSearchValue } from '@/utils/phone'
 import { getCrmRoleLabel } from '@/utils/crmRoles'
 import { showToast } from '@/utils/toast'
 import {
@@ -21,11 +22,14 @@ import {
 import {
   subscribeToAccountProfileAthleteChanges,
 } from '@/domains/account-data/accountDataRepository'
-import { subscribeToAccountDocumentChanges } from '@/domains/account-documents/documentRepository'
+import {
+  reviewAccountDocument,
+  subscribeToAccountDocumentChanges,
+} from '@/domains/account-documents/documentRepository'
 import { subscribeToAccountAdmissionWorkflowChanges } from '@/domains/account-admissions/accountAdmissionRepository'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 
-export function useAccountUsers() {
+export function useAccountUsers({ currentUser = null } = {}) {
   const users = ref([])
   const usersPage = ref(1)
   const usersSearch = ref('')
@@ -48,6 +52,10 @@ export function useAccountUsers() {
     fileSize: 0,
     expiresAt: '',
   })
+
+  function resolveReviewerName() {
+    return currentUser?.value?.name || currentUser?.name || 'Администратор'
+  }
 
   async function loadUsers() {
     const requestId = usersLoadRequestId + 1
@@ -89,7 +97,7 @@ export function useAccountUsers() {
         user.name,
         user.email,
         user.phone,
-        getRussianPhoneSearchValue(user.phone),
+        getPhoneSearchValue(user.phone),
         user.role,
         getCrmRoleLabel(user.role),
         formatUserStatus(user.status),
@@ -201,6 +209,83 @@ export function useAccountUsers() {
           }
         : document,
     )
+  }
+
+  function updateUserDocumentInEditForm(documentId, patch) {
+    const updateDocuments = (documents = []) =>
+      normalizeAccountDocumentsState(documents).map((document) =>
+        document.id === documentId
+          ? {
+              ...document,
+              ...patch,
+            }
+          : document,
+      )
+
+    userEditForm.documents = updateDocuments(userEditForm.documents)
+    userEditForm.athletes = userEditForm.athletes.map((athlete) => ({
+      ...athlete,
+      documents: updateDocuments(athlete.documents),
+    }))
+  }
+
+  async function handleReviewUserDocument(document, status, reason = '') {
+    if (!document?.id) {
+      showToast('Документ еще не сохранен в Supabase, его нельзя проверить.', { type: 'error' })
+      return
+    }
+
+    try {
+      const updatedDocument = await reviewAccountDocument(document.id, {
+        status,
+        rejectionReason: status === ACCOUNT_DOCUMENT_STATUS.VERIFIED ? '' : reason,
+        reviewerName: resolveReviewerName(),
+      })
+
+      updateUserDocumentInEditForm(document.id, updatedDocument)
+      await loadUsers()
+      showToast(status === ACCOUNT_DOCUMENT_STATUS.VERIFIED ? 'Документ одобрен' : 'Запрошено обновление документа')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось обновить статус документа', {
+        type: 'error',
+      })
+    }
+  }
+
+  function handleApproveUserDocument(document) {
+    void handleReviewUserDocument(document, ACCOUNT_DOCUMENT_STATUS.VERIFIED)
+  }
+
+  function handleRequestUserDocumentReupload(document) {
+    if (!document?.id) {
+      showToast('Документ еще не сохранен в Supabase, его нельзя проверить.', { type: 'error' })
+      return
+    }
+
+    void ElMessageBox.prompt(
+      'Комментарий увидит пользователь в личном кабинете.',
+      'Запросить обновление документа',
+      {
+        customClass: 'account__confirm-messagebox',
+        confirmButtonText: 'Запросить обновление',
+        cancelButtonText: 'Отмена',
+        confirmButtonClass: 'account__submit btn-reset',
+        cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
+        inputType: 'textarea',
+        inputPlaceholder: 'Что нужно исправить?',
+        inputValidator: (value) => Boolean(String(value || '').trim()) || 'Укажите комментарий.',
+        closeOnClickModal: false,
+        closeOnPressEscape: true,
+      },
+    )
+      .then(({ value }) => {
+        void handleReviewUserDocument(
+          document,
+          ACCOUNT_DOCUMENT_STATUS.NEEDS_REUPLOAD,
+          String(value || '').trim(),
+        )
+      })
+      .catch(() => {})
   }
 
   function handleDocumentUploadSubmit({ file, fileDataUrl = '', fileType = '', expiresAt }) {
@@ -399,5 +484,7 @@ export function useAccountUsers() {
     closeDocumentUploadDialog,
     handleDocumentUploadSubmit,
     handleDocumentRemove,
+    handleApproveUserDocument,
+    handleRequestUserDocumentReupload,
   }
 }

@@ -70,7 +70,7 @@
 <script setup>
 import { reactive, toRef, watch } from 'vue'
 import { ElCard } from 'element-plus'
-import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
+import { formatPhoneInput, isValidPhone } from '@/utils/phone'
 import { showToast } from '@/utils/toast'
 import {
   loadAccountProfileForCurrentUser,
@@ -138,8 +138,8 @@ function validateProfile() {
 
   if (!profile.phone) {
     errors.phone = 'Укажите телефон.'
-  } else if (!isRussianPhone(profile.phone)) {
-    errors.phone = 'Укажите номер в формате +7 (961) 471-33-80.'
+  } else if (!isValidPhone(profile.phone)) {
+    errors.phone = 'Укажите телефон в международном формате, например +7 (961) 471-33-80.'
   }
 
   if (!profile.email) {
@@ -152,7 +152,7 @@ function validateProfile() {
 }
 
 function handlePhoneInput(event) {
-  profile.phone = formatRussianPhoneInput(event.target.value)
+  profile.phone = formatPhoneInput(event.target.value)
   errors.phone = ''
 }
 

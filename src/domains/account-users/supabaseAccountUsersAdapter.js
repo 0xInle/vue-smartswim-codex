@@ -1,5 +1,5 @@
 import { CRM_ROLE } from '@/utils/crmRoles'
-import { formatRussianPhone } from '@/utils/phone'
+import { formatPhone } from '@/utils/phone'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
 import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
@@ -153,7 +153,7 @@ export function mergeCrmUserWithProfile(user, profile = null) {
   return {
     ...user,
     name: profile?.fullName || user.name || user.email || '',
-    phone: formatRussianPhone(profile?.phone || user.phone || ''),
+    phone: formatPhone(profile?.phone || user.phone || ''),
     email: profile?.email || user.email || '',
   }
 }

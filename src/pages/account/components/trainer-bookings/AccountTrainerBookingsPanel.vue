@@ -123,8 +123,7 @@
     <AccountTrainerBookingDetailsDialog
       :model-value="isDetailsDialogOpen"
       :booking="selectedBooking"
-      :can-update-status="true"
-      @update-status="handleStatusUpdate"
+      :can-update-status="false"
       @close="closeDetailsDialog"
     />
   </ElCard>
@@ -172,7 +171,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['refresh', 'update:search', 'update:status-filter', 'update-status'])
+const emit = defineEmits(['refresh', 'update:search', 'update:status-filter'])
 
 const isDetailsDialogOpen = ref(false)
 const selectedBooking = ref(null)
@@ -194,18 +193,6 @@ function openDetailsDialog(booking) {
 function closeDetailsDialog() {
   isDetailsDialogOpen.value = false
   selectedBooking.value = null
-}
-
-function handleStatusUpdate(status) {
-  if (!selectedBooking.value?.id || !status) {
-    return
-  }
-
-  emit('update-status', {
-    id: selectedBooking.value.id,
-    status,
-  })
-  closeDetailsDialog()
 }
 
 function getSortIndicator(columnKey) {

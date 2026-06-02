@@ -252,7 +252,7 @@ import IconPhone from '@/assets/images/icon-phone.svg'
 import IconSwimmer from '@/assets/images/icon-swimmer.svg'
 import { publicAsset } from '@/utils/publicAsset'
 import { createConsultationRequest } from '@/utils/supabaseDatabase'
-import { formatRussianPhone, formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
+import { formatPhone, formatPhoneInput, isValidPhone } from '@/utils/phone'
 import { showToast } from '@/utils/toast'
 
 const isDateOpen = ref(false)
@@ -345,7 +345,7 @@ function clearFieldError(field) {
 }
 
 function handlePhoneInput(event) {
-  consultationForm.value.phone = formatRussianPhoneInput(event.target.value)
+  consultationForm.value.phone = formatPhoneInput(event.target.value)
   clearFieldError('phone')
 }
 
@@ -381,8 +381,8 @@ function validateConsultationForm() {
 
   if (!phone) {
     errors.phone = 'Укажите телефон.'
-  } else if (!isRussianPhone(phone)) {
-    errors.phone = 'Укажите номер в формате +7 (961) 471-33-80.'
+  } else if (!isValidPhone(phone)) {
+    errors.phone = 'Укажите телефон в международном формате, например +7 (961) 471-33-80.'
   }
 
   if (!selectedDate.value || isDateInPast(selectedDate.value)) {
@@ -431,7 +431,7 @@ async function handleConsultationSubmit() {
 
   try {
     const { firstName, lastName } = splitConsultationFullName(consultationForm.value.fullName)
-    const phone = formatRussianPhone(consultationForm.value.phone)
+    const phone = formatPhone(consultationForm.value.phone)
 
     await createConsultationRequest({
       firstName,

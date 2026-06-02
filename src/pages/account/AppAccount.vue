@@ -159,7 +159,6 @@
                 @refresh="handleTrainerBookingsRefresh"
                 @update:search="trainerBookingsSearch = $event"
                 @update:status-filter="trainerBookingsStatusFilter = $event"
-                @update-status="handleTrainerBookingStatusUpdate"
               />
 
               <AccountCompetitionRegistrationsAdminPanel
@@ -223,6 +222,8 @@
                 @close-document-upload="closeDocumentUploadDialog"
                 @submit-document-upload="handleDocumentUploadSubmit"
                 @remove-document="handleDocumentRemove"
+                @approve-document="handleApproveUserDocument"
+                @request-document-reupload="handleRequestUserDocumentReupload"
               />
 
               <AccountSettingsPanel
@@ -446,7 +447,6 @@ const {
   filteredTrainerBookings,
   filteredTrainerBookingsTotal,
   handleTrainerBookingsRefresh,
-  handleTrainerBookingStatusUpdate,
   syncTrainerBookings,
   stopTrainerBookingsFeed,
   clearTrainerBookingsState,
@@ -544,7 +544,9 @@ const {
   closeDocumentUploadDialog,
   handleDocumentUploadSubmit,
   handleDocumentRemove,
-} = useAccountUsers()
+  handleApproveUserDocument,
+  handleRequestUserDocumentReupload,
+} = useAccountUsers({ currentUser })
 
 async function syncAccountData({ force = false, silent = false } = {}) {
   const now = Date.now()

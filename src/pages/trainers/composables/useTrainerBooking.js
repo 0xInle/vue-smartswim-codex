@@ -5,7 +5,7 @@ import {
   getCurrentSession,
   signUpWithPassword,
 } from '@/utils/supabaseAuth'
-import { formatRussianPhone, isRussianPhone } from '@/utils/phone'
+import { formatPhone, isValidPhone } from '@/utils/phone'
 import { showToast } from '@/utils/toast'
 
 const TRAINER_BOOKING_TOAST_DURATION = 6500
@@ -202,8 +202,8 @@ export function useTrainerBooking() {
 
     if (!trainerBookingForm.phone) {
       trainerBookingErrors.phone = 'Укажите номер телефона.'
-    } else if (!isRussianPhone(trainerBookingForm.phone)) {
-      trainerBookingErrors.phone = 'Укажите номер в формате +7 (961) 471-33-80.'
+    } else if (!isValidPhone(trainerBookingForm.phone)) {
+      trainerBookingErrors.phone = 'Укажите телефон в международном формате, например +7 (961) 471-33-80.'
     }
 
     if (!trainerBookingForm.preferredDate) {
@@ -274,7 +274,7 @@ export function useTrainerBooking() {
         clientUserId,
         firstName,
         lastName,
-        phone: formatRussianPhone(trainerBookingForm.phone),
+        phone: formatPhone(trainerBookingForm.phone),
         email: trainerBookingForm.email.trim(),
         preferredDate: trainerBookingForm.preferredDate,
         preferredTime: trainerBookingForm.preferredTime,

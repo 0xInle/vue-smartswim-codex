@@ -180,6 +180,84 @@
           :show-action-button="false"
         />
 
+        <section class="account-users__documents-review">
+          <div class="account__panel-head account-users__documents-review-head">
+            <h4 class="account__panel-title">Проверка документов</h4>
+          </div>
+
+          <div class="account-users__documents-review-list">
+            <article
+              v-for="group in documentReviewGroups"
+              :key="group.id"
+              class="account-users__documents-review-group"
+            >
+              <div class="account-users__documents-review-group-head">
+                <strong class="account-users__documents-review-group-title">{{ group.title }}</strong>
+                <span class="account-users__documents-review-group-meta">{{ group.meta }}</span>
+              </div>
+
+              <div class="account-users__documents-review-items">
+                <article
+                  v-for="document in group.documents"
+                  :key="document.id || `${group.id}-${document.type}`"
+                  class="account-users__documents-review-item"
+                  :class="`account-users__documents-review-item--${documentState(document)}`"
+                >
+                  <div class="account-users__documents-review-copy">
+                    <div class="account-users__documents-review-title-row">
+                      <strong class="account-users__documents-review-title">
+                        {{ document.label }}
+                      </strong>
+                      <ElTag
+                        :type="documentStatusTagType(document)"
+                        effect="light"
+                        round
+                        class="account-users__documents-review-tag"
+                      >
+                        {{ documentStatusLabel(document) }}
+                      </ElTag>
+                    </div>
+                    <span class="account-users__documents-review-hint">
+                      {{ documentReviewHint(document) }}
+                    </span>
+                    <span class="account-users__documents-review-file">
+                      Файл:
+                      <a
+                        v-if="getDocumentPreviewUrl(document)"
+                        class="account-users__documents-review-link"
+                        :href="getDocumentPreviewUrl(document)"
+                        :download="document.fileName || document.label"
+                      >
+                        {{ document.fileName || 'Скачать' }}
+                      </a>
+                      <span v-else>{{ document.fileName || 'Не загружен' }}</span>
+                    </span>
+                  </div>
+
+                  <div class="account-users__documents-review-actions">
+                    <button
+                      type="button"
+                      class="account__table-action account__table-action--success btn-reset"
+                      :disabled="!canApproveDocument(document)"
+                      @click="$emit('approve-document', document)"
+                    >
+                      Одобрить
+                    </button>
+                    <button
+                      type="button"
+                      class="account__table-action account__table-action--delete btn-reset"
+                      :disabled="!canReviewDocument(document)"
+                      @click="$emit('request-document-reupload', document)"
+                    >
+                      Запросить обновление
+                    </button>
+                  </div>
+                </article>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <section class="account-users__admission-section">
           <div class="account__panel-head account-users__admission-head">
             <h4 class="account__panel-title">Спортсмены и допуск</h4>
@@ -277,9 +355,12 @@ import { ElCard, ElDialog, ElEmpty, ElOption, ElPagination, ElSelect, ElTag } fr
 import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
 import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
 import { resolveAccountAdmissionStatus } from '@/pages/account/utils/accountAdmissions'
+import { isAccountDocumentExpiryRequired } from '@/pages/account/utils/accountDocumentTypes'
 import { USER_ROLE_OPTIONS, USERS_PAGE_SIZE } from '@/pages/account/utils/accountConstants'
 import {
   formatCompactDateTime,
+  formatAccountDocumentDate,
+  getAccountDocumentDisplayStatus,
   formatUserRole,
   formatUserStatus,
 } from '@/pages/account/utils/accountFormatters'
@@ -353,6 +434,8 @@ defineEmits([
   'close-document-upload',
   'submit-document-upload',
   'remove-document',
+  'approve-document',
+  'request-document-reupload',
   'toggle-sort',
 ])
 
@@ -397,6 +480,74 @@ const viewedAthleteAdmissions = computed(() => {
     }),
   }))
 })
+
+const documentReviewGroups = computed(() => {
+  const groups = [
+    {
+      id: 'profile',
+      title: 'Профиль владельца ЛК',
+      meta: props.editForm?.email || 'Основные документы пользователя',
+      documents: Array.isArray(props.editForm?.documents) ? props.editForm.documents : [],
+    },
+  ]
+
+  const athletes = Array.isArray(props.editForm?.athletes) ? props.editForm.athletes : []
+
+  athletes.forEach((athlete) => {
+    groups.push({
+      id: `athlete-${athlete.id}`,
+      title: athlete.fullName || 'Спортсмен без имени',
+      meta: athlete.birthDate || 'Дата рождения не указана',
+      documents: Array.isArray(athlete.documents) ? athlete.documents : [],
+    })
+  })
+
+  return groups
+})
+
+function documentStatusMeta(document) {
+  return getAccountDocumentDisplayStatus(document)
+}
+
+function documentStatusLabel(document) {
+  return documentStatusMeta(document).label
+}
+
+function documentState(document) {
+  return documentStatusMeta(document).status
+}
+
+function documentStatusTagType(document) {
+  return documentStatusMeta(document).tagType
+}
+
+function getDocumentPreviewUrl(document) {
+  return document?.fileDataUrl || document?.fileUrl || ''
+}
+
+function canReviewDocument(document) {
+  return Boolean(document?.id && getDocumentPreviewUrl(document))
+}
+
+function canApproveDocument(document) {
+  return Boolean(
+    document?.id &&
+      getDocumentPreviewUrl(document) &&
+      (!isAccountDocumentExpiryRequired(document?.type) || document?.expiresAt),
+  )
+}
+
+function documentReviewHint(document) {
+  const dateLabel = formatAccountDocumentDate(document?.expiresAt)
+
+  if (isAccountDocumentExpiryRequired(document?.type)) {
+    return `Срок обязателен: ${dateLabel}. Без срока меддопуск или страховка не дают допуск.`
+  }
+
+  return document?.expiresAt
+    ? `Срок указан: ${dateLabel}. Для этого документа срок не обязателен.`
+    : 'Срок действия для этого документа не требуется.'
+}
 </script>
 
 <style scoped>
@@ -427,6 +578,152 @@ const viewedAthleteAdmissions = computed(() => {
 .account-users__role-text {
   font-weight: 800;
   color: var(--black);
+}
+
+.account-users__documents-review {
+  display: grid;
+  gap: 12px;
+}
+
+.account-users__documents-review-head {
+  padding: 0;
+}
+
+.account-users__documents-review-list {
+  display: grid;
+  gap: 12px;
+}
+
+.account-users__documents-review-group {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.72);
+}
+
+.account-users__documents-review-group-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.account-users__documents-review-group-title {
+  color: var(--black);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.account-users__documents-review-group-meta {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: right;
+}
+
+.account-users__documents-review-items {
+  display: grid;
+  gap: 8px;
+}
+
+.account-users__documents-review-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 12%, white);
+  border-radius: 10px;
+  background: rgb(246 251 255 / 0.82);
+}
+
+.account-users__documents-review-item--verified {
+  border-color: color-mix(in srgb, var(--cyan) 28%, white);
+}
+
+.account-users__documents-review-item--attention,
+.account-users__documents-review-item--expired,
+.account-users__documents-review-item--needs_reupload,
+.account-users__documents-review-item--rejected {
+  border-color: color-mix(in srgb, var(--orange) 30%, white);
+}
+
+.account-users__documents-review-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.account-users__documents-review-title-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.account-users__documents-review-title {
+  min-width: 0;
+  color: var(--black);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.account-users__documents-review-tag {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.account-users__documents-review-hint,
+.account-users__documents-review-file {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.account-users__documents-review-link {
+  color: var(--el-color-primary);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.account-users__documents-review-link:hover {
+  text-decoration: underline;
+}
+
+.account-users__documents-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .account-users__documents-review-group-head,
+  .account-users__documents-review-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account-users__documents-review-group-meta {
+    text-align: left;
+  }
+
+  .account-users__documents-review-item {
+    grid-template-columns: 1fr;
+  }
+
+  .account-users__documents-review-actions {
+    justify-content: flex-start;
+  }
 }
 
 .account-users__actions-cell {

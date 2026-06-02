@@ -126,6 +126,8 @@
     <AccountDocumentUploadDialog
       :model-value="documentUploadState.isOpen"
       :document-type="documentUploadState.documentType"
+      :initial-expires-at="documentUploadState.expiresAt"
+      :is-submitting="documentUploadState.isSubmitting"
       @close="closeDocumentUploadDialog"
       @submit="handleDocumentUploadSubmit"
     />

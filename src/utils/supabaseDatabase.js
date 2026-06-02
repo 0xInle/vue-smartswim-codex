@@ -1,7 +1,7 @@
 import { CRM_ROLE } from '@/utils/crmRoles'
 import { getCurrentSession } from '@/utils/supabaseAuth'
 import { getSupabaseClient } from '@/utils/supabaseClient'
-import { formatRussianPhone, isRussianPhone } from '@/utils/phone'
+import { formatPhone, isValidPhone } from '@/utils/phone'
 import { getUserFacingErrorMessage } from '@/utils/userFacingErrors'
 
 function toMissingTableError(tableName, sqlFilePath) {
@@ -81,7 +81,7 @@ function mapConsultationRequest(row) {
     id: row.id ?? null,
     firstName: row.first_name ?? '',
     lastName: row.last_name ?? '',
-    phone: formatRussianPhone(row.phone ?? ''),
+    phone: formatPhone(row.phone ?? ''),
     consultationDate: row.consultation_date ?? '',
     consultationTime: typeof rawTime === 'string' ? rawTime.slice(0, 5) : '',
     callbackDate: row.callback_date ?? '',
@@ -102,7 +102,7 @@ function mapTrainerBooking(row) {
     clientUserId: row.client_user_id ?? null,
     firstName: row.client_first_name ?? '',
     lastName: row.client_last_name ?? '',
-    phone: formatRussianPhone(row.client_phone ?? ''),
+    phone: formatPhone(row.client_phone ?? ''),
     email: row.client_email ?? '',
     preferredDate: row.preferred_date ?? '',
     preferredTime: typeof rawTime === 'string' ? rawTime.slice(0, 5) : '',
@@ -143,8 +143,8 @@ export async function fetchCurrentCrmUser() {
 }
 
 export async function createTrainerBooking(payload) {
-  if (!isRussianPhone(payload.phone)) {
-    throw new Error('Укажите номер в формате +7 (961) 471-33-80.')
+  if (!isValidPhone(payload.phone)) {
+    throw new Error('Укажите телефон в международном формате, например +7 (961) 471-33-80.')
   }
 
   const session = await getCurrentSession().catch(() => null)
@@ -155,7 +155,7 @@ export async function createTrainerBooking(payload) {
     client_user_id: resolvedClientUserId,
     client_first_name: payload.firstName,
     client_last_name: payload.lastName,
-    client_phone: formatRussianPhone(payload.phone),
+    client_phone: formatPhone(payload.phone),
     client_email: payload.email,
     preferred_date: payload.preferredDate,
     preferred_time: payload.preferredTime,
@@ -201,8 +201,8 @@ export async function createTrainerBooking(payload) {
 }
 
 export async function createConsultationRequest(payload) {
-  if (!isRussianPhone(payload.phone)) {
-    throw new Error('Укажите номер в формате +7 (961) 471-33-80.')
+  if (!isValidPhone(payload.phone)) {
+    throw new Error('Укажите телефон в международном формате, например +7 (961) 471-33-80.')
   }
 
   const { error } = await getSupabaseClient()
@@ -210,7 +210,7 @@ export async function createConsultationRequest(payload) {
     .insert({
       first_name: payload.firstName,
       last_name: payload.lastName,
-      phone: formatRussianPhone(payload.phone),
+      phone: formatPhone(payload.phone),
       consultation_date: payload.consultationDate,
       consultation_time: payload.consultationTime,
       status: payload.status ?? 'new',
@@ -230,7 +230,7 @@ export async function createConsultationRequest(payload) {
     id: null,
     firstName: payload.firstName,
     lastName: payload.lastName,
-    phone: formatRussianPhone(payload.phone),
+    phone: formatPhone(payload.phone),
     consultationDate: payload.consultationDate,
     consultationTime: payload.consultationTime,
     status: payload.status ?? 'new',

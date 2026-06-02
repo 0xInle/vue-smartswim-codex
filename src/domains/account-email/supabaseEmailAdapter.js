@@ -161,6 +161,8 @@ export async function insertQueuedEmailMessageForAdmin(message = {}) {
       payload: {
         audienceType: message.audienceType || 'selected_users',
         recipientCount: recipients.length,
+        senderEmail: session.user.email || '',
+        providerStatus: 'not_connected',
       },
     })
 

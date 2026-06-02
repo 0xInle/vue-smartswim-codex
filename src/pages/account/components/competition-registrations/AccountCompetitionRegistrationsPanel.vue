@@ -370,11 +370,7 @@ const selectedHistoryPaymentSummary = computed(() =>
 )
 
 const selectedHistoryPaymentMvpNotice = computed(() => {
-  if (!selectedHistoryPaymentSummary.value?.payment) {
-    return ''
-  }
-
-  return 'Реальная операция в ЮKassa пока не выполняется.'
+  return 'Будущий flow ЮKassa подготовлен как MVP. Реальная операция пока не выполняется.'
 })
 
 const selectedHistoryCanBeWithdrawn = computed(() =>

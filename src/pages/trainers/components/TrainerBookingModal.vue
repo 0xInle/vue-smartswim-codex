@@ -310,7 +310,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, toRefs, watch } from 'vue'
-import { formatRussianPhoneInput } from '@/utils/phone'
+import { formatPhoneInput } from '@/utils/phone'
 
 const props = defineProps({
   isOpen: {
@@ -376,7 +376,7 @@ today.setHours(0, 0, 0, 0)
 const BOOKING_MODAL_BODY_CLASS = 'trainers-booking-modal-open'
 
 function handlePhoneInput(event) {
-  form.value.phone = formatRussianPhoneInput(event.target.value)
+  form.value.phone = formatPhoneInput(event.target.value)
   errors.value.phone = ''
 }
 

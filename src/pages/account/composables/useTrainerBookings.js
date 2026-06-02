@@ -15,7 +15,7 @@ import {
   formatTrainerBookingStatus,
   getErrorMessage,
 } from '@/pages/account/utils/accountFormatters'
-import { getRussianPhoneSearchValue } from '@/utils/phone'
+import { getPhoneSearchValue } from '@/utils/phone'
 
 export function useTrainerBookings({ isAdmin }) {
   const trainerBookings = ref([])
@@ -125,7 +125,7 @@ export function useTrainerBookings({ isAdmin }) {
         booking.lastName,
         formatTrainerBookingClientName(booking),
         booking.phone,
-        getRussianPhoneSearchValue(booking.phone),
+        getPhoneSearchValue(booking.phone),
         booking.email,
         booking.preferredDate,
         booking.preferredTime,

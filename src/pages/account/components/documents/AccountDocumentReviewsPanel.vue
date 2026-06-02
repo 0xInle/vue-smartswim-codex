@@ -215,7 +215,7 @@
                   <span v-else>{{ document.fileName || 'Не загружен' }}</span>
                 </span>
                 <div class="account-document-review__document-dates">
-                  <span>Срок: {{ formatAccountDocumentDate(document.expiresAt) }}</span>
+                  <span>{{ documentExpiryReviewText(document) }}</span>
                   <span>Загружен: {{ formatCompactDateTime(document.uploadedAt) }}</span>
                   <span>Проверен: {{ formatDocumentReviewDate(document) }}</span>
                 </div>
@@ -227,7 +227,7 @@
               <button
                 type="button"
                 class="account__table-action account__table-action--success btn-reset"
-                :disabled="!canReviewDocument(document)"
+                :disabled="!canApproveDocument(document)"
                 @click="handleApprove(document)"
               >
                 Одобрить
@@ -307,6 +307,7 @@ import { ElButton, ElCard, ElDialog, ElEmpty, ElOption, ElSelect, ElTag } from '
 import { useAccountDocumentReviews } from '@/pages/account/composables/useAccountDocumentReviews'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import { getAccountDocumentDisplayStatus } from '@/pages/account/utils/accountFormatters'
+import { isAccountDocumentExpiryRequired } from '@/pages/account/utils/accountDocumentTypes'
 
 const props = defineProps({
   currentUser: {
@@ -498,8 +499,27 @@ function formatDocumentReviewDate(document) {
   return formatCompactDateTime(document.verifiedAt)
 }
 
+function documentExpiryReviewText(document) {
+  const dateLabel = formatAccountDocumentDate(document?.expiresAt)
+
+  if (isAccountDocumentExpiryRequired(document?.type)) {
+    return `Срок обязателен: ${dateLabel}`
+  }
+
+  return document?.expiresAt
+    ? `Срок указан: ${dateLabel}`
+    : 'Срок не требуется'
+}
+
 function canReviewDocument(document) {
   return Boolean(getDocumentPreviewUrl(document))
+}
+
+function canApproveDocument(document) {
+  return Boolean(
+    getDocumentPreviewUrl(document) &&
+      (!isAccountDocumentExpiryRequired(document?.type) || document?.expiresAt),
+  )
 }
 
 function getDocumentPreviewUrl(document) {

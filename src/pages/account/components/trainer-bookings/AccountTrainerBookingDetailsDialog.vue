@@ -60,6 +60,12 @@
       </div>
 
       <div class="account-trainer-booking-details__actions">
+        <span
+          v-if="!canUpdateStatus"
+          class="account-trainer-booking-details__observer-note"
+        >
+          Статус меняет тренер. Админ видит процесс и при необходимости связывается с тренером.
+        </span>
         <button
           v-if="canUpdateStatus && isTrainerBookingNewStatus(booking.status)"
           type="button"
@@ -202,9 +208,19 @@ function isTrainerBookingProcessedStatus(status) {
 
 .account-trainer-booking-details__actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 0 0 14px;
+}
+
+.account-trainer-booking-details__observer-note {
+  flex: 1 1 280px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 @media (max-width: 760px) {

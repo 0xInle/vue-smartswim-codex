@@ -102,6 +102,8 @@ export function mapSupabaseEmailMessageRow(row = {}) {
 }
 
 export function mapEmailMessageInsertPayload(message = {}, sessionUser = {}) {
+  const senderEmail = sessionUser.email || 'почта администратора системы'
+
   return {
     template_id: message.templateId || null,
     created_by_user_id: sessionUser.id || null,
@@ -115,7 +117,7 @@ export function mapEmailMessageInsertPayload(message = {}, sessionUser = {}) {
     status: EMAIL_MESSAGE_STATUS.QUEUED,
     delivery_note:
       message.deliveryNote ||
-      'MVP: письмо поставлено в очередь. Production-отправка будет доступна после подключения email-провайдера.',
+      `MVP: письмо поставлено в очередь от имени ${senderEmail}. Production-отправка будет доступна после подключения email-провайдера.`,
     queued_at: new Date().toISOString(),
   }
 }

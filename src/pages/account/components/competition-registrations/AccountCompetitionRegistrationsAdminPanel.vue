@@ -22,57 +22,59 @@
           />
         </label>
 
-        <label class="account__field account__field--filter">
-          <span class="account__field-label">Статус</span>
-          <ElSelect
-            v-model="statusFilter"
-            class="account__select"
-            popper-class="account__select-popper"
-            placeholder="Все статусы"
-          >
-            <ElOption label="Все статусы" value="all" />
-            <ElOption
-              v-for="option in registrationStatusOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            />
-          </ElSelect>
-        </label>
+        <div class="account-competition-registrations-admin__filter-row">
+          <label class="account__field account__field--filter">
+            <span class="account__field-label">Статус</span>
+            <ElSelect
+              v-model="statusFilter"
+              class="account__select"
+              popper-class="account__select-popper"
+              placeholder="Все статусы"
+            >
+              <ElOption label="Все статусы" value="all" />
+              <ElOption
+                v-for="option in registrationStatusOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </ElSelect>
+          </label>
 
-        <label class="account__field account__field--filter">
-          <span class="account__field-label">Оплата</span>
-          <ElSelect
-            v-model="paymentStatusFilter"
-            class="account__select"
-            popper-class="account__select-popper"
-            placeholder="Все оплаты"
-          >
-            <ElOption
-              v-for="option in paymentStatusOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            />
-          </ElSelect>
-        </label>
+          <label class="account__field account__field--filter">
+            <span class="account__field-label">Оплата</span>
+            <ElSelect
+              v-model="paymentStatusFilter"
+              class="account__select"
+              popper-class="account__select-popper"
+              placeholder="Все оплаты"
+            >
+              <ElOption
+                v-for="option in paymentStatusOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </ElSelect>
+          </label>
 
-        <label class="account__field account__field--filter">
-          <span class="account__field-label">Документы</span>
-          <ElSelect
-            v-model="documentsStatusFilter"
-            class="account__select"
-            popper-class="account__select-popper"
-            placeholder="Все документы"
-          >
-            <ElOption
-              v-for="option in documentsStatusOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            />
-          </ElSelect>
-        </label>
+          <label class="account__field account__field--filter">
+            <span class="account__field-label">Документы</span>
+            <ElSelect
+              v-model="documentsStatusFilter"
+              class="account__select"
+              popper-class="account__select-popper"
+              placeholder="Все документы"
+            >
+              <ElOption
+                v-for="option in documentsStatusOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </ElSelect>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -486,6 +488,7 @@ async function handleResolveSelectedRefund(status) {
 }
 
 function handleOpenSelectedAccount(accountKey) {
+  closeDetailsDialog()
   emit('open-account', accountKey)
 }
 
@@ -533,13 +536,19 @@ function getSortAriaLabel(label, columnKey) {
 
 .account-competition-registrations-admin__filters {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(180px, 240px));
-  gap: 18px;
+  gap: 12px;
   align-items: end;
 }
 
 .account-competition-registrations-admin__filters .account__field {
   min-width: 0;
+}
+
+.account-competition-registrations-admin__filter-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: end;
 }
 
 .account-competition-registrations-admin__row--withdrawn {
@@ -671,7 +680,7 @@ function getSortAriaLabel(label, columnKey) {
 }
 
 @media (max-width: 1180px) {
-  .account-competition-registrations-admin__filters {
+  .account-competition-registrations-admin__filter-row {
     grid-template-columns: 1fr;
   }
 

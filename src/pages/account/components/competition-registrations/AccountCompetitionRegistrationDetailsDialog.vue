@@ -553,26 +553,22 @@ const closeButtonLabel = computed(() =>
 
 const paymentFlowSteps = computed(() => {
   const normalizedLabel = String(props.paymentStatusLabel || '').trim()
-
-  if (!normalizedLabel || normalizedLabel === 'Не требуется') {
-    return []
-  }
-
+  const isNotRequired = !normalizedLabel || normalizedLabel === 'Не требуется'
   const isPaid = normalizedLabel === 'Оплачено'
   const isRefunded = normalizedLabel === 'Возврат' || normalizedLabel === 'Возврат выполнен'
 
   return [
     {
       key: 'approved',
-      label: 'Заявка подтверждена',
-      done: true,
-      future: false,
+      label: isNotRequired ? 'Подтверждение админом' : 'Заявка подтверждена',
+      done: !isNotRequired,
+      future: isNotRequired,
     },
     {
       key: 'smart-swim-payment',
       label: 'Платеж Smart Swim',
-      done: true,
-      future: false,
+      done: !isNotRequired,
+      future: isNotRequired,
     },
     {
       key: 'yookassa',
@@ -584,7 +580,7 @@ const paymentFlowSteps = computed(() => {
       key: 'status',
       label: isRefunded ? 'Возврат в ЛК' : 'Статус в ЛК',
       done: isPaid || isRefunded,
-      future: false,
+      future: isNotRequired,
     },
   ]
 })

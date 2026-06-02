@@ -442,6 +442,7 @@ export function useAccountAthletes({ currentUser }) {
     fileName: '',
     fileSize: 0,
     expiresAt: '',
+    isSubmitting: false,
   })
 
   function getDocumentState(documentType) {
@@ -463,11 +464,16 @@ export function useAccountAthletes({ currentUser }) {
   }
 
   function closeDocumentUploadDialog() {
+    if (documentUploadState.isSubmitting) {
+      return
+    }
+
     documentUploadState.isOpen = false
     documentUploadState.documentType = ''
     documentUploadState.fileName = ''
     documentUploadState.fileSize = 0
     documentUploadState.expiresAt = ''
+    documentUploadState.isSubmitting = false
   }
 
   function upsertDocument(documentType, patch) {
@@ -491,10 +497,12 @@ export function useAccountAthletes({ currentUser }) {
     return athletes.value.find((athlete) => athlete.id === editingAthleteId.value) || null
   }
 
-  function handleDocumentUploadSubmit({ file, fileDataUrl = '', fileType = '', expiresAt }) {
-    if (!documentUploadState.documentType || !file) {
+  async function handleDocumentUploadSubmit({ file, fileDataUrl = '', fileType = '', expiresAt }) {
+    if (!documentUploadState.documentType || !file || documentUploadState.isSubmitting) {
       return
     }
+
+    documentUploadState.isSubmitting = true
 
     upsertDocument(documentUploadState.documentType, {
       status: 'uploaded',
@@ -509,8 +517,6 @@ export function useAccountAthletes({ currentUser }) {
       rejectionReason: '',
     })
 
-    persistEditedAthleteDocuments()
-
     if (editingAthleteId.value) {
       const editedAthlete = getEditingAthlete()
       const nextDocument = form.documents.find(
@@ -518,22 +524,28 @@ export function useAccountAthletes({ currentUser }) {
       )
 
       if (editedAthlete && nextDocument) {
-        void persistSupabaseAthleteDocument(
-          {
-            ...editedAthlete,
-            documents: form.documents,
-          },
-          nextDocument,
-        )
-          .then(() => syncAthleteDocumentsFromSource())
-          .catch((error) => {
-            showToast(error instanceof Error ? error.message : 'Не удалось сохранить документ', {
-              type: 'error',
-            })
+        try {
+          await persistSupabaseAthleteDocument(
+            {
+              ...editedAthlete,
+              documents: form.documents,
+            },
+            nextDocument,
+          )
+          await syncAthleteDocumentsFromSource()
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : 'Не удалось сохранить документ', {
+            type: 'error',
           })
+          documentUploadState.isSubmitting = false
+          return
+        }
       }
+    } else {
+      persistEditedAthleteDocuments()
     }
 
+    documentUploadState.isSubmitting = false
     closeDocumentUploadDialog()
   }
 

@@ -91,6 +91,8 @@
     <AccountDocumentUploadDialog
       :model-value="uploadDialogState.isOpen"
       :document-type="uploadDialogState.documentType"
+      :initial-expires-at="uploadDialogState.expiresAt"
+      :is-submitting="isDocumentUploadSubmitting"
       @close="closeUploadDialog"
       @submit="handleUploadSubmit"
     />
@@ -98,10 +100,10 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, toRef, watch } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref, toRef, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { ElCard } from 'element-plus'
-import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
+import { formatPhoneInput, isValidPhone } from '@/utils/phone'
 import { showToast } from '@/utils/toast'
 import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
 import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
@@ -155,6 +157,7 @@ const uploadDialogState = reactive({
   fileSize: 0,
   expiresAt: '',
 })
+const isDocumentUploadSubmitting = ref(false)
 let unsubscribeFromSupabaseDocuments = null
 let unsubscribeFromSupabaseAccountData = null
 
@@ -228,8 +231,8 @@ function validateProfile() {
 
   if (!profile.phone) {
     errors.phone = 'Укажите телефон.'
-  } else if (!isRussianPhone(profile.phone)) {
-    errors.phone = 'Укажите номер в формате +7 (961) 471-33-80.'
+  } else if (!isValidPhone(profile.phone)) {
+    errors.phone = 'Укажите телефон в международном формате, например +7 (961) 471-33-80.'
   }
 
   if (!profile.email) {
@@ -242,7 +245,7 @@ function validateProfile() {
 }
 
 function handlePhoneInput(event) {
-  profile.phone = formatRussianPhoneInput(event.target.value)
+  profile.phone = formatPhoneInput(event.target.value)
   errors.phone = ''
 }
 
@@ -261,6 +264,10 @@ function openUploadDialog(documentType) {
 }
 
 function closeUploadDialog() {
+  if (isDocumentUploadSubmitting.value) {
+    return
+  }
+
   uploadDialogState.isOpen = false
   uploadDialogState.documentType = ''
   uploadDialogState.fileName = ''
@@ -305,9 +312,11 @@ async function persistProfileDocument(document) {
 }
 
 async function handleUploadSubmit(payload) {
-  if (!uploadDialogState.documentType || !payload.file) {
+  if (!uploadDialogState.documentType || !payload.file || isDocumentUploadSubmitting.value) {
     return
   }
+
+  isDocumentUploadSubmitting.value = true
 
   upsertDocument(uploadDialogState.documentType, {
     status: 'uploaded',
@@ -330,13 +339,17 @@ async function handleUploadSubmit(payload) {
     await persistProfileDocument(nextDocument)
     await syncProfileDocumentsFromSource()
     showToast('Документ загружен и отправлен на проверку')
+    isDocumentUploadSubmitting.value = false
+    closeUploadDialog()
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Не удалось сохранить документ', {
       type: 'error',
     })
+  } finally {
+    if (isDocumentUploadSubmitting.value) {
+      isDocumentUploadSubmitting.value = false
+    }
   }
-
-  closeUploadDialog()
 }
 
 function handleDocumentRemove(documentType) {
@@ -426,6 +439,10 @@ watch(
 
 onMounted(() => {
   unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
+    if (isDocumentUploadSubmitting.value) {
+      return
+    }
+
     void syncProfileDocumentsFromSource()
   })
   unsubscribeFromSupabaseAccountData = subscribeToAccountProfileAthleteChanges(() => {
