@@ -130,11 +130,17 @@
         <div class="account__dialog-actions account-email__actions">
           <button
             type="button"
-            class="account__submit btn-reset"
+            class="account__table-action account__table-action--edit btn-reset"
             :disabled="isSubmitDisabled"
+            :aria-busy="isSaving"
             @click="handleSubmit"
           >
-            {{ isSaving ? 'Сохраняем...' : 'Поставить в очередь' }}
+            <span
+              v-if="isSaving"
+              class="account__button-spinner"
+              aria-hidden="true"
+            ></span>
+            Поставить в очередь
           </button>
         </div>
       </section>

@@ -121,8 +121,18 @@
         >
           Отмена
         </button>
-        <button type="submit" class="account__submit btn-reset" :disabled="isSubmitting">
-          {{ isSubmitting ? 'Сохраняем...' : 'Зарегистрироваться' }}
+        <button
+          type="submit"
+          class="account__table-action account__table-action--success btn-reset account-competition-registration__submit"
+          :disabled="isSubmitting"
+          :aria-busy="isSubmitting"
+        >
+          <span
+            v-if="isSubmitting"
+            class="account__button-spinner"
+            aria-hidden="true"
+          ></span>
+          <span>Зарегистрироваться</span>
         </button>
       </div>
     </form>
@@ -247,6 +257,14 @@ watch(
   justify-content: center;
   min-height: 38px;
   width: 100%;
+}
+
+.account-competition-registration__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 220px;
 }
 
 .account__panel-eyebrow {

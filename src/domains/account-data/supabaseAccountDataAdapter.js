@@ -120,7 +120,6 @@ export async function fetchAccountAthletesForCurrentUser() {
     .from(ACCOUNT_ATHLETES_TABLE)
     .select(ACCOUNT_ATHLETE_SELECT)
     .eq('owner_user_id', session.user.id)
-    .order('updated_at', { ascending: false })
 
   if (error) {
     throwAccountDataError(error, ACCOUNT_ATHLETES_TABLE, 'Не удалось загрузить спортсменов.')
@@ -153,7 +152,6 @@ export async function fetchAllAccountAthletesForAdmin() {
   const { data, error } = await getSupabaseClient()
     .from(ACCOUNT_ATHLETES_TABLE)
     .select(ACCOUNT_ATHLETE_SELECT)
-    .order('updated_at', { ascending: false })
 
   if (error) {
     throwAccountDataError(error, ACCOUNT_ATHLETES_TABLE, 'Не удалось загрузить спортсменов.')

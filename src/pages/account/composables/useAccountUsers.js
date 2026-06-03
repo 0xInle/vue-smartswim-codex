@@ -5,7 +5,9 @@ import {
   USERS_PAGE_SIZE,
 } from '@/pages/account/utils/accountConstants'
 import {
+  createAccountDocumentRemovalPatch,
   createAccountDocumentsState,
+  createAccountDocumentUploadPatch,
   ACCOUNT_DOCUMENT_STATUS,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
@@ -269,7 +271,7 @@ export function useAccountUsers({ currentUser = null } = {}) {
         customClass: 'account__confirm-messagebox',
         confirmButtonText: 'Запросить обновление',
         cancelButtonText: 'Отмена',
-        confirmButtonClass: 'account__submit btn-reset',
+        confirmButtonClass: 'account__table-action account__table-action--delete btn-reset',
         cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
         inputType: 'textarea',
         inputPlaceholder: 'Что нужно исправить?',
@@ -293,18 +295,16 @@ export function useAccountUsers({ currentUser = null } = {}) {
       return
     }
 
-    upsertUserDocument(documentUploadState.documentType, {
-      status: 'uploaded',
-      fileName: file.name,
-      fileSize: file.size,
-      fileDataUrl,
-      fileType,
-      uploadedAt: new Date().toISOString(),
-      expiresAt: expiresAt || '',
-      verifiedAt: '',
-      verifiedBy: '',
-      rejectionReason: '',
-    })
+    upsertUserDocument(
+      documentUploadState.documentType,
+      createAccountDocumentUploadPatch({
+        fileName: file.name,
+        fileSize: file.size,
+        fileDataUrl,
+        fileType,
+        expiresAt: expiresAt || '',
+      }),
+    )
 
     closeDocumentUploadDialog()
   }
@@ -332,18 +332,7 @@ export function useAccountUsers({ currentUser = null } = {}) {
       },
     )
       .then(() => {
-        upsertUserDocument(documentType, {
-          status: 'missing',
-          fileName: '',
-          fileSize: 0,
-          fileDataUrl: '',
-          fileType: '',
-          uploadedAt: '',
-          expiresAt: '',
-          verifiedAt: '',
-          verifiedBy: '',
-          rejectionReason: '',
-        })
+        upsertUserDocument(documentType, createAccountDocumentRemovalPatch())
       })
       .catch(() => {})
   }

@@ -1,6 +1,68 @@
 <template>
   <ElCard class="account__panel account-dashboard" shadow="never">
-    <div class="account-dashboard__body">
+    <div v-if="showSkeleton" class="account-dashboard__skeleton" aria-busy="true">
+      <section class="account-dashboard__metrics account-dashboard__metrics--skeleton">
+        <article v-for="index in 4" :key="`metric-skeleton-${index}`" class="account-dashboard__metric">
+          <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--label"></span>
+          <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--value"></span>
+          <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--hint"></span>
+        </article>
+      </section>
+
+      <section class="account-dashboard__cards account-dashboard__cards--overview">
+        <article class="account-dashboard__card account-dashboard__card--activity">
+          <div class="account-dashboard__card-head">
+            <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--eyebrow"></span>
+            <div class="account-dashboard__actions">
+              <span class="account-dashboard__skeleton-pill"></span>
+              <span class="account-dashboard__skeleton-pill"></span>
+            </div>
+          </div>
+
+          <div class="account-dashboard__activity-list">
+            <div v-for="index in 4" :key="`activity-skeleton-${index}`" class="account-dashboard__activity-item">
+              <div class="account-dashboard__activity-copy">
+                <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--activity-title"></span>
+                <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--activity-name"></span>
+              </div>
+
+              <div class="account-dashboard__activity-meta">
+                <span class="account-dashboard__skeleton-pill account-dashboard__skeleton-pill--status"></span>
+                <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--time"></span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="account-dashboard__card account-dashboard__card--snapshot">
+          <div class="account-dashboard__card-head">
+            <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--eyebrow"></span>
+            <span class="account-dashboard__skeleton-pill"></span>
+          </div>
+
+          <div class="account-dashboard__document-highlight account-dashboard__document-highlight--skeleton">
+            <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--label"></span>
+            <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--document-name"></span>
+            <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--meta"></span>
+            <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--meta"></span>
+          </div>
+
+          <div class="account-dashboard__mini-stats">
+            <article v-for="index in 4" :key="`mini-stat-skeleton-${index}`" class="account-dashboard__mini-stat">
+              <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--label"></span>
+              <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--mini-value"></span>
+            </article>
+          </div>
+
+          <div class="account-dashboard__snapshot-footer">
+            <span class="account-dashboard__skeleton-line account-dashboard__skeleton-line--footer-note"></span>
+            <span class="account-dashboard__skeleton-pill account-dashboard__skeleton-pill--footer"></span>
+          </div>
+        </article>
+      </section>
+    </div>
+
+    <div v-else class="account-dashboard__body">
       <section class="account-dashboard__metrics" aria-label="Ключевые показатели">
         <article class="account-dashboard__metric">
           <p class="account-dashboard__metric-label">Новые заявки</p>
@@ -181,6 +243,10 @@ import {
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 
 const props = defineProps({
+  isLoading: {
+    type: Boolean,
+    default: false,
+  },
   consultationRequests: {
     type: Array,
     required: true,
@@ -200,6 +266,16 @@ const props = defineProps({
 })
 
 defineEmits(['select-section'])
+
+const showSkeleton = computed(() => {
+  const hasDashboardData =
+    props.consultationRequests.length > 0 ||
+    props.trainerBookings.length > 0 ||
+    props.users.length > 0 ||
+    props.openCompetitionRegistrationsCount > 0
+
+  return props.isLoading && !hasDashboardData
+})
 
 const DASHBOARD_ACTIVITY_ROWS_COUNT = 4
 

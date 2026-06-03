@@ -40,7 +40,6 @@
                     ></span>
                   </button>
                 </th>
-                <th>Соревнование</th>
                 <th>Статус</th>
                 <th>Оплата</th>
                 <th>Действие</th>
@@ -54,14 +53,9 @@
                 class="account__native-table-row"
                 :class="`account-competition-registrations__history-row--${record.status}`"
               >
-                <td class="account__native-table-cell account__native-table-cell--center">
+                <td class="account__native-table-cell account__native-table-cell--primary account-competition-registrations__participant-cell">
                   <span class="account-competition-registrations__nowrap">
                     {{ formatParticipantName(record) }}
-                  </span>
-                </td>
-                <td class="account__native-table-cell account__native-table-cell--center">
-                  <span class="account-competition-registrations__nowrap">
-                    {{ record.competitionName || 'Не указано' }}
                   </span>
                 </td>
                 <td class="account__native-table-cell account__native-table-cell--center">
@@ -69,9 +63,6 @@
                     <ElTag :type="getRegistrationStatusTagType(record.status)" effect="light" round>
                       {{ getRegistrationStatusLabel(record.status) }}
                     </ElTag>
-                    <span class="account-competition-registrations__next-action">
-                      {{ getRegistrationLifecycleSummary(record).nextAction }}
-                    </span>
                   </div>
                 </td>
                 <td class="account__native-table-cell account__native-table-cell--center">
@@ -83,9 +74,6 @@
                     >
                       {{ getRegistrationPaymentSummary(record).label }}
                     </ElTag>
-                    <span class="account-competition-registrations__next-action">
-                      {{ getRegistrationPaymentSummary(record).description }}
-                    </span>
                   </div>
                 </td>
                 <td class="account__native-table-cell account__native-table-cell--center">
@@ -144,7 +132,6 @@
                   <ElOption label="Все статусы" value="all" />
                   <ElOption label="Открыто" value="open" />
                   <ElOption label="Скоро" value="upcoming" />
-                  <ElOption label="Закрыто" value="closed" />
                 </ElSelect>
               </label>
             </div>
@@ -170,8 +157,14 @@
       </section>
 
       <section class="account-competition-registrations__section">
-        <div class="account-competition-registrations__section-head">
+        <div class="account-competition-registrations__section-head account-competition-registrations__section-head--split">
           <h3 class="account__panel-title">Соревнования</h3>
+          <ElCheckbox
+            v-model="hideClosedCompetitions"
+            class="account-competition-registrations__hide-closed"
+          >
+            Скрыть прошедшие
+          </ElCheckbox>
         </div>
 
         <div v-if="filteredRows.length" class="account__native-table-wrap">
@@ -187,7 +180,7 @@
 
             <tbody>
               <tr v-for="row in filteredRows" :key="row.id" class="account__native-table-row">
-                <td class="account__native-table-cell account__native-table-cell--primary">
+                <td class="account__native-table-cell account-competition-registrations__participant-cell">
                   <div class="account__table-user">
                     <div class="account__table-primary">{{ row.competitionName }}</div>
                   </div>
@@ -272,7 +265,7 @@
 
 <script setup>
 import { computed, ref, toRef, watch } from 'vue'
-import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
+import { ElCard, ElCheckbox, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDetailsDialog.vue'
 import AccountCompetitionRegistrationDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDialog.vue'
 import { useAccountCompetitionRegistrations } from '@/pages/account/composables/useAccountCompetitionRegistrations'
@@ -297,6 +290,7 @@ const emit = defineEmits(['consume-target'])
 
 const competitionFilter = ref('all')
 const statusFilter = ref('all')
+const hideClosedCompetitions = ref(true)
 const isSubmitting = ref(false)
 const selectedHistoryRegistration = ref(null)
 const isHistoryDetailsDialogOpen = ref(false)
@@ -337,14 +331,16 @@ const { sortKey, toggleSort, getSortState, sortItems } =
   useTriStateTextSort('participantName')
 
 const filteredRows = computed(() =>
-  filteredCompetitionRows.value.filter((row) => {
-    const matchesCompetition =
-      competitionFilter.value === 'all' || row.competitionSlug === competitionFilter.value
-    const matchesStatus =
-      statusFilter.value === 'all' || row.registrationState.mode === statusFilter.value
+  filteredCompetitionRows.value
+    .filter((row) => !hideClosedCompetitions.value || row.registrationState.mode !== 'closed')
+    .filter((row) => {
+      const matchesCompetition =
+        competitionFilter.value === 'all' || row.competitionSlug === competitionFilter.value
+      const matchesStatus =
+        statusFilter.value === 'all' || row.registrationState.mode === statusFilter.value
 
-    return matchesCompetition && matchesStatus
-  }),
+      return matchesCompetition && matchesStatus
+    }),
 )
 
 const sortedRegistrationHistory = computed(() =>
@@ -415,6 +411,14 @@ function getRegistrationActionLabel(row) {
   }
 
   return 'Закрыта'
+}
+
+function normalizeStatusFilter(mode) {
+  if (mode === 'open' || mode === 'upcoming') {
+    return mode
+  }
+
+  return 'all'
 }
 
 function getSortIndicator(columnKey) {
@@ -559,7 +563,7 @@ watch(
 
     openRegistrationDialog(nextTarget.stageId)
     competitionFilter.value = selectedStage.value?.competitionSlug || competitionFilter.value
-    statusFilter.value = selectedStage.value?.registrationState.mode || statusFilter.value
+    statusFilter.value = normalizeStatusFilter(selectedStage.value?.registrationState.mode)
     emit('consume-target')
   },
   { immediate: true, deep: true },
@@ -644,10 +648,14 @@ watch(
   color: #4490f3;
 }
 
+.account-competition-registrations :deep(.el-card__body) {
+  padding: 0;
+}
+
 .account-competition-registrations__content {
   display: grid;
   gap: 18px;
-  padding: 18px;
+  padding: 18px 18px 14px;
 }
 
 .account-competition-registrations__section {
@@ -659,6 +667,38 @@ watch(
   display: flex;
   align-items: center;
   justify-content: flex-start;
+}
+
+.account-competition-registrations__section-head--split {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.account-competition-registrations__hide-closed {
+  flex-shrink: 0;
+}
+
+.account-competition-registrations__hide-closed :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  border-color: var(--cyan);
+  background-color: var(--cyan);
+}
+
+.account-competition-registrations__hide-closed :deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+  color: var(--black);
+}
+
+.account-competition-registrations__hide-closed :deep(.el-checkbox__inner) {
+  border-radius: 5px;
+  border-color: color-mix(in srgb, var(--cyan) 28%, white);
+}
+
+.account__native-table--competition-history .account-competition-registrations__participant-cell {
+  text-align: left;
+}
+
+.account__native-table--competition-history .account-competition-registrations__participant-cell .account__table-user {
+  justify-items: start;
+  text-align: left;
 }
 
 .account-competition-registrations__empty-state {
@@ -742,6 +782,7 @@ watch(
 }
 
 .account__native-table--competition-history {
+  width: 100%;
   table-layout: fixed;
 }
 
@@ -751,27 +792,22 @@ watch(
 
 .account__native-table--competition-history th:nth-child(1),
 .account__native-table--competition-history td:nth-child(1) {
-  width: 20%;
+  width: 46%;
 }
 
 .account__native-table--competition-history th:nth-child(2),
 .account__native-table--competition-history td:nth-child(2) {
-  width: 28%;
+  width: 18%;
 }
 
 .account__native-table--competition-history th:nth-child(3),
 .account__native-table--competition-history td:nth-child(3) {
-  width: 22%;
+  width: 18%;
 }
 
 .account__native-table--competition-history th:nth-child(4),
 .account__native-table--competition-history td:nth-child(4) {
   width: 18%;
-}
-
-.account__native-table--competition-history th:nth-child(5),
-.account__native-table--competition-history td:nth-child(5) {
-  width: 12%;
 }
 
 .account-competition-registrations__history-row--withdrawn {
@@ -789,17 +825,30 @@ watch(
 .account-competition-registrations__status-cell {
   display: grid;
   justify-items: center;
-  gap: 5px;
+  gap: 0;
   min-width: 0;
 }
 
-.account-competition-registrations__next-action {
+.account-competition-registrations__participant-cell {
+  text-align: left;
+}
+
+.account-competition-registrations__status-cell .el-tag {
   max-width: 100%;
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.25;
-  color: #64748b;
-  white-space: normal;
+  border-radius: 5px;
+}
+
+.account__native-table--competition-history .account__native-table-cell {
+  padding: 12px 10px;
+}
+
+.account__native-table--competition-registrations .account__native-table-cell:first-child {
+  text-align: left;
+}
+
+.account__native-table--competition-history .account__table-action--edit {
+  min-width: 102px;
+  padding-inline: 10px;
 }
 
 .account__native-table--competition-registrations .account__native-table-cell--center {
@@ -829,6 +878,26 @@ watch(
 @media (max-width: 640px) {
   .account-competition-registrations__content {
     padding: 14px;
+  }
+
+  .account__native-table--competition-history th:nth-child(1),
+  .account__native-table--competition-history td:nth-child(1) {
+    width: 50%;
+  }
+
+  .account__native-table--competition-history th:nth-child(2),
+  .account__native-table--competition-history td:nth-child(2) {
+    width: 16%;
+  }
+
+  .account__native-table--competition-history th:nth-child(3),
+  .account__native-table--competition-history td:nth-child(3) {
+    width: 16%;
+  }
+
+  .account__native-table--competition-history th:nth-child(4),
+  .account__native-table--competition-history td:nth-child(4) {
+    width: 18%;
   }
 }
 </style>

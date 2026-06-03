@@ -75,7 +75,12 @@ function normalizeDateOnly(value) {
     return null
   }
 
-  const dateValue = String(value)
+  const dateValue = String(value).trim()
+  const ruDateMatch = dateValue.match(/^(\d{2})\.(\d{2})\.(\d{4})$/)
+
+  if (ruDateMatch) {
+    return `${ruDateMatch[3]}-${ruDateMatch[2]}-${ruDateMatch[1]}`
+  }
 
   return dateValue.includes('T') ? dateValue.slice(0, 10) : dateValue
 }

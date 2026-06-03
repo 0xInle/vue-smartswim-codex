@@ -4,9 +4,13 @@
       <div class="account-athlete-card__copy">
         <div class="account-athlete-card__name-row">
           <h4 class="account-athlete-card__name">{{ athlete.fullName }}</h4>
-          <ElTag :type="documentsStatus.tagType" effect="light" round class="account-athlete-card__status-tag">
+          <span
+            class="account-athlete-card__status-tag"
+            :class="`account-athlete-card__status-tag--${documentsStatus.status}`"
+            :title="documentsStatus.description"
+          >
             {{ documentsStatus.label }}
-          </ElTag>
+          </span>
         </div>
         <p class="account-athlete-card__meta">
           {{ athlete.birthDate }} · {{ genderLabel(athlete.gender) }}
@@ -50,7 +54,6 @@
 
 <script setup>
 import { computed } from 'vue'
-import { ElTag } from 'element-plus'
 import { normalizeAccountDocumentsState } from '@/pages/account/utils/accountDocumentTypes'
 import { resolveAccountAdmissionStatus } from '@/pages/account/utils/accountAdmissions'
 
@@ -85,11 +88,12 @@ const documentsStatus = computed(() =>
 <style scoped>
 .account-athlete-card {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding: 16px;
   border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
-  border-radius: 10px;
-  background: var(--white);
+  border-radius: 5px;
+  background: rgb(255 255 255 / 0.9);
+  box-shadow: 0 10px 28px rgb(15 23 42 / 0.04);
 }
 
 .account-athlete-card__head {
@@ -101,7 +105,7 @@ const documentsStatus = computed(() =>
 
 .account-athlete-card__copy {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
 }
 
@@ -115,17 +119,17 @@ const documentsStatus = computed(() =>
 
 .account-athlete-card__name {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 900;
-  line-height: 1.1;
+  line-height: 1.2;
   color: var(--black);
 }
 
 .account-athlete-card__meta {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  line-height: 1.5;
+  line-height: 1.35;
   color: #64748b;
 }
 
@@ -140,7 +144,6 @@ const documentsStatus = computed(() =>
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 2px;
 }
 
 .account-athlete-card__field--wide {
@@ -154,24 +157,50 @@ const documentsStatus = computed(() =>
 
 .account-athlete-card__status-tag {
   flex: 0 0 auto;
-  min-height: 28px;
-  padding-inline: 10px;
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 5px;
+  background: rgb(255 255 255 / 0.86);
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  color: #176384;
+}
+
+.account-athlete-card__status-tag--attention,
+.account-athlete-card__status-tag--missing {
+  border-color: color-mix(in srgb, var(--orange) 20%, white);
+  background: color-mix(in srgb, var(--orange) 8%, white);
+  color: #b95632;
+}
+
+.account-athlete-card__status-tag--pending,
+.account-athlete-card__status-tag--ready {
+  border-color: color-mix(in srgb, var(--cyan) 20%, white);
+  background: color-mix(in srgb, var(--cyan) 7%, white);
+  color: #176384;
+}
+
+.account-athlete-card__status-tag--admitted {
+  border-color: color-mix(in srgb, var(--aqua) 24%, white);
+  background: color-mix(in srgb, var(--aqua) 10%, white);
+  color: #2f8f5b;
 }
 
 .account-athlete-card__label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #64748b;
 }
 
 .account-athlete-card__value {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--black);
 }

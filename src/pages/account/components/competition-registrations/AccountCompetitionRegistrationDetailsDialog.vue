@@ -66,20 +66,17 @@
         </div>
 
         <div
-          v-if="lifecycleLabel || lifecycleDescription || lifecycleNextAction"
+          v-if="lifecycleLabel || lifecycleDescription || lifecycleNextAction || registrationKindLabel || registration.teamName || registration.seedTime"
           class="account-competition-registration-details__card account-competition-registration-details__card--wide account-competition-registration-details__card--lifecycle"
         >
           <div class="account-competition-registration-details__card-head">
             <span class="account-competition-registration-details__label">Статус заявки</span>
-            <ElTag :type="statusTagType" effect="light" round>
-              {{ lifecycleLabel || statusLabel }}
-            </ElTag>
           </div>
           <strong
-            v-if="lifecycleDescription"
+            v-if="lifecycleDescription || lifecycleLabel"
             class="account-competition-registration-details__value"
           >
-            {{ lifecycleDescription }}
+            {{ lifecycleDescription || lifecycleLabel }}
           </strong>
           <span
             v-if="lifecycleNextAction"
@@ -99,42 +96,41 @@
           >
             Блокирует допуск до решения вопроса.
           </span>
+          <span class="account-competition-registration-details__meta account-competition-registration-details__meta--stacked">
+            Тип заявки: {{ registrationKindLabel }}
+          </span>
+          <template v-if="canEditRegistrationKind">
+            <ElSelect
+              v-model="form.registrationKind"
+              class="account__select"
+              popper-class="account__select-popper"
+            >
+              <ElOption
+                v-for="option in registrationKindOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </ElSelect>
+          </template>
+          <template v-else>
+            <strong class="account-competition-registration-details__value">
+              {{ registrationKindLabel }}
+            </strong>
+          </template>
+          <span class="account-competition-registration-details__meta">
+            {{ registration.participantKind === 'athlete' ? 'Заявка спортсмена' : 'Заявка пользователя' }}
+          </span>
+          <span v-if="registration.teamName" class="account-competition-registration-details__meta">
+            Команда: {{ registration.teamName }}
+          </span>
+          <span v-if="registration.seedTime" class="account-competition-registration-details__meta">
+            Ориентир: {{ registration.seedTime }}
+          </span>
         </div>
 
         <div class="account-competition-registration-details__pair">
-          <div class="account-competition-registration-details__card">
-            <span class="account-competition-registration-details__label">Тип заявки</span>
-            <template v-if="canEditRegistrationKind">
-              <ElSelect
-                v-model="form.registrationKind"
-                class="account__select"
-                popper-class="account__select-popper"
-              >
-                <ElOption
-                  v-for="option in registrationKindOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                />
-              </ElSelect>
-            </template>
-            <template v-else>
-              <strong class="account-competition-registration-details__value">
-                {{ registrationKindLabel }}
-              </strong>
-            </template>
-            <span class="account-competition-registration-details__meta">
-              {{ registration.participantKind === 'athlete' ? 'Заявка спортсмена' : 'Заявка пользователя' }}
-            </span>
-            <span v-if="registration.teamName" class="account-competition-registration-details__meta">
-              Команда: {{ registration.teamName }}
-            </span>
-            <span v-if="registration.seedTime" class="account-competition-registration-details__meta">
-              Ориентир: {{ registration.seedTime }}
-            </span>
-          </div>
-
-          <div class="account-competition-registration-details__card">
+          <div class="account-competition-registration-details__card account-competition-registration-details__card--wide account-competition-registration-details__card--payment">
             <div class="account-competition-registration-details__card-head">
               <span class="account-competition-registration-details__label">Оплата</span>
               <ElTag :type="paymentStatusTagType" effect="light" round>
@@ -170,13 +166,15 @@
                 {{ step.label }}
               </span>
             </div>
-            <span class="account-competition-registration-details__meta">
-              Создана: {{ formatCompactDateTime(registration.createdAt) }}
-            </span>
-            <span class="account-competition-registration-details__meta">
-              Изменена:
-              {{ formatCompactDateTime(registration.updatedAt || registration.statusChangedAt || registration.createdAt) }}
-            </span>
+            <div class="account-competition-registration-details__dates">
+              <span class="account-competition-registration-details__meta">
+                Создана: {{ formatCompactDateTime(registration.createdAt) }}
+              </span>
+              <span class="account-competition-registration-details__meta">
+                Изменена:
+                {{ formatCompactDateTime(registration.updatedAt || registration.statusChangedAt || registration.createdAt) }}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -653,9 +651,11 @@ watch(
 }
 
 .account-competition-registration-details__card--lifecycle {
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.94), rgb(245 251 255 / 0.86)),
-    color-mix(in srgb, var(--aqua) 7%, white);
+  background: rgb(255 255 255 / 0.9);
+}
+
+.account-competition-registration-details__card--payment {
+  grid-column: 1 / -1;
 }
 
 .account-competition-registration-details__label {
@@ -700,23 +700,35 @@ watch(
   color: #c75f33;
 }
 
+.account-competition-registration-details__dates {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.account-competition-registration-details__dates .account-competition-registration-details__meta {
+  white-space: nowrap;
+}
+
 .account-competition-registration-details__payment-flow {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 4px;
+  gap: 16px;
+  margin-top: 12px;
 }
 
 .account-competition-registration-details__payment-flow-step {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
-  padding: 6px 8px;
+  min-height: 36px;
+  padding: 8px 10px;
   border: 1px solid color-mix(in srgb, var(--cyan) 18%, white);
   border-radius: 10px;
   background: color-mix(in srgb, var(--white) 72%, var(--light-blue));
   color: #526072;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
   line-height: 1.2;
 }
@@ -731,6 +743,10 @@ watch(
   border-color: color-mix(in srgb, var(--orange) 32%, white);
   background: color-mix(in srgb, var(--orange) 10%, white);
   color: #a9552e;
+}
+
+.account-competition-registration-details :deep(.el-tag) {
+  border-radius: 5px;
 }
 
 .account-competition-registration-details__status-tag {

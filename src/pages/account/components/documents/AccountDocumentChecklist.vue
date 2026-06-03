@@ -332,6 +332,11 @@ function reviewNote(document) {
   background: linear-gradient(180deg, rgb(241 255 252 / 0.96) 0%, rgb(255 255 255 / 0.92) 100%);
 }
 
+.account-documents--embedded .account-documents__item,
+.account-documents--embedded .account-documents__item--verified {
+  background: transparent;
+}
+
 .account-documents__item--rejected {
   border-color: color-mix(in srgb, var(--orange) 32%, white);
 }
@@ -436,6 +441,12 @@ function reviewNote(document) {
 .account-documents__icon-button:hover {
   border-color: color-mix(in srgb, var(--cyan) 40%, white);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 10%, transparent);
+}
+
+.account-documents--embedded .account-documents__icon-button,
+.account-documents--embedded .account-documents__icon-box,
+.account-documents--embedded .account-documents__edit-button {
+  background: transparent;
 }
 
 .account-documents__action-icon {

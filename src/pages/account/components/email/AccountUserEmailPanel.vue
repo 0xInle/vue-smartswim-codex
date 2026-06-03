@@ -2,7 +2,6 @@
   <ElCard class="account__panel account-user-email" shadow="never">
     <div class="account-user-email__header">
       <div>
-        <p class="account__panel-eyebrow">Письма</p>
         <h3 class="account__panel-title">Сообщения от Smart Swim</h3>
       </div>
 
@@ -35,14 +34,16 @@
       >
         <div class="account-user-email__message-head">
           <div class="account-user-email__message-title-group">
+            <h4 class="account-user-email__message-title">{{ message.subject }}</h4>
+          </div>
+          <div class="account-user-email__message-meta">
+            <span class="account-user-email__message-date">
+              {{ formatCompactDateTime(message.createdAt) }}
+            </span>
             <ElTag :type="getEmailStatusTagType(message.status)" effect="light" round>
               {{ formatEmailStatus(message.status) }}
             </ElTag>
-            <h4 class="account-user-email__message-title">{{ message.subject }}</h4>
           </div>
-          <span class="account-user-email__message-date">
-            {{ formatCompactDateTime(message.createdAt) }}
-          </span>
         </div>
 
         <p v-if="message.deliveryNote" class="account-user-email__message-note">
@@ -119,13 +120,13 @@ onBeforeUnmount(() => {
 
 .account-user-email__list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .account-user-email__message {
   display: grid;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--cyan) 18%, white);
   border-radius: 10px;
   background: rgb(255 255 255 / 0.86);
@@ -134,30 +135,42 @@ onBeforeUnmount(() => {
 
 .account-user-email__message-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
 }
 
 .account-user-email__message-title-group {
   display: grid;
-  gap: 8px;
+  gap: 0;
   min-width: 0;
-}
-
-.account-user-email__message-title-group :deep(.el-tag) {
-  justify-self: start;
-  font-size: 11px;
-  font-weight: 900;
 }
 
 .account-user-email__message-title {
   margin: 0;
   color: #111827;
   font-family: 'Oswald', sans-serif;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.account-user-email__message-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: auto;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.account-user-email__message-meta :deep(.el-tag) {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .account-user-email__message-date,
@@ -171,8 +184,8 @@ onBeforeUnmount(() => {
 }
 
 .account-user-email__message-date {
-  flex: 0 0 auto;
   text-align: right;
+  white-space: nowrap;
 }
 
 .account-user-email__message-note {
@@ -180,7 +193,7 @@ onBeforeUnmount(() => {
 }
 
 .account-user-email__message-body {
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid color-mix(in srgb, var(--cyan) 14%, white);
   color: #334155;
   white-space: pre-wrap;
@@ -202,8 +215,14 @@ onBeforeUnmount(() => {
 
 @media (max-width: 720px) {
   .account-user-email__header,
-  .account-user-email__message-head {
+  .account-user-email__message-head,
+  .account-user-email__message-meta {
     display: grid;
+  }
+
+  .account-user-email__message-meta {
+    justify-items: start;
+    justify-content: start;
   }
 
   .account-user-email__message-date {

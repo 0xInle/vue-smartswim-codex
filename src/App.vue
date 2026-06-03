@@ -2,14 +2,12 @@
   <main class="main-content flex">
     <AppFloatingHeader v-if="shouldShowFloatingHeader" />
     <RouterView />
-    <AppToastHost />
   </main>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import AppFloatingHeader from '@/components/AppFloatingHeader.vue'
-import AppToastHost from '@/components/AppToastHost.vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()

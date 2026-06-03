@@ -1,6 +1,28 @@
 <template>
   <ElCard class="account__panel account-user-dashboard" shadow="never">
-    <div class="account-user-dashboard__body">
+    <div v-if="showSkeleton" class="account-user-dashboard__body account-user-dashboard__body--skeleton" aria-busy="true">
+      <article v-for="index in 4" :key="`user-dashboard-metric-skeleton-${index}`" class="account-user-dashboard__metric">
+        <span class="account-user-dashboard__skeleton-line account-user-dashboard__skeleton-line--label"></span>
+        <span class="account-user-dashboard__skeleton-line account-user-dashboard__skeleton-line--value"></span>
+        <span class="account-user-dashboard__skeleton-line account-user-dashboard__skeleton-line--hint"></span>
+      </article>
+
+      <article class="account-user-dashboard__card">
+        <div>
+          <span class="account-user-dashboard__skeleton-line account-user-dashboard__skeleton-line--eyebrow"></span>
+          <span class="account-user-dashboard__skeleton-line account-user-dashboard__skeleton-line--title"></span>
+        </div>
+
+        <div class="account-user-dashboard__mini-stats">
+          <div v-for="index in 3" :key="`user-dashboard-mini-skeleton-${index}`" class="account-user-dashboard__mini-stat">
+            <span class="account-user-dashboard__skeleton-line account-user-dashboard__skeleton-line--mini-label"></span>
+            <span class="account-user-dashboard__skeleton-line account-user-dashboard__skeleton-line--mini-value"></span>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div v-else class="account-user-dashboard__body">
       <section class="account-user-dashboard__metrics" aria-label="Ключевые показатели">
         <article class="account-user-dashboard__metric">
           <p class="account-user-dashboard__metric-label">Спортсмены</p>
@@ -102,6 +124,10 @@ const currentUserRef = toRef(props, 'currentUser')
 const profileSnapshot = ref(createEmptyAccountProfile(props.currentUser))
 const athleteSnapshots = ref([])
 const registrations = ref([])
+const isDashboardDataLoading = ref(false)
+const isRegistrationsLoading = ref(false)
+const hasLoadedDashboardData = ref(false)
+const hasLoadedRegistrations = ref(false)
 let registrationsLoadRequestId = 0
 let dashboardDataLoadRequestId = 0
 let unsubscribeFromAccountData = null
@@ -113,6 +139,12 @@ const currentUserKey = computed(() => {
 
   return user?.id || user?.email || 'anonymous'
 })
+
+const showSkeleton = computed(
+  () =>
+    (isDashboardDataLoading.value || isRegistrationsLoading.value) &&
+    (!hasLoadedDashboardData.value || !hasLoadedRegistrations.value),
+)
 
 const profileAdmission = computed(() =>
   resolveAccountAdmissionStatus({
@@ -226,16 +258,23 @@ function formatCount(value, forms) {
 async function loadRegistrations() {
   const requestId = registrationsLoadRequestId + 1
   registrationsLoadRequestId = requestId
+  isRegistrationsLoading.value = true
 
   try {
     const nextRegistrations = await loadCompetitionRegistrationsForCurrentUser(currentUserRef)
 
     if (requestId === registrationsLoadRequestId) {
       registrations.value = nextRegistrations
+      hasLoadedRegistrations.value = true
     }
   } catch {
     if (requestId === registrationsLoadRequestId) {
       registrations.value = []
+      hasLoadedRegistrations.value = true
+    }
+  } finally {
+    if (requestId === registrationsLoadRequestId) {
+      isRegistrationsLoading.value = false
     }
   }
 }
@@ -243,6 +282,7 @@ async function loadRegistrations() {
 async function loadDashboardData() {
   const requestId = dashboardDataLoadRequestId + 1
   dashboardDataLoadRequestId = requestId
+  isDashboardDataLoading.value = true
 
   try {
     const [profile, profileDocuments, sourceAthletes] = await Promise.all([
@@ -270,15 +310,23 @@ async function loadDashboardData() {
       documents: profileDocuments,
     }
     athleteSnapshots.value = athletesWithDocuments
+    hasLoadedDashboardData.value = true
   } catch {
     if (requestId === dashboardDataLoadRequestId) {
       profileSnapshot.value = createEmptyAccountProfile(props.currentUser)
       athleteSnapshots.value = []
+      hasLoadedDashboardData.value = true
+    }
+  } finally {
+    if (requestId === dashboardDataLoadRequestId) {
+      isDashboardDataLoading.value = false
     }
   }
 }
 
 watch(currentUserKey, () => {
+  hasLoadedDashboardData.value = false
+  hasLoadedRegistrations.value = false
   void loadDashboardData()
   void loadRegistrations()
 }, { immediate: true })
@@ -420,6 +468,67 @@ onBeforeUnmount(() => {
   font-weight: 700;
   line-height: 1.45;
   color: #64748b;
+}
+
+.account-user-dashboard__skeleton-line {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cyan) 12%, white);
+}
+
+.account-user-dashboard__skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.72), transparent);
+  animation: account-user-dashboard-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.account-user-dashboard__skeleton-line--label {
+  width: 62%;
+  height: 12px;
+}
+
+.account-user-dashboard__skeleton-line--value {
+  width: 36%;
+  height: 28px;
+}
+
+.account-user-dashboard__skeleton-line--hint {
+  width: 74%;
+  height: 12px;
+}
+
+.account-user-dashboard__skeleton-line--eyebrow {
+  width: 92px;
+  height: 12px;
+}
+
+.account-user-dashboard__skeleton-line--title {
+  width: 220px;
+  max-width: 70%;
+  height: 22px;
+  margin-top: 8px;
+}
+
+.account-user-dashboard__skeleton-line--mini-label {
+  width: 86%;
+  height: 12px;
+}
+
+.account-user-dashboard__skeleton-line--mini-value {
+  align-self: end;
+  width: 38%;
+  height: 24px;
+}
+
+@keyframes account-user-dashboard-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @media (max-width: 960px) {

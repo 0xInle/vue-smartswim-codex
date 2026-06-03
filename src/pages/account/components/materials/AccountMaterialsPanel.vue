@@ -2,7 +2,6 @@
   <ElCard class="account__panel account-materials" shadow="never">
     <div class="account-materials__header">
       <div>
-        <p class="account__panel-eyebrow">Материалы</p>
         <h3 class="account__panel-title">Опубликованные файлы соревнований</h3>
       </div>
 
@@ -112,7 +111,7 @@ function buildMaterialTitle(typeLabel, stage) {
 .account-materials__header :deep(.el-tag) {
   flex: 0 0 auto;
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: 5px;
   font-size: 12px;
   font-weight: 900;
 }

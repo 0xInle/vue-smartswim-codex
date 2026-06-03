@@ -106,6 +106,7 @@
 
               <AccountDashboardPanel
                 v-show="activeSection === 'dashboard'"
+                :is-loading="isAdminDataLoading"
                 :consultation-requests="consultationRequests"
                 :trainer-bookings="trainerBookings"
                 :users="users"

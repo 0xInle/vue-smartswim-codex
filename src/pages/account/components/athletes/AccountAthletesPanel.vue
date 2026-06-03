@@ -2,10 +2,6 @@
   <ElCard class="account__panel account-athletes" shadow="never">
     <template #header>
       <div class="account__panel-head">
-        <div>
-          <h3 class="account__panel-title">Спортсмены</h3>
-        </div>
-
         <div class="account__panel-actions">
           <button
             type="button"
@@ -52,6 +48,7 @@
         :gender-options="genderOptions"
         :coach-placeholder="coachPlaceholder"
         :editing-athlete-id="editingAthleteId"
+        :is-submitting="isSubmitting"
         :fetch-coach-suggestions="fetchCoachSuggestions"
         :document-upload-state="documentUploadState"
         :open-document-upload-dialog="openDocumentUploadDialog"
@@ -89,6 +86,7 @@ const {
   genderOptions,
   coachPlaceholder,
   documentUploadState,
+  isSubmitting,
   startEdit,
   cancelEdit,
   deleteAthlete,
@@ -139,11 +137,19 @@ async function handleFormSubmit() {
 <style scoped>
 .account-athletes__list {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .account-athletes :deep(.el-card__header) {
-  padding: 20px 20px 12px;
+  padding: 16px 20px 10px;
+}
+
+.account-athletes :deep(.el-card__body) {
+  padding-top: 10px;
+}
+
+.account-athletes .account__panel-head {
+  justify-content: flex-end;
 }
 
 .account-athletes__add-button {

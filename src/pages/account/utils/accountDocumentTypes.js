@@ -85,6 +85,30 @@ export function createAccountDocumentRemovalPatch() {
   }
 }
 
+export function createAccountDocumentUploadPatch({
+  fileName = '',
+  fileSize = 0,
+  fileDataUrl = '',
+  fileType = '',
+  expiresAt = '',
+} = {}) {
+  return {
+    status: ACCOUNT_DOCUMENT_STATUS.UPLOADED,
+    fileName,
+    fileSize,
+    fileType,
+    fileDataUrl,
+    uploadedAt: new Date().toISOString(),
+    expiresAt,
+    verifiedAt: '',
+    verifiedBy: '',
+    reviewedAt: '',
+    reviewedBy: '',
+    reviewedByName: '',
+    rejectionReason: '',
+  }
+}
+
 export function normalizeAccountDocumentState(document, definition) {
   const fallback = createAccountDocumentState(definition)
   const allowedStatuses = Object.values(ACCOUNT_DOCUMENT_STATUS)

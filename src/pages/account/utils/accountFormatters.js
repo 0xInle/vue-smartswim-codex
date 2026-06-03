@@ -387,7 +387,7 @@ export function getAccountDocumentsAdmissionStatus(documents = [], now = Date.no
   if (hasExpired) {
     return {
       status: 'attention',
-      label: 'Есть просроченные документы',
+      label: 'Документы просрочены',
       description: 'Нужно обновить срок действия одного или нескольких документов.',
       tagType: 'danger',
     }
@@ -396,7 +396,7 @@ export function getAccountDocumentsAdmissionStatus(documents = [], now = Date.no
   if (hasMissingRequiredExpiry) {
     return {
       status: 'attention',
-      label: 'Не указан срок действия',
+      label: 'Без допуска',
       description: 'Для меддопуска и страховки нужно указать срок действия.',
       tagType: 'danger',
     }
@@ -414,7 +414,7 @@ export function getAccountDocumentsAdmissionStatus(documents = [], now = Date.no
   if (isMissing) {
     return {
       status: 'missing',
-      label: 'Документ не загружен',
+      label: 'Нет документов',
       description: 'Нужно загрузить обязательные документы для допуска.',
       tagType: 'info',
     }

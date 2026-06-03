@@ -84,7 +84,19 @@
       />
 
       <div class="account-profile__actions">
-        <button type="submit" class="account__submit btn-reset">Сохранить</button>
+        <button
+          type="submit"
+          class="account__table-action account__table-action--edit account-profile__submit btn-reset"
+          :disabled="isProfileSaving"
+          :aria-busy="isProfileSaving"
+        >
+          <span
+            v-if="isProfileSaving"
+            class="account__button-spinner"
+            aria-hidden="true"
+          ></span>
+          Сохранить
+        </button>
       </div>
     </form>
 
@@ -109,6 +121,7 @@ import AccountDocumentChecklist from '@/pages/account/components/documents/Accou
 import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
 import {
   createAccountDocumentRemovalPatch,
+  createAccountDocumentUploadPatch,
   createAccountDocumentsState,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
@@ -158,6 +171,7 @@ const uploadDialogState = reactive({
   expiresAt: '',
 })
 const isDocumentUploadSubmitting = ref(false)
+const isProfileSaving = ref(false)
 let unsubscribeFromSupabaseDocuments = null
 let unsubscribeFromSupabaseAccountData = null
 
@@ -195,7 +209,6 @@ async function syncProfileFromSource() {
     profile.club = snapshot.club || ''
     profile.phone = snapshot.phone || props.currentUser?.phone || ''
     profile.email = snapshot.email || props.currentUser?.email || ''
-    profile.documents = createAccountDocumentsState()
     await syncProfileDocumentsFromSource()
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Не удалось загрузить профиль', {
@@ -318,18 +331,16 @@ async function handleUploadSubmit(payload) {
 
   isDocumentUploadSubmitting.value = true
 
-  upsertDocument(uploadDialogState.documentType, {
-    status: 'uploaded',
-    fileName: payload.file.name,
-    fileSize: payload.file.size,
-    fileDataUrl: payload.fileDataUrl || '',
-    fileType: payload.fileType || '',
-    uploadedAt: new Date().toISOString(),
-    expiresAt: payload.expiresAt || '',
-    verifiedAt: '',
-    verifiedBy: '',
-    rejectionReason: '',
-  })
+  upsertDocument(
+    uploadDialogState.documentType,
+    createAccountDocumentUploadPatch({
+      fileName: payload.file.name,
+      fileSize: payload.file.size,
+      fileDataUrl: payload.fileDataUrl || '',
+      fileType: payload.fileType || '',
+      expiresAt: payload.expiresAt || '',
+    }),
+  )
 
   const nextDocument = profile.documents.find(
     (document) => document.type === uploadDialogState.documentType,
@@ -366,7 +377,7 @@ function handleDocumentRemove(documentType) {
       customClass: 'account__confirm-messagebox',
       confirmButtonText: 'Удалить',
       cancelButtonText: 'Отмена',
-      confirmButtonClass: 'account__submit btn-reset',
+      confirmButtonClass: 'account__table-action account__table-action--delete btn-reset',
       cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
       type: 'warning',
       autofocus: false,
@@ -392,9 +403,15 @@ function handleDocumentRemove(documentType) {
 }
 
 async function handleSubmit() {
+  if (isProfileSaving.value) {
+    return
+  }
+
   if (!validateProfile()) {
     return
   }
+
+  isProfileSaving.value = true
 
   try {
     const savedProfile = await saveAccountProfileForCurrentUser({
@@ -412,6 +429,8 @@ async function handleSubmit() {
       type: 'error',
     })
     return
+  } finally {
+    isProfileSaving.value = false
   }
 
   void syncCompetitionRegistrationOwnerSnapshotFromSource(currentUserRef, profile)
@@ -429,6 +448,10 @@ watch(
 watch(
   () => [profile.fullName, profile.birthDate, profile.club, profile.phone, profile.email],
   () => {
+    if (isProfileSaving.value) {
+      return
+    }
+
     const loadedDocuments = profile.documents.filter((document) => document.status !== 'missing')
 
     loadedDocuments.forEach((document) => {
@@ -479,6 +502,13 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start;
+}
+
+.account-profile__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 @media (max-width: 640px) {

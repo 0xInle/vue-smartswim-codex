@@ -323,7 +323,7 @@ export function resolveAccountAdmissionStatus({
 
   return {
     status: admission ? 'admitted' : 'ready',
-    label: admission ? 'Допущен' : 'Готов к допуску',
+    label: admission ? 'Допущен' : 'Можно допустить',
     description: admission
       ? `Допущен секретарём ${admission.admittedAt || ''}`.trim()
       : 'Все документы одобрены. Ожидается финальное решение секретаря.',

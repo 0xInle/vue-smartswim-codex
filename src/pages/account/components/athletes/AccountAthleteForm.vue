@@ -117,8 +117,15 @@
     <div class="account-athletes__actions">
       <button
         type="submit"
-        class="account__submit btn-reset account-athletes__action-button account-athletes__submit-button"
+        class="account__table-action account__table-action--edit btn-reset account-athletes__action-button account-athletes__submit-button"
+        :disabled="isSubmitting"
+        :aria-busy="isSubmitting"
       >
+        <span
+          v-if="isSubmitting"
+          class="account__button-spinner"
+          aria-hidden="true"
+        ></span>
         {{ editingAthleteId ? 'Сохранить изменения' : 'Добавить спортсмена' }}
       </button>
     </div>
@@ -160,6 +167,10 @@ defineProps({
   editingAthleteId: {
     type: String,
     required: true,
+  },
+  isSubmitting: {
+    type: Boolean,
+    default: false,
   },
   fetchCoachSuggestions: {
     type: Function,
@@ -213,9 +224,9 @@ function updateField(field, value, { trim = false } = {}) {
   gap: 10px;
   min-height: 48px;
   padding: 0 14px;
-  border: 1px solid color-mix(in srgb, var(--cyan) 24%, white);
+  border: 1px solid #d7e2ec;
   border-radius: 10px;
-  background: rgb(255 255 255 / 0.9);
+  background: #fff;
   cursor: pointer;
   transition:
     border-color 0.2s ease,
@@ -224,21 +235,39 @@ function updateField(field, value, { trim = false } = {}) {
 }
 
 .account-athletes__radio--selected {
-  border-color: color-mix(in srgb, var(--cyan) 54%, white);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 12%, transparent);
+  border-color: var(--account-button-info-border);
+  background: var(--account-button-info-bg);
+  box-shadow: 0 0 0 4px rgb(122 167 194 / 0.08);
 }
 
 .account-athletes__radio-input {
+  position: relative;
+  flex: 0 0 auto;
   width: 16px;
   height: 16px;
   margin: 0;
-  accent-color: var(--cyan);
+  border: 2px solid var(--account-button-info-border);
+  border-radius: 50%;
+  appearance: none;
+  background: #fff;
+  box-shadow: inset 0 0 0 4px #fff;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.account-athletes__radio-input:checked {
+  border-color: var(--account-button-info-text);
+  background: radial-gradient(circle, var(--account-button-info-text) 0 38%, #fff 40% 100%);
+  box-shadow: inset 0 0 0 4px #fff;
 }
 
 .account-athletes__radio-label {
   font-size: 15px;
   font-weight: 800;
-  color: var(--black);
+  color: #334155;
 }
 
 .account-athletes__autocomplete {
@@ -317,6 +346,10 @@ function updateField(field, value, { trim = false } = {}) {
 }
 
 .account-athletes__submit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   align-self: flex-start;
   width: auto;
   font-family: inherit;

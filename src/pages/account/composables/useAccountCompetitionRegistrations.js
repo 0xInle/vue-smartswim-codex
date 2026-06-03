@@ -464,7 +464,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
           customClass: 'account__confirm-messagebox',
           confirmButtonText: 'Снять',
           cancelButtonText: 'Отмена',
-          confirmButtonClass: 'account__submit btn-reset',
+          confirmButtonClass: 'account__table-action account__table-action--delete btn-reset',
           cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
           type: 'warning',
           autofocus: false,

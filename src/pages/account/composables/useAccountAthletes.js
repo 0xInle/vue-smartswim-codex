@@ -4,6 +4,7 @@ import { ElMessageBox } from 'element-plus'
 import { showToast } from '@/utils/toast'
 import {
   createAccountDocumentRemovalPatch,
+  createAccountDocumentUploadPatch,
   createAccountDocumentsState,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
@@ -48,10 +49,10 @@ function createClientUuid() {
 export function useAccountAthletes({ currentUser }) {
   const athletes = ref([])
   const editingAthleteId = ref('')
+  const isSubmitting = ref(false)
   let unsubscribeFromSupabaseDocuments = null
   let unsubscribeFromSupabaseAccountData = null
   let unsubscribeFromSupabaseAdmissionWorkflow = null
-  let isAthleteSubmitInProgress = false
 
   const form = reactive({
     fullName: '',
@@ -120,11 +121,10 @@ export function useAccountAthletes({ currentUser }) {
           documents: await loadSupabaseDocumentsForAthlete(athlete),
         })),
       )
-
       athletes.value = nextAthletes
 
       if (editingAthleteId.value) {
-        const editedAthlete = nextAthletes.find((athlete) => athlete.id === editingAthleteId.value)
+        const editedAthlete = athletes.value.find((athlete) => athlete.id === editingAthleteId.value)
 
         if (editedAthlete) {
           form.documents = normalizeAccountDocumentsState(editedAthlete.documents)
@@ -144,13 +144,26 @@ export function useAccountAthletes({ currentUser }) {
         loadAccountAthletesForCurrentUser(),
         refreshAccountAdmissionWorkflowForCurrentUser(),
       ])
-      const nextAthletes = sourceAthletes.map(normalizeAthlete)
+      const nextAthletes = await Promise.all(
+        sourceAthletes.map(async (sourceAthlete) => {
+          const athlete = normalizeAthlete(sourceAthlete)
 
-      athletes.value = nextAthletes.map((athlete) => ({
-        ...athlete,
-        documents: createAccountDocumentsState(),
-      }))
-      await syncAthleteDocumentsFromSource()
+          return {
+            ...athlete,
+            documents: await loadSupabaseDocumentsForAthlete(athlete),
+          }
+        }),
+      )
+
+      athletes.value = nextAthletes
+
+      if (editingAthleteId.value) {
+        const editedAthlete = athletes.value.find((athlete) => athlete.id === editingAthleteId.value)
+
+        if (editedAthlete) {
+          form.documents = normalizeAccountDocumentsState(editedAthlete.documents)
+        }
+      }
     } catch (error) {
       athletes.value = []
       showToast(error instanceof Error ? error.message : 'Не удалось загрузить спортсменов', {
@@ -269,67 +282,65 @@ export function useAccountAthletes({ currentUser }) {
         customClass: 'account__confirm-messagebox',
         confirmButtonText: 'Удалить',
         cancelButtonText: 'Отмена',
-        confirmButtonClass: 'account__submit btn-reset',
+        confirmButtonClass: 'account__table-action account__table-action--delete btn-reset',
         cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
         type: 'warning',
         autofocus: false,
         closeOnClickModal: false,
         closeOnPressEscape: true,
+        beforeClose: async (action, instance, done) => {
+          if (action !== 'confirm') {
+            done()
+            return
+          }
+
+          if (instance.confirmButtonLoading) {
+            return
+          }
+
+          instance.confirmButtonLoading = true
+
+          try {
+            const activeRegistrationsCount = await countCompetitionRegistrationsForParticipantFromSource(
+              currentUser,
+              {
+                participantKind: 'athlete',
+                participantId: athleteId,
+              },
+            )
+
+            if (activeRegistrationsCount > 0) {
+              showToast('Нельзя удалить спортсмена: есть активные заявки на соревнования', {
+                type: 'error',
+              })
+              return
+            }
+
+            await removeAccountAthleteForCurrentUser(athleteId)
+
+            if (editingAthleteId.value === athleteId) {
+              resetForm()
+            }
+
+            await syncAthletesFromSource()
+
+            showToast('Спортсмен удалён')
+            done()
+          } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Не удалось удалить спортсмена', {
+              type: 'error',
+            })
+          } finally {
+            instance.confirmButtonLoading = false
+          }
+        },
       },
-    )
-      .then(async () => {
-        let activeRegistrationsCount = 0
-
-        try {
-          activeRegistrationsCount = await countCompetitionRegistrationsForParticipantFromSource(
-            currentUser,
-            {
-              participantKind: 'athlete',
-              participantId: athleteId,
-            },
-          )
-        } catch {
-          showToast('Не удалось проверить заявки спортсмена. Спортсмен не удалён.', {
-            type: 'error',
-          })
-          return
-        }
-
-        if (activeRegistrationsCount > 0) {
-          showToast('Нельзя удалить спортсмена: есть активные заявки на соревнования', {
-            type: 'error',
-          })
-          return
-        }
-
-        try {
-          await removeAccountAthleteForCurrentUser(athleteId)
-        } catch (error) {
-          showToast(error instanceof Error ? error.message : 'Не удалось удалить спортсмена', {
-            type: 'error',
-          })
-          return
-        }
-
-        athletes.value = athletes.value.filter((athlete) => athlete.id !== athleteId)
-
-        if (editingAthleteId.value === athleteId) {
-          resetForm()
-        }
-
-        showToast('Спортсмен удалён')
-      })
-      .catch(() => {})
+    ).catch(() => {})
   }
 
   function validateForm() {
     resetErrors()
     const birthDatePattern = /^\d{2}\.\d{2}\.\d{4}$/
-    const normalizedCoach = form.coach.trim().toLowerCase()
-    const coachIsKnown = trainerSuggestions.value.some(
-      (trainer) => trainer.value.toLowerCase() === normalizedCoach,
-    )
-
     if (!form.fullName) {
       errors.fullName = 'Укажите ФИО спортсмена.'
     }
@@ -346,12 +357,6 @@ export function useAccountAthletes({ currentUser }) {
 
     if (!form.club) {
       errors.club = 'Укажите клуб.'
-    }
-
-    if (!form.coach) {
-      errors.coach = 'Выберите тренера.'
-    } else if (!coachIsKnown) {
-      errors.coach = 'Выберите тренера из списка.'
     }
 
     return !Object.values(errors).some(Boolean)
@@ -375,45 +380,37 @@ export function useAccountAthletes({ currentUser }) {
     })
 
     let savedAthlete = null
-    isAthleteSubmitInProgress = true
+    isSubmitting.value = true
 
     try {
       savedAthlete = await saveAccountAthleteForCurrentUser({ athlete: payload })
+      savedAthlete = {
+        ...savedAthlete,
+        documents: normalizeAccountDocumentsState(payload.documents),
+      }
+
+      try {
+        await persistSupabaseAthleteDocuments(savedAthlete)
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Не удалось сохранить документы', {
+          type: 'error',
+        })
+      }
+
+      void syncCompetitionRegistrationAthleteSnapshotFromSource(currentUser, savedAthlete)
+      await syncAthletesFromSource()
+
+      showToast(isEditingAthlete ? 'Спортсмен сохранён' : 'Спортсмен добавлен')
+      resetForm()
+      return true
     } catch (error) {
-      isAthleteSubmitInProgress = false
       showToast(error instanceof Error ? error.message : 'Не удалось сохранить спортсмена', {
         type: 'error',
       })
       return false
+    } finally {
+      isSubmitting.value = false
     }
-
-    savedAthlete = {
-      ...savedAthlete,
-      documents: normalizeAccountDocumentsState(payload.documents),
-    }
-
-    try {
-      await persistSupabaseAthleteDocuments(savedAthlete)
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Не удалось сохранить документы', {
-        type: 'error',
-      })
-    }
-
-    if (isEditingAthlete) {
-      athletes.value = athletes.value.map((athlete) =>
-        athlete.id === savedAthlete.id ? savedAthlete : athlete,
-      )
-    } else {
-      athletes.value = [savedAthlete, ...athletes.value]
-    }
-
-    void syncCompetitionRegistrationAthleteSnapshotFromSource(currentUser, savedAthlete)
-
-    isAthleteSubmitInProgress = false
-    showToast(isEditingAthlete ? 'Спортсмен сохранён' : 'Спортсмен добавлен')
-    resetForm()
-    return true
   }
 
   function genderLabel(value) {
@@ -504,18 +501,16 @@ export function useAccountAthletes({ currentUser }) {
 
     documentUploadState.isSubmitting = true
 
-    upsertDocument(documentUploadState.documentType, {
-      status: 'uploaded',
-      fileName: file.name,
-      fileSize: file.size,
-      fileDataUrl,
-      fileType,
-      uploadedAt: new Date().toISOString(),
-      expiresAt: expiresAt || '',
-      verifiedAt: '',
-      verifiedBy: '',
-      rejectionReason: '',
-    })
+    upsertDocument(
+      documentUploadState.documentType,
+      createAccountDocumentUploadPatch({
+        fileName: file.name,
+        fileSize: file.size,
+        fileDataUrl,
+        fileType,
+        expiresAt: expiresAt || '',
+      }),
+    )
 
     if (editingAthleteId.value) {
       const editedAthlete = getEditingAthlete()
@@ -563,7 +558,7 @@ export function useAccountAthletes({ currentUser }) {
         customClass: 'account__confirm-messagebox',
         confirmButtonText: 'Удалить',
         cancelButtonText: 'Отмена',
-        confirmButtonClass: 'account__submit btn-reset',
+        confirmButtonClass: 'account__table-action account__table-action--delete btn-reset',
         cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
         type: 'warning',
         autofocus: false,
@@ -612,21 +607,21 @@ export function useAccountAthletes({ currentUser }) {
 
   onMounted(() => {
     unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
-      if (isAthleteSubmitInProgress) {
+      if (isSubmitting.value) {
         return
       }
 
       void syncAthleteDocumentsFromSource()
     })
     unsubscribeFromSupabaseAccountData = subscribeToAccountProfileAthleteChanges(() => {
-      if (isAthleteSubmitInProgress) {
+      if (isSubmitting.value) {
         return
       }
 
       void syncAthletesFromSource()
     })
     unsubscribeFromSupabaseAdmissionWorkflow = subscribeToAccountAdmissionWorkflowChanges(() => {
-      if (isAthleteSubmitInProgress) {
+      if (isSubmitting.value) {
         return
       }
 
@@ -659,6 +654,7 @@ export function useAccountAthletes({ currentUser }) {
     genderOptions: GENDER_OPTIONS,
     coachPlaceholder,
     documentUploadState,
+    isSubmitting,
     startEdit,
     cancelEdit,
     deleteAthlete,

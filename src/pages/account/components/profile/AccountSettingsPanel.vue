@@ -126,8 +126,18 @@
         {{ message }}
       </p>
 
-      <button type="submit" class="account__submit btn-reset" :disabled="status === 'loading'">
-        {{ status === 'loading' ? 'Обновляем пароль...' : 'Сменить пароль' }}
+      <button
+        type="submit"
+        class="account__table-action account__table-action--edit btn-reset"
+        :disabled="status === 'loading'"
+        :aria-busy="status === 'loading'"
+      >
+        <span
+          v-if="status === 'loading'"
+          class="account__button-spinner"
+          aria-hidden="true"
+        ></span>
+        Сменить пароль
       </button>
     </form>
   </ElCard>

@@ -51,13 +51,14 @@
       <label class="account__field">
         <span class="account__field-label">Действует до</span>
         <input
-          v-model.trim="expiresAt"
+          :value="expiresAt"
           class="account__input"
           type="text"
           inputmode="numeric"
+          maxlength="10"
           placeholder="дд.мм.гггг"
           :aria-invalid="Boolean(expiresAtError)"
-          @input="expiresAtError = ''"
+          @input="handleExpiresAtInput"
         />
         <span class="account__field-hint">
           {{ isExpiryRequired ? 'Обязательно для меддопуска и страховки.' : 'Можно не заполнять для этого документа.' }}
@@ -74,8 +75,18 @@
         >
           Отмена
         </button>
-        <button type="submit" class="account__submit btn-reset" :disabled="isSubmitting">
-          {{ isSubmitting ? 'Сохраняем...' : 'Загрузить' }}
+        <button
+          type="submit"
+          class="account__table-action account__table-action--edit account-document-upload__submit btn-reset"
+          :disabled="isSubmitting"
+          :aria-busy="isSubmitting"
+        >
+          <span
+            v-if="isSubmitting"
+            class="account__button-spinner"
+            aria-hidden="true"
+          ></span>
+          Загрузить
         </button>
       </div>
     </form>
@@ -153,7 +164,7 @@ watch(
       return
     }
 
-    expiresAt.value = props.initialExpiresAt || ''
+    expiresAt.value = formatInitialDocumentExpiry(props.initialExpiresAt)
     expiresAtError.value = ''
     fileError.value = ''
   },
@@ -164,7 +175,7 @@ watch(
   () => props.initialExpiresAt,
   (value) => {
     if (props.modelValue && !selectedFile.value) {
-      expiresAt.value = value || ''
+      expiresAt.value = formatInitialDocumentExpiry(value)
     }
   },
 )
@@ -196,6 +207,54 @@ function handleFileChange(event) {
       selectedFileType.value = ''
       fileError.value = 'Не удалось прочитать файл.'
     })
+}
+
+function formatDocumentExpiryInput(value) {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 8)
+  const day = digits.slice(0, 2)
+  const month = digits.slice(2, 4)
+  const year = digits.slice(4, 8)
+
+  if (digits.length >= 4) {
+    return year ? `${day}.${month}.${year}` : `${day}.${month}.`
+  }
+
+  if (digits.length >= 2) {
+    return month ? `${day}.${month}` : `${day}.`
+  }
+
+  return day
+}
+
+function formatInitialDocumentExpiry(value) {
+  const normalizedValue = String(value || '').trim()
+  const isoMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+
+  if (isoMatch) {
+    return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`
+  }
+
+  return formatDocumentExpiryInput(normalizedValue)
+}
+
+function isValidDocumentExpiryDate(value) {
+  if (!DATE_PATTERN.test(value)) {
+    return false
+  }
+
+  const [day, month, year] = value.split('.').map(Number)
+  const date = new Date(year, month - 1, day)
+
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  )
+}
+
+function handleExpiresAtInput(event) {
+  expiresAt.value = formatDocumentExpiryInput(event.target.value)
+  expiresAtError.value = ''
 }
 
 function openFilePicker() {
@@ -259,7 +318,7 @@ async function handleSubmit() {
     return
   }
 
-  if (expiresAt.value.trim() && !DATE_PATTERN.test(expiresAt.value.trim())) {
+  if (expiresAt.value.trim() && !isValidDocumentExpiryDate(expiresAt.value.trim())) {
     expiresAtError.value = 'Введите дату в формате дд.мм.гггг.'
     return
   }

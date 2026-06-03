@@ -1,3 +1,29 @@
+:root {
+  --account-button-text: #0f172a;
+  --account-button-border: #d7e2ec;
+  --account-button-bg: #f8fbfe;
+  --account-button-bg-hover: #eef4f8;
+  --account-button-focus-ring: rgb(85 188 201 / 0.18);
+  --account-button-primary-bg: #55bcc9;
+  --account-button-primary-bg-hover: #49aebc;
+  --account-button-primary-border: #55bcc9;
+  --account-button-primary-border-hover: #3b98a6;
+  --account-button-primary-text: #0f172a;
+  --account-button-success-bg: #dff8f7;
+  --account-button-success-bg-hover: #d2f3f1;
+  --account-button-success-border: #b7e9e4;
+  --account-button-success-text: #176384;
+  --account-button-danger-bg: #fff1eb;
+  --account-button-danger-bg-hover: #ffe6db;
+  --account-button-danger-border: #f2c3ad;
+  --account-button-danger-border-hover: #e8b195;
+  --account-button-danger-text: #c24f24;
+  --account-button-info-bg: #eef6fb;
+  --account-button-info-bg-hover: #e4f0f8;
+  --account-button-info-border: #cddfe9;
+  --account-button-info-text: #355b66;
+}
+
 .account {
   min-height: var(--app-screen-height);
   padding: 24px;
@@ -86,6 +112,24 @@
   min-height: 47px;
   padding-inline: 20px;
   font-weight: 800;
+  border: 1px solid var(--account-button-border) !important;
+  border-radius: 10px !important;
+  background: var(--account-button-bg) !important;
+  color: var(--account-button-text) !important;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease;
+}
+
+.account__back-button:hover,
+.account__back-button:focus-visible {
+  border-color: var(--account-button-primary-border-hover) !important;
+  background: var(--account-button-bg-hover) !important;
+  box-shadow: 0 0 0 4px var(--account-button-focus-ring);
+  color: var(--account-button-primary-text) !important;
+  outline: none;
 }
 
 .account__main {
@@ -332,18 +376,48 @@
   min-height: 38px;
   padding: 8px 14px;
   border-radius: 10px;
-  background: var(--button-orange-bg);
+  border: 1px solid var(--account-button-primary-border);
+  background: var(--account-button-primary-bg);
   font-family: inherit;
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--black);
+  color: var(--account-button-primary-text);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.account__submit:hover,
+.account__submit:focus-visible {
+  border-color: var(--account-button-primary-border-hover);
+  background: var(--account-button-primary-bg-hover);
+  box-shadow: 0 0 0 4px var(--account-button-focus-ring);
+  outline: none;
 }
 
 .account__submit:disabled {
   cursor: wait;
-  opacity: 0.72;
+  opacity: 0.7;
+}
+
+.account__button-spinner {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgb(53 91 102 / 0.22);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: account-button-spinner 0.8s linear infinite;
+}
+
+@keyframes account-button-spinner {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .account__table-primary {
@@ -639,9 +713,25 @@
 .account__refresh-button {
   min-height: 38px;
   padding-inline: 16px;
-  border: 1px solid #dbe7f4;
-  border-radius: 10px;
+  border: 1px solid var(--account-button-info-border) !important;
+  border-radius: 10px !important;
+  background: var(--account-button-info-bg) !important;
+  color: var(--account-button-info-text) !important;
   font-weight: 800;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease;
+}
+
+.account__refresh-button:hover,
+.account__refresh-button:focus-visible {
+  border-color: var(--account-button-primary-border-hover) !important;
+  background: var(--account-button-info-bg-hover) !important;
+  box-shadow: 0 0 0 4px var(--account-button-focus-ring);
+  color: var(--account-button-primary-text) !important;
+  outline: none;
 }
 
 .account__users-toolbar-meta .el-tag,
@@ -683,51 +773,83 @@
 }
 
 .account__table-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 38px;
   padding: 8px 14px;
-  border: 1px solid #e7edf5;
+  border: 1px solid var(--account-button-border);
   border-radius: 10px;
+  background: var(--account-button-bg);
+  color: var(--account-button-text);
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.account__table-action:hover,
+.account__table-action:focus-visible {
+  border-color: var(--account-button-primary-border-hover);
+  background: var(--account-button-bg-hover);
+  box-shadow: 0 0 0 4px var(--account-button-focus-ring);
+  outline: none;
+}
+
+.account__table-action:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .account__table-action--edit {
-  background: #f5fbfd;
-  color: #355b66;
+  border-color: var(--account-button-info-border);
+  background: var(--account-button-info-bg);
+  color: var(--account-button-info-text);
 }
 
 .account__table-action--delete {
-  background: #fff6f2;
-  color: #d76034;
+  border-color: var(--account-button-danger-border);
+  background: var(--account-button-danger-bg);
+  color: var(--account-button-danger-text);
 }
 
 .account__table-action--ghost {
-  background: #f6f8fb;
-  color: #5f6b7a;
+  border-color: var(--account-button-border);
+  background: var(--account-button-bg);
+  color: var(--account-button-text);
 }
 
 .account__table-action--success {
-  background: #effaf5;
-  color: #2f8f5b;
+  border-color: var(--account-button-success-border);
+  background: var(--account-button-success-bg);
+  color: var(--account-button-success-text);
 }
 
 .account__table-action--protocol {
   min-height: 38px;
-  background: linear-gradient(180deg, #eaf9ff 0%, #dff3ff 100%);
+  border-color: #c5e2ef;
+  background: #eaf6fb;
   color: #176384;
 }
 
 .account__table-action--photo {
   min-height: 38px;
-  background: #f6fbff;
+  border-color: #d8e6f0;
+  background: #f4f9fc;
   color: #4f667d;
 }
 
 .account__table-action--distance {
-  background: #fffaf1;
+  border-color: #f0d2a5;
+  background: #fff7e8;
   color: #9b5f12;
 }
 
@@ -963,16 +1085,18 @@
 .account__menu.el-menu {
   border-right: 0;
   background: transparent;
+  --el-menu-base-level-padding: 8px;
+  --el-menu-level-padding: 0px;
 }
 
 .account__menu .el-menu-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 56px;
+  min-height: 40px;
   margin-bottom: 10px;
-  padding: 14px 16px;
-  border-radius: 10px;
+  padding: 7px 8px !important;
+  border-radius: 5px;
   color: #eaf6ff;
 }
 
@@ -1354,6 +1478,124 @@
   color: #526072;
 }
 
+.account-dashboard__skeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.account-dashboard__metrics--skeleton .account-dashboard__metric,
+.account-dashboard__card--snapshot .account-dashboard__document-highlight--skeleton {
+  position: relative;
+  overflow: hidden;
+}
+
+.account-dashboard__metrics--skeleton .account-dashboard__metric {
+  min-height: 118px;
+}
+
+.account-dashboard__card--snapshot .account-dashboard__document-highlight--skeleton {
+  min-height: 132px;
+}
+
+.account-dashboard__skeleton-line,
+.account-dashboard__skeleton-pill {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cyan) 12%, white);
+}
+
+.account-dashboard__skeleton-line::after,
+.account-dashboard__skeleton-pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.72), transparent);
+  animation: account-dashboard-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.account-dashboard__skeleton-line {
+  width: 100%;
+  height: 14px;
+}
+
+.account-dashboard__skeleton-line--label {
+  width: 58%;
+  height: 12px;
+}
+
+.account-dashboard__skeleton-line--value {
+  width: 44%;
+  height: 32px;
+}
+
+.account-dashboard__skeleton-line--hint {
+  width: 72%;
+  height: 12px;
+}
+
+.account-dashboard__skeleton-line--eyebrow {
+  width: 120px;
+  height: 12px;
+}
+
+.account-dashboard__skeleton-line--activity-title {
+  width: 82px;
+  height: 11px;
+}
+
+.account-dashboard__skeleton-line--activity-name {
+  width: 78%;
+  height: 13px;
+}
+
+.account-dashboard__skeleton-line--time {
+  width: 84px;
+  height: 12px;
+}
+
+.account-dashboard__skeleton-line--document-name {
+  width: 48%;
+  height: 18px;
+}
+
+.account-dashboard__skeleton-line--meta {
+  width: 72%;
+  height: 12px;
+}
+
+.account-dashboard__skeleton-line--mini-value {
+  width: 34%;
+  height: 24px;
+}
+
+.account-dashboard__skeleton-line--footer-note {
+  width: 42%;
+  height: 12px;
+}
+
+.account-dashboard__skeleton-pill {
+  width: 112px;
+  height: 34px;
+}
+
+.account-dashboard__skeleton-pill--status {
+  width: 80px;
+  height: 26px;
+}
+
+.account-dashboard__skeleton-pill--footer {
+  width: 158px;
+  height: 38px;
+}
+
+@keyframes account-dashboard-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .el-table {
   border-radius: 10px;
 }
@@ -1583,11 +1825,79 @@
 
 .account__confirm-messagebox .el-message-box__btns .el-button {
   min-height: 38px;
-  margin: 0;
+  margin: 0 !important;
+  border: 1px solid var(--account-button-border) !important;
+  border-radius: 10px !important;
+  background: var(--account-button-bg) !important;
+  color: var(--account-button-text) !important;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease;
+}
+
+.account__confirm-messagebox .el-message-box__btns .el-button:hover,
+.account__confirm-messagebox .el-message-box__btns .el-button:focus-visible {
+  border-color: var(--account-button-primary-border-hover) !important;
+  background: var(--account-button-bg-hover) !important;
+  box-shadow: 0 0 0 4px var(--account-button-focus-ring) !important;
+  color: var(--account-button-primary-text) !important;
+  outline: none;
+}
+
+.account__confirm-messagebox .el-message-box__btns .el-button--primary {
+  border-color: var(--account-button-primary-border) !important;
+  background: var(--account-button-primary-bg) !important;
+  color: var(--account-button-primary-text) !important;
+}
+
+.account__confirm-messagebox .el-message-box__btns .el-button--primary:hover,
+.account__confirm-messagebox .el-message-box__btns .el-button--primary:focus-visible {
+  border-color: var(--account-button-primary-border-hover) !important;
+  background: var(--account-button-primary-bg-hover) !important;
+  color: var(--account-button-primary-text) !important;
+}
+
+.account__confirm-messagebox .el-message-box__btns .account__table-action--delete,
+.account__confirm-messagebox .el-message-box__btns .el-button--danger {
+  border-color: var(--account-button-danger-border) !important;
+  background: var(--account-button-danger-bg) !important;
+  color: var(--account-button-danger-text) !important;
+}
+
+.account__confirm-messagebox .el-message-box__btns .account__table-action--delete:hover,
+.account__confirm-messagebox .el-message-box__btns .account__table-action--delete:focus-visible {
+  border-color: var(--account-button-danger-border-hover) !important;
+  background: var(--account-button-danger-bg-hover) !important;
+  box-shadow: 0 0 0 4px rgb(194 79 36 / 0.14) !important;
+  color: var(--account-button-danger-text) !important;
+}
+
+.account__confirm-messagebox .el-message-box__btns .el-button--danger:hover,
+.account__confirm-messagebox .el-message-box__btns .el-button--danger:focus-visible {
+  border-color: var(--account-button-danger-border-hover) !important;
+  background: var(--account-button-danger-bg-hover) !important;
+  box-shadow: 0 0 0 4px rgb(194 79 36 / 0.14) !important;
+  color: var(--account-button-danger-text) !important;
 }
 
 .account__confirm-messagebox .el-message-box__btns .account__table-action--ghost {
-  --button-current-bg: transparent;
+  background: var(--account-button-bg) !important;
+}
+
+.account__confirm-messagebox .el-message-box__btns .el-button.is-loading {
+  padding-inline: 14px !important;
+}
+
+.account__confirm-messagebox .el-message-box__btns .el-button.is-loading .circular {
+  width: 14px;
+  height: 14px;
 }
 
 .account__select-popper--full .el-select-dropdown__item {
