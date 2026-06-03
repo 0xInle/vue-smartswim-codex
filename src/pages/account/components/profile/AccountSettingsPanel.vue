@@ -1,5 +1,5 @@
 <template>
-  <ElCard class="account__panel" shadow="never">
+  <ElCard class="account__panel account-settings" shadow="never">
     <template #header>
       <div class="account__panel-head">
         <div>
@@ -9,7 +9,7 @@
     </template>
 
     <form class="account__password-form" novalidate @submit.prevent="$emit('submit')">
-      <label class="account__field">
+      <label class="account__field account-settings__narrow-field">
         <span class="account__field-label">Почта</span>
         <input
           :value="form.email"
@@ -26,7 +26,7 @@
         </span>
       </label>
 
-      <label class="account__field">
+      <label class="account__field account-settings__narrow-field">
         <span class="account__field-label">Старый пароль</span>
         <div class="account__input-wrap">
           <input
@@ -128,7 +128,7 @@
 
       <button
         type="submit"
-        class="account__table-action account__table-action--edit btn-reset"
+        class="account__table-action account__table-action--edit account-settings__submit btn-reset"
         :disabled="status === 'loading'"
         :aria-busy="status === 'loading'"
       >
@@ -184,3 +184,20 @@ function updateField(field, value, { trim = false } = {}) {
   emit('update-field', field, trim ? value.trim() : value)
 }
 </script>
+
+<style scoped>
+.account-settings__narrow-field {
+  max-width: calc((100% - 12px) / 2);
+}
+
+.account-settings__submit {
+  justify-self: start;
+  width: auto;
+}
+
+@media (max-width: 720px) {
+  .account-settings__narrow-field {
+    max-width: 100%;
+  }
+}
+</style>
