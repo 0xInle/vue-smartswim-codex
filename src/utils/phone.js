@@ -143,24 +143,38 @@ export function formatPhone(value) {
 }
 
 export function formatPhoneInput(value) {
-  const rawValue = String(value ?? '').trim()
-  const digits = normalizeInternationalPhoneDigits(value)
+  const rawValue = String(value ?? '')
+  const trimmedValue = rawValue.trim()
+  const digits = normalizePhoneDigits(rawValue).slice(0, MAX_INTERNATIONAL_PHONE_DIGITS)
 
   if (!digits) {
     return ''
   }
 
-  if (!rawValue.startsWith('+') && normalizePhoneDigits(rawValue).length <= RUSSIAN_PHONE_DIGITS) {
-    return formatRussianPhoneDraft(normalizePhoneDigits(rawValue).slice(0, RUSSIAN_PHONE_DIGITS))
-  }
+  if (trimmedValue.startsWith('+')) {
+    if (digits.startsWith('7') || digits.startsWith('8')) {
+      if (digits.length === 1) {
+        return '+7 ('
+      }
 
-  if (digits.startsWith('7') || (digits.startsWith('8') && digits.length <= 11)) {
-    if (digits.length === 1) {
-      return '+7 ('
+      const normalizedRussianDigits = digits.startsWith('8') ? `7${digits.slice(1)}` : digits
+      return formatRussianPhoneDraft(normalizedRussianDigits.slice(1, 11))
     }
 
+    return formatInternationalPhoneDraft(digits)
+  }
+
+  if (digits.length === 1 && (digits.startsWith('7') || digits.startsWith('8'))) {
+    return '+7 ('
+  }
+
+  if (digits.startsWith('7') || digits.startsWith('8')) {
     const normalizedRussianDigits = digits.startsWith('8') ? `7${digits.slice(1)}` : digits
     return formatRussianPhoneDraft(normalizedRussianDigits.slice(1, 11))
+  }
+
+  if (digits.length <= RUSSIAN_PHONE_DIGITS) {
+    return formatRussianPhoneDraft(digits)
   }
 
   return formatInternationalPhoneDraft(digits)

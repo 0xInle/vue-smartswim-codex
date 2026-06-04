@@ -231,8 +231,17 @@
               {{ consultationErrors.date || consultationErrors.time }}
             </p>
 
-            <button class="home__submit-button btn-reset" :disabled="isSubmitting">
-              {{ isSubmitting ? 'Отправляем...' : 'Отправить' }}
+            <button
+              class="home__submit-button btn-reset"
+              :disabled="isSubmitting"
+              :aria-busy="isSubmitting"
+            >
+              <span
+                v-if="isSubmitting"
+                class="home__submit-spinner"
+                aria-hidden="true"
+              ></span>
+              <span>Отправить</span>
             </button>
 
             <div class="home__contact">
@@ -1202,6 +1211,10 @@ onBeforeUnmount(() => {
   --button-hover-bg: var(--button-orange-hover-bg);
   --button-focus-color: var(--orange);
   --button-text: var(--black);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin-top: 8px;
   min-height: 52px;
   padding: 12px 18px;
@@ -1218,6 +1231,22 @@ onBeforeUnmount(() => {
 .home__submit-button:disabled {
   cursor: wait;
   opacity: 0.72;
+}
+
+.home__submit-spinner {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgb(53 91 102 / 0.22);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: home-submit-spin 0.8s linear infinite;
+}
+
+@keyframes home-submit-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .home__contact {
