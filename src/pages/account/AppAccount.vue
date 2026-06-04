@@ -61,6 +61,7 @@
               <AccountTrainerDashboardPanel
                 v-show="activeSection === 'dashboard'"
                 :current-user="currentUser"
+                @select-section="handleSectionSelect"
               />
 
               <AccountTrainerProfilePanel
