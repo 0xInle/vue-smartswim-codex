@@ -799,6 +799,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
   })
 
   return {
+    loadRegistrations,
     ownerSnapshot,
     athleteSnapshots,
     competitionRows,

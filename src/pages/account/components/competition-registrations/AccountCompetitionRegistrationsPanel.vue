@@ -367,6 +367,7 @@ const {
   getRegistrationPaymentSummary,
   canCreatePayment,
   canRequestRefund,
+  loadRegistrations,
   getRegistrationStatusLabel,
   getRegistrationStatusTagType,
   getRegistrationDocumentsStatus,
@@ -541,7 +542,9 @@ async function confirmDeleteHistoryRegistration() {
 
   try {
     await deleteCompetitionRegistration(null, registration.id)
+    await loadRegistrations()
 
+    closeHistoryDetails()
     closeDeleteHistoryDialog()
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Не удалось удалить заявку', {
