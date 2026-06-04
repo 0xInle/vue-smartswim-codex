@@ -313,12 +313,14 @@ import { ElCard, ElCheckbox, ElDialog, ElEmpty, ElOption, ElSelect, ElTag } from
 import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDetailsDialog.vue'
 import AccountCompetitionRegistrationDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDialog.vue'
 import { useAccountCompetitionRegistrations } from '@/pages/account/composables/useAccountCompetitionRegistrations'
+import { deleteCompetitionRegistration } from '@/pages/account/utils/accountCompetitionRegistrations'
 import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import {
   formatCompetitionCalendarDateShort,
   formatCompetitionStageLabel,
 } from '@/pages/account/utils/accountFormatters'
+import { showToast } from '@/utils/toast'
 
 const props = defineProps({
   currentUser: {
@@ -538,11 +540,13 @@ async function confirmDeleteHistoryRegistration() {
   isDeletingHistoryRegistration.value = true
 
   try {
-    const deleted = await handleDeleteSelectedRegistration(registration.id, registration.status)
+    await deleteCompetitionRegistration(null, registration.id)
 
-    if (deleted) {
-      closeDeleteHistoryDialog()
-    }
+    closeDeleteHistoryDialog()
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : 'Не удалось удалить заявку', {
+      type: 'error',
+    })
   } finally {
     isDeletingHistoryRegistration.value = false
   }
