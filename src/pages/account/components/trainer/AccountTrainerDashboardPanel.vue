@@ -209,7 +209,16 @@ watch(isLoading, (loading, previousLoading) => {
 }
 
 .account-trainer-dashboard__cards {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+  align-items: start;
+}
+
+.account-trainer-dashboard__card--activity {
+  min-width: 0;
+}
+
+.account-trainer-dashboard__card--snapshot {
+  min-width: 0;
 }
 
 .account-trainer-dashboard__metric,
@@ -378,6 +387,12 @@ watch(isLoading, (loading, previousLoading) => {
 @media (max-width: 1120px) {
   .account-trainer-dashboard__metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .account-trainer-dashboard__cards {
+    grid-template-columns: 1fr;
   }
 }
 
