@@ -3,6 +3,7 @@ import { ElMessageBox } from 'element-plus'
 import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import {
   loadAllCompetitionRegistrationsForAdmin,
+  deleteCompetitionRegistration,
   patchCompetitionRegistrationByUserKey,
   subscribeToCompetitionRegistrationChanges,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
@@ -809,6 +810,46 @@ export function useAccountCompetitionRegistrationsAdmin() {
       .catch(() => {})
   }
 
+  function handleDeleteSelectedRegistration(registrationId, registrationStatus) {
+    const targetRegistration =
+      registrations.value.find((item) => item.id === registrationId) || selectedRegistration.value
+    const targetId = registrationId || targetRegistration?.id
+    const targetStatus = registrationStatus || targetRegistration?.status
+
+    if (!targetId || targetStatus !== COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
+      return
+    }
+
+    void ElMessageBox.confirm(
+      'Удалить снятую заявку? Восстановить её будет нельзя.',
+      'Подтверждение удаления',
+      {
+        customClass: 'account__confirm-messagebox',
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        confirmButtonClass: 'account__table-action account__table-action--delete btn-reset',
+        cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
+        type: 'warning',
+        autofocus: false,
+        closeOnClickModal: false,
+        closeOnPressEscape: true,
+      },
+    )
+      .then(() => {
+        void deleteCompetitionRegistration(null, targetId)
+          .then(async () => {
+            await Promise.all([loadPaymentRecords(), loadRegistrations()])
+            closeDetailsDialog()
+          })
+          .catch((error) => {
+            showToast(error instanceof Error ? error.message : 'Не удалось удалить заявку', {
+              type: 'error',
+            })
+          })
+      })
+      .catch(() => {})
+  }
+
   onMounted(() => {
     void loadRegistrations()
     void loadAccountUsersLookup()
@@ -904,6 +945,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     getRegistrationCompetitionDateSortValue,
     handleRegistrationSave,
     handleWithdrawSelectedRegistration,
+    handleDeleteSelectedRegistration,
     handleMarkPaymentSucceeded,
     handleMarkPaymentFailed,
     handleResolveRefund,

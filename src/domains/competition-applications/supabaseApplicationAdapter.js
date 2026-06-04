@@ -170,6 +170,19 @@ export async function updateSupabaseCompetitionApplication(applicationId, patch 
   return mapSupabaseCompetitionApplicationRow(data)
 }
 
+export async function deleteSupabaseCompetitionApplication(applicationId) {
+  await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
+
+  const { error } = await getSupabaseClient()
+    .from(COMPETITION_APPLICATIONS_TABLE)
+    .delete()
+    .eq('id', applicationId)
+
+  if (error) {
+    throwCompetitionApplicationError(error, 'Не удалось удалить заявку на соревнование.')
+  }
+}
+
 export function subscribeToCompetitionApplications(callback) {
   const client = getSupabaseClient()
   competitionApplicationsSubscriptionId += 1

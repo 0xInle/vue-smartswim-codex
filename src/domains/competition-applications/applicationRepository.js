@@ -6,6 +6,7 @@ import {
 } from './applicationRecords.js'
 import {
   createSupabaseCompetitionApplication,
+  deleteSupabaseCompetitionApplication,
   countActiveCompetitionApplicationsByStageId,
   fetchAllCompetitionApplicationsForAdmin,
   fetchCompetitionApplicationsForCurrentUser,
@@ -150,6 +151,10 @@ export async function patchCompetitionApplicationByUserKey(
     ...patch,
     statusChangedBy: patch.statusChangedBy || statusChangedBy,
   })
+}
+
+export async function deleteCompetitionApplication(currentUser, applicationId) {
+  return deleteSupabaseCompetitionApplication(applicationId)
 }
 
 export function subscribeToCompetitionApplicationChanges(callback) {

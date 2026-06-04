@@ -220,6 +220,7 @@
       :can-edit-registration-kind="false"
       :show-save-button="false"
       :show-withdraw-button="selectedHistoryCanBeWithdrawn"
+      :show-delete-button="selectedHistoryCanBeDeleted"
       :status-tag-type="
         selectedHistoryRegistration
           ? getRegistrationStatusTagType(selectedHistoryRegistration.status)
@@ -245,6 +246,7 @@
       @close="closeHistoryDetails"
       @save="handleUpdateSelectedRegistration"
       @withdraw="handleWithdrawSelectedRegistration"
+      @delete="handleDeleteSelectedHistoryRegistration"
       @create-payment="handleCreatePaymentForSelectedRegistration"
       @request-refund="handleRequestRefundForSelectedRegistration"
     />
@@ -269,6 +271,7 @@ import { ElCard, ElCheckbox, ElEmpty, ElOption, ElSelect, ElTag } from 'element-
 import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDetailsDialog.vue'
 import AccountCompetitionRegistrationDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDialog.vue'
 import { useAccountCompetitionRegistrations } from '@/pages/account/composables/useAccountCompetitionRegistrations'
+import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import {
   formatCompetitionCalendarDateShort,
@@ -357,6 +360,10 @@ const selectedHistoryRegistrationLifecycle = computed(() =>
   selectedHistoryRegistration.value
     ? getRegistrationLifecycleSummary(selectedHistoryRegistration.value)
     : null,
+)
+
+const selectedHistoryCanBeDeleted = computed(
+  () => selectedHistoryRegistration.value?.status === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN,
 )
 
 const selectedHistoryPaymentSummary = computed(() =>
@@ -456,6 +463,16 @@ function openHistoryDetails(record) {
 
 function closeHistoryDetails() {
   isHistoryDetailsDialogOpen.value = false
+}
+
+function handleDeleteSelectedHistoryRegistration() {
+  const registration = selectedHistoryRegistration.value
+
+  if (!registration) {
+    return
+  }
+
+  handleDeleteSelectedRegistration(registration.id, registration.status)
 }
 
 async function handleWithdrawSelectedRegistration() {

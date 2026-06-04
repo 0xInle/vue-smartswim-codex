@@ -345,6 +345,14 @@
         >
           Снять с соревнований
         </button>
+        <button
+          v-if="showDeleteButton"
+          type="button"
+          class="account__table-action account__table-action--delete btn-reset"
+          @click="emit('delete')"
+        >
+          Удалить заявку
+        </button>
       </div>
     </div>
   </ElDialog>
@@ -392,6 +400,10 @@ const props = defineProps({
   showWithdrawButton: {
     type: Boolean,
     default: true,
+  },
+  showDeleteButton: {
+    type: Boolean,
+    default: false,
   },
   statusTagType: {
     type: String,
@@ -503,6 +515,7 @@ const emit = defineEmits([
   'close',
   'save',
   'withdraw',
+  'delete',
   'create-payment',
   'request-refund',
   'mark-payment-succeeded',

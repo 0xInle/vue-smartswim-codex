@@ -4,6 +4,7 @@ import {
   createCompetitionApplication,
   createCompetitionApplicationId,
   createCompetitionApplicationRecord,
+  deleteCompetitionApplication,
   getCompetitionApplicationStageNumber,
   loadAllCompetitionApplicationsForAdmin,
   loadCompetitionApplicationsForCurrentUser,
@@ -36,6 +37,7 @@ export const loadAllCompetitionRegistrationsForAdmin = loadAllCompetitionApplica
 export const createCompetitionRegistration = createCompetitionApplication
 export const patchCompetitionRegistration = patchCompetitionApplication
 export const patchCompetitionRegistrationByUserKey = patchCompetitionApplicationByUserKey
+export const deleteCompetitionRegistration = deleteCompetitionApplication
 export const subscribeToCompetitionRegistrationChanges = subscribeToCompetitionApplicationChanges
 
 export function buildCompetitionAccountRoute({ competitionSlug = '', stageId = '' } = {}) {
