@@ -504,8 +504,8 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
       registration.id === registrationId ? updatedRegistration : registration,
     )
 
-    showToast('Спортсмен снят с соревнований')
-    return true
+      showToast('Спортсмен снят с соревнований')
+    return updatedRegistration
   }
 
   async function updateSelectedRegistration(registrationId, patch = {}) {

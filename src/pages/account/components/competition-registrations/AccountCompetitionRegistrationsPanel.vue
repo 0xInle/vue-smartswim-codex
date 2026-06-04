@@ -562,10 +562,10 @@ async function handleWithdrawSelectedRegistration() {
     return
   }
 
-  const isWithdrawn = await handleWithdrawRegistration(targetId)
+  const updatedRegistration = await handleWithdrawRegistration(targetId)
 
-  if (isWithdrawn) {
-    closeHistoryDetails()
+  if (updatedRegistration) {
+    selectedHistoryRegistration.value = updatedRegistration
   }
 }
 
