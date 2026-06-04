@@ -253,6 +253,7 @@ drop policy if exists "Allow authenticated users to withdraw own competition app
 drop policy if exists "Allow admin read competition applications" on public.competition_applications;
 drop policy if exists "Allow admin update competition applications" on public.competition_applications;
 drop policy if exists "Allow admin delete competition applications" on public.competition_applications;
+drop policy if exists "Allow authenticated users to delete own withdrawn competition applications" on public.competition_applications;
 
 create policy "Allow authenticated users to insert own competition applications"
 on public.competition_applications
@@ -309,6 +310,15 @@ on public.competition_applications
 for delete
 to authenticated
 using (public.current_crm_role() = 'admin');
+
+create policy "Allow authenticated users to delete own withdrawn competition applications"
+on public.competition_applications
+for delete
+to authenticated
+using (
+  owner_user_id = auth.uid()
+  and status = 'withdrawn'
+);
 
 drop policy if exists "Allow authenticated users to read own competition application events" on public.competition_application_events;
 drop policy if exists "Allow admin read competition application events" on public.competition_application_events;
