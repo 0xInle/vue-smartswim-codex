@@ -5,12 +5,13 @@
         <label class="account__field account-trainer-profile__field--wide">
           <span class="account__field-label">ФИО</span>
           <input
-            v-model.trim="profile.fullName"
+            :value="profile.fullName"
             class="account__input"
             type="text"
             name="trainer-full-name"
             placeholder="Введите ФИО"
             :aria-invalid="Boolean(errors.fullName)"
+            @input="updateTextField('fullName', $event.target.value, { trim: true })"
           />
           <span v-if="errors.fullName" class="account__field-error">{{ errors.fullName }}</span>
         </label>
@@ -18,13 +19,15 @@
         <label class="account__field">
           <span class="account__field-label">Дата рождения</span>
           <input
-            v-model.trim="profile.birthDate"
+            :value="profile.birthDate"
             class="account__input"
             type="text"
             name="trainer-birth-date"
             inputmode="numeric"
+            maxlength="10"
             placeholder="дд.мм.гггг"
             :aria-invalid="Boolean(errors.birthDate)"
+            @input="handleBirthDateInput"
           />
           <span v-if="errors.birthDate" class="account__field-error">{{ errors.birthDate }}</span>
         </label>
@@ -39,6 +42,7 @@
             type="tel"
             name="trainer-phone"
             inputmode="tel"
+            maxlength="18"
             placeholder="Введите телефон"
             :aria-invalid="Boolean(errors.phone)"
             @input="handlePhoneInput"
@@ -49,28 +53,158 @@
         <label class="account__field">
           <span class="account__field-label">Email</span>
           <input
-            v-model.trim="profile.email"
+            :value="profile.email"
             class="account__input"
             type="email"
             name="trainer-email"
             placeholder="Введите email"
             :aria-invalid="Boolean(errors.email)"
+            @input="updateTextField('email', $event.target.value, { trim: true })"
           />
           <span v-if="errors.email" class="account__field-error">{{ errors.email }}</span>
         </label>
       </div>
 
+      <div class="account__field-grid">
+        <label class="account__field account-trainer-profile__field--wide">
+          <span class="account__field-label">Опыт работы</span>
+          <input
+            :value="profile.experience"
+            class="account__input"
+            type="text"
+            name="trainer-experience"
+            placeholder="Опишите опыт работы"
+            @input="updateTextField('experience', $event.target.value, { trim: true })"
+          />
+        </label>
+
+        <label class="account__field account-trainer-profile__field--wide">
+          <span class="account__field-label">Основной профиль</span>
+          <input
+            :value="profile.mainProfile"
+            class="account__input"
+            type="text"
+            name="trainer-main-profile"
+            placeholder="Направление работы"
+            @input="updateTextField('mainProfile', $event.target.value, { trim: true })"
+          />
+        </label>
+      </div>
+
+      <div class="account__field-grid">
+        <label class="account__field">
+          <span class="account__field-label">Свободно мест</span>
+          <input
+            :value="profile.availableSeats"
+            class="account__input"
+            type="text"
+            name="trainer-available-seats"
+            inputmode="numeric"
+            placeholder="0"
+            @input="handleNumericInput('availableSeats', $event.target.value, 2)"
+          />
+        </label>
+
+        <label class="account__field account-trainer-profile__field--wide">
+          <span class="account__field-label">Образование</span>
+          <input
+            :value="profile.education"
+            class="account__input"
+            type="text"
+            name="trainer-education"
+            placeholder="Профильное образование"
+            @input="updateTextField('education', $event.target.value, { trim: true })"
+          />
+        </label>
+      </div>
+
+      <div class="account__field-grid">
+        <label class="account__field account-trainer-profile__field--wide">
+          <span class="account__field-label">Спортивные достижения</span>
+          <input
+            :value="profile.sportAchievements"
+            class="account__input"
+            type="text"
+            name="trainer-sport-achievements"
+            placeholder="Звания, разряды, результаты"
+            @input="updateTextField('sportAchievements', $event.target.value, { trim: true })"
+          />
+        </label>
+
+        <label class="account__field account-trainer-profile__field--wide">
+          <span class="account__field-label">С кем работает</span>
+          <input
+            :value="profile.worksWith"
+            class="account__input"
+            type="text"
+            name="trainer-works-with"
+            placeholder="Дети, взрослые, спортсмены"
+            @input="updateTextField('worksWith', $event.target.value, { trim: true })"
+          />
+        </label>
+      </div>
+
+      <div class="account__field-grid">
+        <label class="account__field">
+          <span class="account__field-label">Минимальный возраст</span>
+          <input
+            :value="profile.minAge"
+            class="account__input"
+            type="text"
+            name="trainer-min-age"
+            inputmode="numeric"
+            placeholder="0"
+            @input="handleNumericInput('minAge', $event.target.value, 2)"
+          />
+        </label>
+
+        <label class="account__field">
+          <span class="account__field-label">Уровень подготовки</span>
+          <input
+            :value="profile.preparationLevel"
+            class="account__input"
+            type="text"
+            name="trainer-preparation-level"
+            placeholder="Начальный, средний, продвинутый"
+            @input="updateTextField('preparationLevel', $event.target.value, { trim: true })"
+          />
+        </label>
+      </div>
+
+      <div class="account__field-grid">
+        <label class="account__field account-trainer-profile__field--wide">
+          <span class="account__field-label">Метро</span>
+          <input
+            :value="profile.metro"
+            class="account__input"
+            type="text"
+            name="trainer-metro"
+            placeholder="Ближайшая станция метро"
+            @input="updateTextField('metro', $event.target.value, { trim: true })"
+          />
+        </label>
+      </div>
+
       <div class="account-trainer-profile__actions">
-        <button type="submit" class="account__submit btn-reset">Сохранить</button>
+        <button
+          type="submit"
+          class="account__table-action account__table-action--edit btn-reset account-trainer-profile__submit"
+          :disabled="isSaving"
+          :aria-busy="isSaving"
+        >
+          <span v-if="isSaving" class="account__button-spinner" aria-hidden="true"></span>
+          Сохранить
+        </button>
       </div>
     </form>
   </ElCard>
 </template>
 
 <script setup>
-import { reactive, toRef, watch } from 'vue'
+import { reactive, ref, toRef, watch } from 'vue'
 import { ElCard } from 'element-plus'
-import { formatPhoneInput, isValidPhone } from '@/utils/phone'
+import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
+import { formatDateInput } from '@/utils/dateInput'
 import { showToast } from '@/utils/toast'
 import {
   loadAccountProfileForCurrentUser,
@@ -91,6 +225,15 @@ const profile = reactive({
   birthDate: '',
   phone: '',
   email: '',
+  experience: '',
+  mainProfile: '',
+  availableSeats: '',
+  education: '',
+  sportAchievements: '',
+  worksWith: '',
+  minAge: '',
+  preparationLevel: '',
+  metro: '',
 })
 
 const errors = reactive({
@@ -99,6 +242,8 @@ const errors = reactive({
   phone: '',
   email: '',
 })
+
+const isSaving = ref(false)
 
 function resetErrors() {
   errors.fullName = ''
@@ -115,10 +260,33 @@ async function syncFromSource() {
     profile.birthDate = snapshot.birthDate || ''
     profile.phone = snapshot.phone || props.currentUser?.phone || ''
     profile.email = snapshot.email || props.currentUser?.email || ''
+    profile.experience = snapshot.experience || ''
+    profile.mainProfile = snapshot.mainProfile || ''
+    profile.availableSeats = snapshot.availableSeats || ''
+    profile.education = snapshot.education || ''
+    profile.sportAchievements = snapshot.sportAchievements || ''
+    profile.worksWith = snapshot.worksWith || ''
+    profile.minAge = snapshot.minAge || ''
+    profile.preparationLevel = snapshot.preparationLevel || ''
+    profile.metro = snapshot.metro || ''
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Не удалось загрузить профиль тренера.', {
       type: 'error',
     })
+
+    profile.fullName = props.currentUser?.name || ''
+    profile.birthDate = ''
+    profile.phone = props.currentUser?.phone || ''
+    profile.email = props.currentUser?.email || ''
+    profile.experience = ''
+    profile.mainProfile = ''
+    profile.availableSeats = ''
+    profile.education = ''
+    profile.sportAchievements = ''
+    profile.worksWith = ''
+    profile.minAge = ''
+    profile.preparationLevel = ''
+    profile.metro = ''
   }
 }
 
@@ -138,7 +306,7 @@ function validateProfile() {
 
   if (!profile.phone) {
     errors.phone = 'Укажите телефон.'
-  } else if (!isValidPhone(profile.phone)) {
+  } else if (!isRussianPhone(profile.phone)) {
     errors.phone = 'Укажите телефон в международном формате, например +7 (961) 471-33-80.'
   }
 
@@ -151,15 +319,32 @@ function validateProfile() {
   return !Object.values(errors).some(Boolean)
 }
 
+function updateTextField(field, value, { trim = false } = {}) {
+  profile[field] = trim ? String(value || '').trim() : String(value || '')
+}
+
+function handleBirthDateInput(event) {
+  profile.birthDate = formatDateInput(event.target.value)
+  errors.birthDate = ''
+}
+
 function handlePhoneInput(event) {
-  profile.phone = formatPhoneInput(event.target.value)
+  profile.phone = formatRussianPhoneInput(event.target.value)
   errors.phone = ''
 }
 
+function handleNumericInput(field, value, maxDigits = 3) {
+  profile[field] = String(value || '')
+    .replace(/\D/g, '')
+    .slice(0, maxDigits)
+}
+
 async function handleSubmit() {
-  if (!validateProfile()) {
+  if (!validateProfile() || isSaving.value) {
     return
   }
+
+  isSaving.value = true
 
   try {
     await saveAccountProfileForCurrentUser({
@@ -171,6 +356,8 @@ async function handleSubmit() {
     showToast(error instanceof Error ? error.message : 'Не удалось сохранить профиль тренера.', {
       type: 'error',
     })
+  } finally {
+    isSaving.value = false
   }
 }
 
@@ -201,10 +388,20 @@ watch(
   justify-content: flex-start;
 }
 
+.account-trainer-profile__submit {
+  justify-self: start;
+  width: auto;
+  min-width: 160px;
+}
+
 @media (max-width: 640px) {
   .account-trainer-profile__actions {
     flex-direction: column-reverse;
     align-items: stretch;
+  }
+
+  .account-trainer-profile__submit {
+    width: 100%;
   }
 }
 </style>

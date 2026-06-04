@@ -5,11 +5,31 @@ create table if not exists public.account_profiles (
   club text not null default '',
   phone text not null default '',
   email text not null default '',
+  experience text not null default '',
+  main_profile text not null default '',
+  available_seats text not null default '',
+  education text not null default '',
+  sport_achievements text not null default '',
+  works_with text not null default '',
+  min_age text not null default '',
+  preparation_level text not null default '',
+  metro text not null default '',
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
   constraint account_profiles_email_check
     check (email = '' or position('@' in email) > 1)
 );
+
+alter table public.account_profiles
+  add column if not exists experience text not null default '',
+  add column if not exists main_profile text not null default '',
+  add column if not exists available_seats text not null default '',
+  add column if not exists education text not null default '',
+  add column if not exists sport_achievements text not null default '',
+  add column if not exists works_with text not null default '',
+  add column if not exists min_age text not null default '',
+  add column if not exists preparation_level text not null default '',
+  add column if not exists metro text not null default '';
 
 create table if not exists public.account_athletes (
   id uuid primary key default gen_random_uuid(),
