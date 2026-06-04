@@ -76,46 +76,10 @@
       <section class="account-trainer-dashboard__cards">
         <article class="account-trainer-dashboard__card account-trainer-dashboard__card--activity">
           <div class="account-trainer-dashboard__card-head">
-            <div>
-              <p class="account__panel-eyebrow">Последние изменения</p>
-              <h4 class="account-trainer-dashboard__card-title">Заявки спортсменов</h4>
-            </div>
+            <p class="account__panel-eyebrow">Последние изменения</p>
           </div>
 
-          <div v-if="hasActivityRows" class="account-trainer-dashboard__activity-list">
-            <div
-              v-for="item in latestActivityRows"
-              :key="item.id"
-              class="account-trainer-dashboard__activity-item"
-              :class="{ 'account-trainer-dashboard__activity-item--empty': item.isEmpty }"
-            >
-              <template v-if="!item.isEmpty">
-                <div class="account-trainer-dashboard__activity-copy">
-                  <span class="account-trainer-dashboard__activity-title">
-                    {{ item.title }}
-                  </span>
-                  <span class="account-trainer-dashboard__activity-name">
-                    {{ item.name }}
-                  </span>
-                </div>
-
-                <div class="account-trainer-dashboard__activity-meta">
-                  <ElTag :type="item.tagType" effect="light" round>
-                    {{ item.tagLabel }}
-                  </ElTag>
-                  <span class="account-trainer-dashboard__activity-time">
-                    {{ item.timeLabel }}
-                  </span>
-                </div>
-              </template>
-
-              <span v-else class="account-trainer-dashboard__activity-placeholder" aria-hidden="true">
-                Нет изменений
-              </span>
-            </div>
-          </div>
-
-          <div v-else class="account-trainer-dashboard__empty">
+          <div class="account-trainer-dashboard__empty">
             Пока нет обработанных заявок. Здесь появятся последние действия по спортсменам.
           </div>
         </article>
@@ -133,17 +97,17 @@
               class="account-trainer-dashboard__quick-action"
               plain
               type="primary"
-              @click="$emit('select-section', 'athletes')"
+              @click="$emit('select-section', 'trainer-bookings')"
             >
-              Спортсмены
+              Очередь заявок
             </ElButton>
             <ElButton
               class="account-trainer-dashboard__quick-action"
               plain
               type="primary"
-              @click="$emit('select-section', 'trainer-bookings')"
+              @click="$emit('select-section', 'athletes')"
             >
-              Мои заявки
+              Нужны данные
             </ElButton>
             <ElButton
               class="account-trainer-dashboard__quick-action"
@@ -151,7 +115,7 @@
               type="primary"
               @click="$emit('select-section', 'settings')"
             >
-              Настройки
+              Завершенные
             </ElButton>
           </div>
         </article>
@@ -161,14 +125,13 @@
 </template>
 
 <script setup>
-import { ElButton, ElCard, ElTag } from 'element-plus'
+import { ElButton, ElCard } from 'element-plus'
 import { computed, ref, toRef, watch } from 'vue'
 import { useAccountDocumentReviews } from '@/pages/account/composables/useAccountDocumentReviews'
 import {
   ATHLETE_APPLICATION_STATUS,
   CONSULTATION_STATUS,
 } from '@/pages/account/utils/accountConstants'
-import { formatCompactDateTime } from '@/pages/account/utils/accountFormatters'
 
 const props = defineProps({
   currentUser: {
@@ -212,50 +175,6 @@ const summary = computed(() => ({
     (group) => group.statusMeta.status === ATHLETE_APPLICATION_STATUS.NEEDS_DATA,
   ).length,
 }))
-
-function getGroupTimestamp(group) {
-  const candidates = [
-    group?.statusMeta?.updatedAt,
-    group?.statusMeta?.createdAt,
-    ...(Array.isArray(group?.documents) ? group.documents : []).flatMap((document) => [
-      document.reviewedAt,
-      document.uploadedAt,
-    ]),
-  ]
-
-  return candidates.reduce((max, value) => {
-    const timestamp = Date.parse(value || 0) || 0
-    return Math.max(max, timestamp)
-  }, 0)
-}
-
-const latestActivityRows = computed(() => {
-  const rows = athleteGroups.value
-    .slice()
-    .sort((left, right) => getGroupTimestamp(right) - getGroupTimestamp(left))
-    .slice(0, 4)
-    .map((group) => ({
-      id: group.id,
-      title: group.participantName || group.ownerName || 'Без имени',
-      name: `${group.ownerName || 'Не указан'} · ${group.participantClub || 'Клуб не указан'}`,
-      tagType: group.statusMeta.tagType,
-      tagLabel: group.statusMeta.label,
-      timeLabel: formatCompactDateTime(
-        group.statusMeta.updatedAt || group.statusMeta.createdAt || group.documents?.[0]?.uploadedAt,
-      ),
-    }))
-
-  while (rows.length < 4) {
-    rows.push({
-      id: `trainer-dashboard-activity-placeholder-${rows.length}`,
-      isEmpty: true,
-    })
-  }
-
-  return rows
-})
-
-const hasActivityRows = computed(() => latestActivityRows.value.some((item) => !item.isEmpty))
 
 watch(
   currentUserKey,
@@ -349,64 +268,6 @@ watch(isLoading, (loading, previousLoading) => {
   gap: 12px;
 }
 
-.account-trainer-dashboard__activity-list {
-  display: grid;
-  gap: 10px;
-}
-
-.account-trainer-dashboard__activity-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 14px;
-  border: 1px solid #e5eaf3;
-  border-radius: 10px;
-  background: rgb(255 255 255 / 0.92);
-}
-
-.account-trainer-dashboard__activity-item--empty {
-  grid-template-columns: 1fr;
-  justify-items: center;
-  min-height: 60px;
-}
-
-.account-trainer-dashboard__activity-copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.account-trainer-dashboard__activity-title {
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.3;
-  color: var(--black);
-}
-
-.account-trainer-dashboard__activity-name {
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.4;
-  color: #526072;
-}
-
-.account-trainer-dashboard__activity-meta {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  min-width: 0;
-}
-
-.account-trainer-dashboard__activity-time {
-  font-size: 12px;
-  font-weight: 700;
-  color: #64748b;
-  white-space: nowrap;
-}
-
-.account-trainer-dashboard__activity-placeholder,
 .account-trainer-dashboard__empty {
   font-size: 14px;
   font-weight: 700;
