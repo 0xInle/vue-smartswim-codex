@@ -810,44 +810,29 @@ export function useAccountCompetitionRegistrationsAdmin() {
       .catch(() => {})
   }
 
-  function handleDeleteSelectedRegistration(registrationId, registrationStatus) {
+  async function handleDeleteSelectedRegistration(registrationId, registrationStatus) {
     const targetRegistration =
       registrations.value.find((item) => item.id === registrationId) || selectedRegistration.value
     const targetId = registrationId || targetRegistration?.id
     const targetStatus = registrationStatus || targetRegistration?.status
 
     if (!targetId || targetStatus !== COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
-      return
+      return false
     }
 
-    void ElMessageBox.confirm(
-      'Удалить снятую заявку? Восстановить её будет нельзя.',
-      'Подтверждение удаления',
-      {
-        customClass: 'account__confirm-messagebox',
-        confirmButtonText: 'Удалить',
-        cancelButtonText: 'Отмена',
-        confirmButtonClass: 'account__table-action account__table-action--delete btn-reset',
-        cancelButtonClass: 'account__table-action account__table-action--ghost btn-reset',
-        type: 'warning',
-        autofocus: false,
-        closeOnClickModal: false,
-        closeOnPressEscape: true,
-      },
-    )
-      .then(() => {
-        void deleteCompetitionRegistration(null, targetId)
-          .then(async () => {
-            await Promise.all([loadPaymentRecords(), loadRegistrations()])
-            closeDetailsDialog()
-          })
-          .catch((error) => {
-            showToast(error instanceof Error ? error.message : 'Не удалось удалить заявку', {
-              type: 'error',
-            })
-          })
+    try {
+      await deleteCompetitionRegistration(null, targetId)
+      await Promise.all([loadPaymentRecords(), loadRegistrations()])
+      closeDetailsDialog()
+
+      return true
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось удалить заявку', {
+        type: 'error',
       })
-      .catch(() => {})
+
+      return false
+    }
   }
 
   onMounted(() => {

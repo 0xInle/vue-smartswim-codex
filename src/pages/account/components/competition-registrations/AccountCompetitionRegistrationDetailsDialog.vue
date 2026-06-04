@@ -349,7 +349,7 @@
           v-if="showDeleteButton"
           type="button"
           class="account__table-action account__table-action--delete btn-reset"
-          @click="emit('delete')"
+          @click="emit('request-delete')"
         >
           Удалить заявку
         </button>
@@ -515,7 +515,7 @@ const emit = defineEmits([
   'close',
   'save',
   'withdraw',
-  'delete',
+  'request-delete',
   'create-payment',
   'request-refund',
   'mark-payment-succeeded',

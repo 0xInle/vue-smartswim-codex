@@ -246,10 +246,51 @@
       @close="closeHistoryDetails"
       @save="handleUpdateSelectedRegistration"
       @withdraw="handleWithdrawSelectedRegistration"
-      @delete="handleDeleteSelectedHistoryRegistration"
+      @request-delete="openDeleteHistoryDialog"
       @create-payment="handleCreatePaymentForSelectedRegistration"
       @request-refund="handleRequestRefundForSelectedRegistration"
     />
+
+    <ElDialog
+      :model-value="isDeleteHistoryDialogOpen"
+      width="480px"
+      append-to-body
+      align-center
+      destroy-on-close
+      class="account__dialog account__dialog--confirm"
+      :close-icon="Close"
+      @closed="closeDeleteHistoryDialog"
+      @update:model-value="!$event && closeDeleteHistoryDialog()"
+    >
+      <div class="account__dialog-form">
+        <div class="account__dialog-copy account__dialog-copy--centered">
+          <p class="account__dialog-text">Удалить снятую заявку?</p>
+          <p class="account__dialog-hint">
+            Восстановить удалённую заявку нельзя. Она исчезнет из истории участника.
+          </p>
+        </div>
+
+        <div class="account__dialog-actions">
+          <button
+            type="button"
+            class="account__table-action account__table-action--ghost btn-reset"
+            :disabled="isDeletingHistoryRegistration"
+            @click="closeDeleteHistoryDialog"
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            class="account__table-action account__table-action--delete btn-reset"
+            :disabled="isDeletingHistoryRegistration"
+            @click="confirmDeleteHistoryRegistration"
+          >
+            <span v-if="isDeletingHistoryRegistration" class="account__button-spinner" aria-hidden="true"></span>
+            <span>Удалить</span>
+          </button>
+        </div>
+      </div>
+    </ElDialog>
 
     <AccountCompetitionRegistrationDialog
       :model-value="isRegistrationDialogOpen"
@@ -267,7 +308,8 @@
 
 <script setup>
 import { computed, ref, toRef, watch } from 'vue'
-import { ElCard, ElCheckbox, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
+import { Close } from '@element-plus/icons-vue'
+import { ElCard, ElCheckbox, ElDialog, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDetailsDialog.vue'
 import AccountCompetitionRegistrationDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDialog.vue'
 import { useAccountCompetitionRegistrations } from '@/pages/account/composables/useAccountCompetitionRegistrations'
@@ -297,6 +339,8 @@ const hideClosedCompetitions = ref(true)
 const isSubmitting = ref(false)
 const selectedHistoryRegistration = ref(null)
 const isHistoryDetailsDialogOpen = ref(false)
+const isDeleteHistoryDialogOpen = ref(false)
+const isDeletingHistoryRegistration = ref(false)
 
 const {
   competitionOptions,
@@ -465,14 +509,43 @@ function closeHistoryDetails() {
   isHistoryDetailsDialogOpen.value = false
 }
 
-function handleDeleteSelectedHistoryRegistration() {
+function openDeleteHistoryDialog() {
   const registration = selectedHistoryRegistration.value
 
   if (!registration) {
     return
   }
 
-  handleDeleteSelectedRegistration(registration.id, registration.status)
+  if (registration.status !== COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
+    return
+  }
+
+  isDeleteHistoryDialogOpen.value = true
+}
+
+function closeDeleteHistoryDialog() {
+  isDeleteHistoryDialogOpen.value = false
+  isDeletingHistoryRegistration.value = false
+}
+
+async function confirmDeleteHistoryRegistration() {
+  const registration = selectedHistoryRegistration.value
+
+  if (!registration || isDeletingHistoryRegistration.value) {
+    return
+  }
+
+  isDeletingHistoryRegistration.value = true
+
+  try {
+    const deleted = await handleDeleteSelectedRegistration(registration.id, registration.status)
+
+    if (deleted) {
+      closeDeleteHistoryDialog()
+    }
+  } finally {
+    isDeletingHistoryRegistration.value = false
+  }
 }
 
 async function handleWithdrawSelectedRegistration() {
