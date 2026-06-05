@@ -39,14 +39,18 @@ export function useOwnTrainerBookings() {
     ownTrainerBookingsError.value = ''
   }
 
-  async function updateOwnTrainerBookingStatus(id, status) {
+  async function updateOwnTrainerBookingStatus(id, status, comment) {
     if (!id || !status) {
       return null
     }
 
     try {
-      const updatedBooking = await updateTrainerBookingStatus({ id, status })
-      await syncOwnTrainerBookings()
+      const updatedBooking = await updateTrainerBookingStatus({ id, status, comment })
+      if (updatedBooking) {
+        ownTrainerBookings.value = ownTrainerBookings.value.map((booking) =>
+          booking.id === updatedBooking.id ? updatedBooking : booking,
+        )
+      }
       return updatedBooking
     } catch (error) {
       ownTrainerBookingsError.value = getErrorMessage(

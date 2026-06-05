@@ -109,6 +109,7 @@ function mapTrainerBooking(row) {
     comment: row.comment ?? '',
     status: row.status ?? 'new',
     createdAt: row.created_at ?? null,
+    updatedAt: row.updated_at ?? row.created_at ?? null,
   }
 }
 
@@ -178,6 +179,7 @@ export async function createTrainerBooking(payload) {
       ...insertPayload,
       id: null,
       created_at: null,
+      updated_at: null,
     })
   }
 
@@ -185,7 +187,7 @@ export async function createTrainerBooking(payload) {
     .from('trainer_bookings')
     .insert(insertPayload)
     .select(
-      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at',
+      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at,updated_at',
     )
     .single()
 
@@ -273,7 +275,7 @@ export async function fetchOwnTrainerBookings() {
   const { data, error } = await getSupabaseClient()
     .from('trainer_bookings')
     .select(
-      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at',
+      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at,updated_at',
     )
     .order('created_at', { ascending: false })
 
@@ -298,7 +300,7 @@ export async function fetchTrainerBookings() {
   const { data, error } = await getSupabaseClient()
     .from('trainer_bookings')
     .select(
-      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at',
+      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at,updated_at',
     )
     .order('created_at', { ascending: false })
 
@@ -429,21 +431,27 @@ export async function updateConsultationRequestStatus({
   })
 }
 
-export async function updateTrainerBookingStatus({ id, status }) {
+export async function updateTrainerBookingStatus({ id, status, comment }) {
   const session = await getCurrentSession()
 
   if (!session) {
     throw new Error('Сессия истекла. Войдите в CRM заново.')
   }
 
+  const updatePayload = {
+    status,
+  }
+
+  if (comment !== undefined) {
+    updatePayload.comment = comment || ''
+  }
+
   const { data, error } = await getSupabaseClient()
     .from('trainer_bookings')
-    .update({
-      status,
-    })
+    .update(updatePayload)
     .eq('id', id)
     .select(
-      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at',
+      'id,trainer_id,trainer_name,client_user_id,client_first_name,client_last_name,client_phone,client_email,preferred_date,preferred_time,comment,status,created_at,updated_at',
     )
     .single()
 

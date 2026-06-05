@@ -61,6 +61,8 @@
               <AccountTrainerDashboardPanel
                 v-show="activeSection === 'dashboard'"
                 :current-user="currentUser"
+                :bookings="ownTrainerBookings"
+                :is-loading="ownTrainerBookingsLoading"
                 @select-section="handleSectionSelect"
               />
 
@@ -608,7 +610,7 @@ function handleSignOutClick() {
 }
 
 function handleOwnTrainerBookingStatusUpdate(payload) {
-  void updateOwnTrainerBookingStatus(payload?.id, payload?.status)
+  void updateOwnTrainerBookingStatus(payload?.id, payload?.status, payload?.comment)
 }
 
 const navigationItems = computed(() => {

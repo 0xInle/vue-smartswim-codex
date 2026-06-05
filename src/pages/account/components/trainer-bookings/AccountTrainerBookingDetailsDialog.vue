@@ -6,104 +6,132 @@
     append-to-body
     align-center
     class="account__dialog account-trainer-booking-details"
-    title="Детали обращения к тренеру"
+    title="Детали заявки"
     :close-icon="Close"
-    @closed="emit('close')"
+    @closed="handleClosed"
     @update:model-value="!$event && emit('close')"
   >
-    <div v-if="booking" class="account-trainer-booking-details__content">
-      <div class="account-trainer-booking-details__grid">
-        <div class="account-trainer-booking-details__section account-trainer-booking-details__section--wide">
-          <div class="account-trainer-booking-details__card-head">
-            <span class="account-trainer-booking-details__label">Обращение</span>
-            <ElTag :type="statusTagType" effect="light" round>
-              {{ statusLabel }}
-            </ElTag>
+    <form v-if="booking" class="account__dialog-form" @submit.prevent="submitForm">
+      <div class="account-trainer-booking-details__content">
+        <div class="account-trainer-booking-details__grid">
+          <div class="account-trainer-booking-details__section account-trainer-booking-details__section--wide">
+            <div class="account-trainer-booking-details__summary">
+              <div class="account-trainer-booking-details__summary-copy">
+                <strong class="account-trainer-booking-details__value">
+                  {{ fullName }}
+                </strong>
+                <span class="account-trainer-booking-details__meta">
+                  Тренер: {{ booking.trainerName || 'Не указан' }}
+                </span>
+                <span class="account-trainer-booking-details__meta">
+                  Телефон: {{ booking.phone || 'Не указан' }}
+                </span>
+                <span class="account-trainer-booking-details__meta">
+                  Email: {{ booking.email || 'Не указан' }}
+                </span>
+                <span class="account-trainer-booking-details__meta">
+                  Дата: {{ formatConsultationDate(booking.preferredDate) }}
+                </span>
+                <span class="account-trainer-booking-details__meta">
+                  Время: {{ booking.preferredTime || 'Не указано' }}
+                </span>
+                <span class="account-trainer-booking-details__meta">
+                  Создана: {{ formatCompactDateTime(booking.createdAt) }}
+                </span>
+              </div>
+
+              <div class="account-trainer-booking-details__status-control">
+                <ElSelect
+                  v-if="canUpdateStatus && isEditableStatus"
+                  v-model="form.status"
+                  class="account__select account-trainer-booking-details__select"
+                  popper-class="account__select-popper account__select-popper--full"
+                  placeholder="Выберите статус"
+                >
+                  <ElOption
+                    v-for="option in editableStatusOptions"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  />
+                </ElSelect>
+                <ElTag
+                  v-else
+                  :type="statusTagType"
+                  effect="light"
+                  round
+                  class="account-trainer-booking-details__status-badge"
+                >
+                  {{ statusLabel }}
+                </ElTag>
+              </div>
+            </div>
           </div>
 
-          <span class="account-trainer-booking-details__meta">
-            Тренер: {{ booking.trainerName || 'Не указан' }}
-          </span>
-          <span class="account-trainer-booking-details__meta">
-            Запись создана: {{ formatCompactDateTime(booking.createdAt) }}
-          </span>
+          <div class="account-trainer-booking-details__section account-trainer-booking-details__section--wide">
+            <label class="account__field account-trainer-booking-details__field">
+              <span class="account__field-label">Комментарий</span>
+              <textarea
+                v-model.trim="form.comment"
+                class="account__input account-trainer-booking-details__textarea"
+                rows="4"
+                placeholder="Добавьте комментарий по заявке"
+              ></textarea>
+            </label>
+
+            <div v-if="savedComments.length" class="account-trainer-booking-details__comments">
+              <span class="account-trainer-booking-details__meta">История комментариев</span>
+              <p
+                v-for="(comment, index) in savedComments"
+                :key="`${index}-${comment}`"
+                class="account-trainer-booking-details__comment"
+              >
+                - {{ comment }}
+              </p>
+            </div>
+
+            <ElAlert
+              v-if="errorMessage"
+              :title="errorMessage"
+              type="warning"
+              show-icon
+              :closable="false"
+              class="account-trainer-booking-details__alert"
+            />
+          </div>
         </div>
 
-        <div class="account-trainer-booking-details__pair">
-          <div class="account-trainer-booking-details__section">
-            <span class="account-trainer-booking-details__label">Клиент</span>
-            <span class="account-trainer-booking-details__meta">
-              Телефон: {{ booking.phone || 'Не указан' }}
-            </span>
-            <span class="account-trainer-booking-details__meta">
-              Email: {{ booking.email || 'Не указан' }}
-            </span>
-          </div>
-
-          <div class="account-trainer-booking-details__section">
-            <span class="account-trainer-booking-details__label">Время консультации</span>
-            <span class="account-trainer-booking-details__meta">
-              Дата консультации: {{ formatConsultationDate(booking.preferredDate) }}
-            </span>
-            <span class="account-trainer-booking-details__meta">
-              Время консультации: {{ booking.preferredTime || 'Не указано' }}
-            </span>
-          </div>
-        </div>
-
-        <div class="account-trainer-booking-details__section account-trainer-booking-details__section--wide">
-          <span class="account-trainer-booking-details__label">Комментарий</span>
-          <strong class="account-trainer-booking-details__comment">
-            {{ booking.comment || 'Без комментария' }}
-          </strong>
+        <div class="account-trainer-booking-details__actions">
+          <button
+            type="button"
+            class="account__table-action account__table-action--ghost btn-reset"
+            @click="emit('close')"
+          >
+            Закрыть
+          </button>
+          <button
+            v-if="canUpdateStatus && isEditableStatus"
+            type="submit"
+            class="account__table-action account__table-action--edit btn-reset"
+            :disabled="isSaving"
+          >
+            {{ isSaving ? 'Сохранение...' : 'Сохранить' }}
+          </button>
         </div>
       </div>
-
-      <div class="account-trainer-booking-details__actions">
-        <span
-          v-if="!canUpdateStatus"
-          class="account-trainer-booking-details__observer-note"
-        >
-          Статус меняет тренер. Админ видит процесс и при необходимости связывается с тренером.
-        </span>
-        <button
-          v-if="canUpdateStatus && isTrainerBookingNewStatus(booking.status)"
-          type="button"
-          class="account__table-action account__table-action--edit btn-reset"
-          @click="emit('update-status', trainerBookingStatusInWork)"
-        >
-          В работу
-        </button>
-        <button
-          v-if="canUpdateStatus && !isTrainerBookingProcessedStatus(booking.status)"
-          type="button"
-          class="account__table-action account__table-action--success btn-reset"
-          @click="emit('update-status', trainerBookingStatusProcessed)"
-        >
-          Обработана
-        </button>
-        <button
-          type="button"
-          class="account__table-action account__table-action--ghost btn-reset"
-          @click="emit('close')"
-        >
-          Закрыть
-        </button>
-      </div>
-    </div>
+    </form>
   </ElDialog>
 </template>
 
 <script setup>
 import { Close } from '@element-plus/icons-vue'
-import { computed } from 'vue'
-import { ElDialog, ElTag } from 'element-plus'
-import {
-  TRAINER_BOOKING_STATUS,
-} from '@/pages/account/utils/accountConstants'
+import { computed, reactive, watch } from 'vue'
+import { ElAlert, ElDialog, ElOption, ElSelect, ElTag } from 'element-plus'
+import { TRAINER_BOOKING_STATUS } from '@/pages/account/utils/accountConstants'
 import {
   formatCompactDateTime,
   formatConsultationDate,
+  formatTrainerBookingClientName,
   formatTrainerBookingStatus,
   trainerBookingStatusType,
 } from '@/pages/account/utils/accountFormatters'
@@ -117,29 +145,107 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  errorMessage: {
+    type: String,
+    default: '',
+  },
+  isSaving: {
+    type: Boolean,
+    default: false,
+  },
   canUpdateStatus: {
     type: Boolean,
     default: false,
   },
 })
 
-const emit = defineEmits(['close', 'update-status'])
-const trainerBookingStatusInWork = TRAINER_BOOKING_STATUS.IN_WORK
-const trainerBookingStatusProcessed = TRAINER_BOOKING_STATUS.PROCESSED
+const emit = defineEmits(['close', 'closed', 'save'])
+const COMMENT_SEPARATOR = '\n\n'
+const editableStatusOptions = [
+  { value: TRAINER_BOOKING_STATUS.NEW, label: 'Новая' },
+  { value: TRAINER_BOOKING_STATUS.IN_WORK, label: 'В работе' },
+  { value: TRAINER_BOOKING_STATUS.COMPLETED, label: 'Завершена' },
+]
+const editableStatusValues = new Set(editableStatusOptions.map((option) => option.value))
+const form = reactive({
+  status: TRAINER_BOOKING_STATUS.NEW,
+  comment: '',
+})
 
-const statusLabel = computed(() => formatTrainerBookingStatus(props.booking?.status))
-const statusTagType = computed(() => trainerBookingStatusType(props.booking?.status))
+const isEditableStatus = computed(() => editableStatusValues.has(form.status))
+const fullName = computed(() => formatTrainerBookingClientName(props.booking))
+const statusLabel = computed(() => formatTrainerBookingStatus(form.status))
+const statusTagType = computed(() => trainerBookingStatusType(form.status))
+const savedComments = computed(() => parseSavedComments(props.booking?.comment))
 
-function isTrainerBookingNewStatus(status) {
-  return status === TRAINER_BOOKING_STATUS.NEW
+watch(
+  () => [props.modelValue, props.booking],
+  () => {
+    if (!props.modelValue || !props.booking) {
+      return
+    }
+
+    form.status = normalizeEditableStatus(props.booking.status)
+    form.comment = ''
+  },
+  { immediate: true },
+)
+
+function normalizeEditableStatus(status) {
+  if (editableStatusValues.has(status)) {
+    return status
+  }
+
+  if (
+    status === TRAINER_BOOKING_STATUS.CONTACTED ||
+    status === TRAINER_BOOKING_STATUS.CONFIRMED
+  ) {
+    return TRAINER_BOOKING_STATUS.IN_WORK
+  }
+
+  if (
+    status === TRAINER_BOOKING_STATUS.PROCESSED ||
+    status === TRAINER_BOOKING_STATUS.CANCELLED
+  ) {
+    return TRAINER_BOOKING_STATUS.COMPLETED
+  }
+
+  return TRAINER_BOOKING_STATUS.NEW
 }
 
-function isTrainerBookingProcessedStatus(status) {
-  return [
-    TRAINER_BOOKING_STATUS.PROCESSED,
-    TRAINER_BOOKING_STATUS.COMPLETED,
-    TRAINER_BOOKING_STATUS.CANCELLED,
-  ].includes(status)
+function submitForm() {
+  if (!props.booking) {
+    return
+  }
+
+  emit('save', {
+    bookingId: props.booking.id,
+    status: form.status,
+    comment: buildNextCommentValue(),
+  })
+}
+
+function parseSavedComments(value) {
+  return String(value || '')
+    .split(/\n{2,}/)
+    .map((comment) => comment.trim())
+    .filter(Boolean)
+}
+
+function buildNextCommentValue() {
+  const nextComment = form.comment.trim()
+
+  if (!nextComment) {
+    return savedComments.value.join(COMMENT_SEPARATOR)
+  }
+
+  return [...savedComments.value, nextComment].join(COMMENT_SEPARATOR)
+}
+
+function handleClosed() {
+  form.status = TRAINER_BOOKING_STATUS.NEW
+  form.comment = ''
+  emit('closed')
 }
 </script>
 
@@ -175,11 +281,27 @@ function isTrainerBookingProcessedStatus(status) {
   background: rgb(255 255 255 / 0.9);
 }
 
-.account-trainer-booking-details__card-head {
+.account-trainer-booking-details__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 50%);
+  align-items: start;
+  gap: 18px;
+}
+
+.account-trainer-booking-details__summary-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.account-trainer-booking-details__status-control {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.account-trainer-booking-details__status-badge.el-tag {
+  border-radius: 5px;
 }
 
 .account-trainer-booking-details__label {
@@ -206,6 +328,47 @@ function isTrainerBookingProcessedStatus(status) {
   color: #64748b;
 }
 
+.account-trainer-booking-details__value {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--black);
+}
+
+.account-trainer-booking-details__field {
+  margin-top: 10px;
+}
+
+.account-trainer-booking-details__select {
+  width: 100%;
+  min-width: 0;
+}
+
+.account-trainer-booking-details__textarea {
+  min-height: 112px;
+  resize: none;
+  line-height: 1.5;
+  padding-top: 11px;
+}
+
+.account-trainer-booking-details__comments {
+  display: grid;
+  gap: 6px;
+}
+
+.account-trainer-booking-details__comment {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--black);
+  white-space: pre-wrap;
+}
+
+.account-trainer-booking-details__alert {
+  margin-top: 8px;
+}
+
 .account-trainer-booking-details__actions {
   display: flex;
   align-items: center;
@@ -228,8 +391,17 @@ function isTrainerBookingProcessedStatus(status) {
     gap: 12px;
   }
 
-  .account-trainer-booking-details__pair {
+  .account-trainer-booking-details__summary {
     grid-template-columns: 1fr;
+  }
+
+  .account-trainer-booking-details__status-control {
+    justify-content: stretch;
+    order: -1;
+  }
+
+  .account-trainer-booking-details__textarea {
+    min-height: 96px;
   }
 }
 </style>

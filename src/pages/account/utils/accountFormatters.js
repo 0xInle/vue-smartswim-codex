@@ -163,7 +163,7 @@ export function formatConsultationFullName(request) {
 
 export function trainerBookingStatusType(status) {
   if (status === TRAINER_BOOKING_STATUS.NEW) {
-    return 'danger'
+    return 'success'
   }
 
   if (
@@ -176,15 +176,20 @@ export function trainerBookingStatusType(status) {
 
   if (
     status === TRAINER_BOOKING_STATUS.PROCESSED ||
+    status === TRAINER_BOOKING_STATUS.CANCELLED ||
     status === TRAINER_BOOKING_STATUS.COMPLETED
   ) {
-    return 'success'
+    return 'danger'
   }
 
   return 'info'
 }
 
 export function formatTrainerBookingStatus(status) {
+  if (status === TRAINER_BOOKING_STATUS.COMPLETED) {
+    return 'Завершена'
+  }
+
   if (
     status === TRAINER_BOOKING_STATUS.IN_WORK ||
     status === TRAINER_BOOKING_STATUS.CONTACTED ||
@@ -195,10 +200,9 @@ export function formatTrainerBookingStatus(status) {
 
   if (
     status === TRAINER_BOOKING_STATUS.PROCESSED ||
-    status === TRAINER_BOOKING_STATUS.COMPLETED ||
     status === TRAINER_BOOKING_STATUS.CANCELLED
   ) {
-    return 'Обработана'
+    return 'Завершена'
   }
 
   return 'Новая'

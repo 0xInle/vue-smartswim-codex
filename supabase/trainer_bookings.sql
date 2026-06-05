@@ -15,6 +15,7 @@ create table if not exists public.trainer_bookings (
   comment text,
   status text not null default 'new',
   created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
   constraint trainer_bookings_status_check
     check (status in ('new', 'contacted', 'confirmed', 'cancelled', 'completed')),
   constraint trainer_bookings_format_check
@@ -29,6 +30,19 @@ alter table public.trainer_bookings
 
 alter table public.trainer_bookings
   add column if not exists client_email_normalized text;
+
+alter table public.trainer_bookings
+  add column if not exists updated_at timestamptz;
+
+update public.trainer_bookings
+set updated_at = coalesce(updated_at, created_at, timezone('utc', now()))
+where updated_at is null;
+
+alter table public.trainer_bookings
+  alter column updated_at set default timezone('utc', now());
+
+alter table public.trainer_bookings
+  alter column updated_at set not null;
 
 alter table public.trainer_bookings enable row level security;
 
@@ -65,6 +79,16 @@ language sql
 immutable
 as $$
   select lower(trim(coalesce(input_email, '')));
+$$;
+
+create or replace function public.touch_trainer_booking_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at := timezone('utc', now());
+  return new;
+end;
 $$;
 
 create or replace function public.prepare_trainer_booking()
@@ -134,6 +158,11 @@ create trigger trainer_bookings_prepare
 before insert or update on public.trainer_bookings
 for each row execute procedure public.prepare_trainer_booking();
 
+drop trigger if exists trainer_bookings_touch_updated_at on public.trainer_bookings;
+create trigger trainer_bookings_touch_updated_at
+before update on public.trainer_bookings
+for each row execute procedure public.touch_trainer_booking_updated_at();
+
 update public.trainer_bookings
 set
   trainer_id = trim(coalesce(trainer_id, '')),
@@ -154,6 +183,9 @@ alter table public.trainer_bookings
 
 create index if not exists trainer_bookings_created_at_idx
   on public.trainer_bookings (created_at desc);
+
+create index if not exists trainer_bookings_updated_at_idx
+  on public.trainer_bookings (updated_at desc);
 
 create index if not exists trainer_bookings_client_email_normalized_idx
   on public.trainer_bookings (client_email_normalized);
@@ -239,7 +271,7 @@ using (
 )
 with check (
   public.current_crm_role() = 'trainer'
-  and status in ('in_work', 'processed')
+  and status in ('new', 'in_work', 'processed', 'contacted', 'confirmed', 'cancelled', 'completed')
   and exists (
     select 1
     from public.crm_users as crm_user

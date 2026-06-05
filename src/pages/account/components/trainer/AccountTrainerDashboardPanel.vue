@@ -61,15 +61,15 @@
         </article>
 
         <article class="account-trainer-dashboard__metric">
-          <p class="account-trainer-dashboard__metric-label">Готово</p>
-          <strong class="account-trainer-dashboard__metric-value">{{ summary.readyCount }}</strong>
-          <span class="account-trainer-dashboard__metric-hint">Можно завершать</span>
+          <p class="account-trainer-dashboard__metric-label">Обработано</p>
+          <strong class="account-trainer-dashboard__metric-value">{{ summary.processedCount }}</strong>
+          <span class="account-trainer-dashboard__metric-hint">Закрытые обращения</span>
         </article>
 
         <article class="account-trainer-dashboard__metric account-trainer-dashboard__metric--attention">
-          <p class="account-trainer-dashboard__metric-label">Нужны данные</p>
-          <strong class="account-trainer-dashboard__metric-value">{{ summary.needsDataCount }}</strong>
-          <span class="account-trainer-dashboard__metric-hint">Требуют уточнения</span>
+          <p class="account-trainer-dashboard__metric-label">Всего</p>
+          <strong class="account-trainer-dashboard__metric-value">{{ summary.totalCount }}</strong>
+          <span class="account-trainer-dashboard__metric-hint">Заявки к тренеру</span>
         </article>
       </section>
 
@@ -79,8 +79,41 @@
             <p class="account__panel-eyebrow">Последние изменения</p>
           </div>
 
-          <div class="account-trainer-dashboard__empty">
-            Пока нет обработанных заявок. Здесь появятся последние действия по спортсменам.
+          <div v-if="latestBookingRows.length" class="account-trainer-dashboard__activity-list">
+            <div
+              v-for="booking in latestBookingRows"
+              :key="booking.id"
+              class="account-trainer-dashboard__activity-item"
+            >
+              <div class="account-trainer-dashboard__activity-copy">
+                <span class="account-trainer-dashboard__activity-title">
+                  {{ formatTrainerBookingClientName(booking) }}
+                </span>
+                <span class="account-trainer-dashboard__activity-time-label">Запланирована</span>
+                <span class="account-trainer-dashboard__activity-name">
+                  {{ formatTrainerBookingSlot(booking) }}
+                </span>
+              </div>
+
+              <div class="account-trainer-dashboard__activity-meta">
+                <ElTag
+                  :type="trainerBookingStatusType(booking.status)"
+                  effect="light"
+                  round
+                  class="account-trainer-dashboard__status-badge"
+                >
+                  {{ formatTrainerBookingStatus(booking.status) }}
+                </ElTag>
+                <span class="account-trainer-dashboard__activity-time-label">Изменена</span>
+                <span class="account-trainer-dashboard__activity-time">
+                  {{ formatCompactDateTime(booking.updatedAt || booking.createdAt) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="account-trainer-dashboard__empty">
+            Пока нет заявок к тренеру. Здесь появятся последние обращения клиентов.
           </div>
         </article>
 
@@ -88,35 +121,31 @@
           <div class="account-trainer-dashboard__card-head">
             <div>
               <p class="account__panel-eyebrow">Быстрый доступ</p>
-              <h4 class="account-trainer-dashboard__card-title">Основные разделы</h4>
             </div>
           </div>
 
           <div class="account-trainer-dashboard__quick-actions">
-            <ElButton
-              class="account-trainer-dashboard__quick-action"
-              plain
-              type="primary"
-              @click="$emit('select-section', 'trainer-bookings')"
+            <button
+              type="button"
+              class="account__back-button account-trainer-dashboard__quick-action btn-reset"
+              @click="emit('select-section', 'trainer-bookings')"
             >
-              Очередь заявок
-            </ElButton>
-            <ElButton
-              class="account-trainer-dashboard__quick-action"
-              plain
-              type="primary"
-              @click="$emit('select-section', 'athletes')"
+              Заявки: {{ summary.newCount }}
+            </button>
+            <button
+              type="button"
+              class="account__back-button account-trainer-dashboard__quick-action btn-reset"
+              @click="emit('select-section', 'athletes')"
             >
-              Нужны данные
-            </ElButton>
-            <ElButton
-              class="account-trainer-dashboard__quick-action"
-              plain
-              type="primary"
-              @click="$emit('select-section', 'settings')"
+              Спортсмены
+            </button>
+            <button
+              type="button"
+              class="account__back-button account-trainer-dashboard__quick-action btn-reset"
+              @click="emit('select-section', 'profile')"
             >
-              Завершенные
-            </ElButton>
+              Профиль
+            </button>
           </div>
         </article>
       </section>
@@ -125,71 +154,66 @@
 </template>
 
 <script setup>
-import { ElButton, ElCard } from 'element-plus'
-import { computed, ref, toRef, watch } from 'vue'
-import { useAccountDocumentReviews } from '@/pages/account/composables/useAccountDocumentReviews'
+import { ElCard, ElTag } from 'element-plus'
+import { computed } from 'vue'
 import {
-  ATHLETE_APPLICATION_STATUS,
-  CONSULTATION_STATUS,
+  TRAINER_BOOKING_STATUS,
 } from '@/pages/account/utils/accountConstants'
+import {
+  formatCompactDateTime,
+  formatTrainerBookingClientName,
+  formatTrainerBookingSlot,
+  formatTrainerBookingStatus,
+  trainerBookingStatusType,
+} from '@/pages/account/utils/accountFormatters'
 
 const props = defineProps({
   currentUser: {
     type: Object,
     default: null,
   },
+  bookings: {
+    type: Array,
+    default: () => [],
+  },
+  isLoading: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-defineEmits(['select-section'])
+const emit = defineEmits(['select-section'])
 
-const { groupedRows, refresh, isLoading } = useAccountDocumentReviews({
-  currentUser: toRef(props, 'currentUser'),
-})
-
-const hasLoadedData = ref(false)
-const currentUserKey = computed(() => props.currentUser?.id || props.currentUser?.email || 'anonymous')
-
-const athleteGroups = computed(() =>
-  groupedRows.value.filter((group) => group.participantKind === 'athlete'),
-)
-
-const showSkeleton = computed(() => isLoading.value && !hasLoadedData.value)
+const showSkeleton = computed(() => props.isLoading && !props.bookings.length)
 
 const summary = computed(() => ({
-  newCount: athleteGroups.value.filter(
-    (group) => group.statusMeta.status === CONSULTATION_STATUS.NEW,
-  ).length,
-  inWorkCount: athleteGroups.value.filter((group) =>
+  newCount: props.bookings.filter((booking) => booking.status === TRAINER_BOOKING_STATUS.NEW).length,
+  inWorkCount: props.bookings.filter((booking) =>
     [
-      CONSULTATION_STATUS.PROCESSED,
-      CONSULTATION_STATUS.CALL_BACK,
-      CONSULTATION_STATUS.BUSY,
-      CONSULTATION_STATUS.UNAVAILABLE,
-      CONSULTATION_STATUS.SCHEDULED,
-    ].includes(group.statusMeta.status),
+      TRAINER_BOOKING_STATUS.IN_WORK,
+      TRAINER_BOOKING_STATUS.CONTACTED,
+      TRAINER_BOOKING_STATUS.CONFIRMED,
+    ].includes(booking.status),
   ).length,
-  readyCount: athleteGroups.value.filter(
-    (group) => group.statusMeta.status === ATHLETE_APPLICATION_STATUS.READY,
+  processedCount: props.bookings.filter((booking) =>
+    [
+      TRAINER_BOOKING_STATUS.PROCESSED,
+      TRAINER_BOOKING_STATUS.COMPLETED,
+      TRAINER_BOOKING_STATUS.CANCELLED,
+    ].includes(booking.status),
   ).length,
-  needsDataCount: athleteGroups.value.filter(
-    (group) => group.statusMeta.status === ATHLETE_APPLICATION_STATUS.NEEDS_DATA,
-  ).length,
+  totalCount: props.bookings.length,
 }))
 
-watch(
-  currentUserKey,
-  () => {
-    hasLoadedData.value = false
-    refresh()
-  },
-  { immediate: true },
+const latestBookingRows = computed(() =>
+  [...props.bookings]
+    .sort(
+      (left, right) =>
+        Date.parse(right.updatedAt || right.createdAt || 0) -
+        Date.parse(left.updatedAt || left.createdAt || 0),
+    )
+    .slice(0, 4),
 )
-
-watch(isLoading, (loading, previousLoading) => {
-  if (previousLoading && !loading) {
-    hasLoadedData.value = true
-  }
-})
 </script>
 
 <style scoped>
@@ -209,15 +233,18 @@ watch(isLoading, (loading, previousLoading) => {
 }
 
 .account-trainer-dashboard__cards {
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
-  align-items: start;
+  grid-template-columns: minmax(0, 1.45fr) minmax(220px, 0.95fr);
+  align-items: stretch;
 }
 
 .account-trainer-dashboard__card--activity {
+  grid-template-rows: auto 1fr;
+  align-self: stretch;
   min-width: 0;
 }
 
 .account-trainer-dashboard__card--snapshot {
+  grid-template-rows: auto 1fr;
   min-width: 0;
 }
 
@@ -287,6 +314,7 @@ watch(isLoading, (loading, previousLoading) => {
 
 .account-trainer-dashboard__empty {
   min-height: 124px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -295,15 +323,80 @@ watch(isLoading, (loading, previousLoading) => {
   background: rgb(255 255 255 / 0.62);
 }
 
+.account-trainer-dashboard__activity-list {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.account-trainer-dashboard__activity-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.account-trainer-dashboard__activity-item:last-child {
+  border-bottom: 0;
+}
+
+.account-trainer-dashboard__activity-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-trainer-dashboard__activity-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.25;
+  color: var(--black);
+}
+
+.account-trainer-dashboard__activity-name,
+.account-trainer-dashboard__activity-time {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: #64748b;
+}
+
+.account-trainer-dashboard__activity-meta {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.account-trainer-dashboard__activity-time-label {
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.account-trainer-dashboard__status-badge.el-tag {
+  border-radius: 5px;
+}
+
 .account-trainer-dashboard__quick-actions {
+  align-self: center;
   display: grid;
   gap: 10px;
 }
 
 .account-trainer-dashboard__quick-action {
-  justify-content: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  min-height: 44px;
 }
 
 .account-trainer-dashboard__skeleton-line {
@@ -390,7 +483,7 @@ watch(isLoading, (loading, previousLoading) => {
   }
 }
 
-@media (max-width: 960px) {
+@media (max-width: 720px) {
   .account-trainer-dashboard__cards {
     grid-template-columns: 1fr;
   }
