@@ -16,7 +16,7 @@
         <label class="account__field">
           <span class="account__field-label">Название соревнования</span>
           <input
-            v-model="form.competitionName"
+            v-model.trim="form.competitionName"
             class="account__input"
             type="text"
             placeholder="SmartSwimCup"
@@ -80,7 +80,7 @@
           </button>
           <input
             v-if="form.showProtocolUrl"
-            v-model="form.protocolUrl"
+            v-model.trim="form.protocolUrl"
             class="account__input"
             type="url"
             placeholder="Ссылка на протокол"
@@ -102,7 +102,7 @@
           </button>
           <input
             v-if="form.showPhotoUrl"
-            v-model="form.photoUrl"
+            v-model.trim="form.photoUrl"
             class="account__input"
             type="url"
             placeholder="Ссылка на фото"
@@ -126,7 +126,7 @@
           </button>
           <input
             v-if="form.showCertificateUrl"
-            v-model="form.certificateUrl"
+            v-model.trim="form.certificateUrl"
             class="account__input"
             type="url"
             placeholder="Ссылка на архив сертификатов"
@@ -148,7 +148,7 @@
           </button>
           <input
             v-if="form.showMemoUrl"
-            v-model="form.memoUrl"
+            v-model.trim="form.memoUrl"
             class="account__input"
             type="url"
             placeholder="Ссылка на памятку"
@@ -212,15 +212,15 @@ watch(
 
 function submitForm() {
   emit('submit', {
-    competitionName: form.competitionName,
+    competitionName: form.competitionName.trim(),
     stage: form.stage,
-    date: form.date,
-    openAt: form.openDate,
-    closeAt: form.closeDate,
-    protocolUrl: form.protocolUrl,
-    photoUrl: form.photoUrl,
-    certificateUrl: form.certificateUrl,
-    memoUrl: form.memoUrl,
+    date: form.date.trim(),
+    openAt: form.openDate.trim(),
+    closeAt: form.closeDate.trim(),
+    protocolUrl: form.protocolUrl.trim(),
+    photoUrl: form.photoUrl.trim(),
+    certificateUrl: form.certificateUrl.trim(),
+    memoUrl: form.memoUrl.trim(),
   })
 }
 

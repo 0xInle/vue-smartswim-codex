@@ -13,6 +13,33 @@
           />
         </label>
 
+        <label class="account__field account__field--filter">
+          <span class="account__field-label">Статус</span>
+          <ElSelect
+            v-model="statusFilter"
+            class="account__select account-trainer-athletes__filter-select"
+            popper-class="account__select-popper account__select-popper--full"
+            placeholder="Все статусы"
+          >
+            <ElOption
+              v-for="option in statusFilterOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </ElSelect>
+        </label>
+
+        <label class="account-trainer-athletes__checkbox">
+          <input
+            v-model="hideRejected"
+            type="checkbox"
+            class="account-trainer-athletes__checkbox-input"
+          />
+          <span class="account-trainer-athletes__checkbox-box" aria-hidden="true"></span>
+          <span class="account-trainer-athletes__checkbox-label">Скрыть отклоненные</span>
+        </label>
+
         <div class="account-trainer-athletes__meta">
           <ElButton class="account__refresh-button" plain type="primary" @click="refresh">
             Обновить
@@ -42,6 +69,7 @@
               </button>
             </th>
             <th>Телефон</th>
+            <th>Статус</th>
             <th>Действие</th>
           </tr>
         </thead>
@@ -58,6 +86,15 @@
 
             <td class="account__native-table-cell account__native-table-cell--center">
               {{ group.ownerPhone || 'Не указан' }}
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <ElTag
+                :type="group.statusTagType"
+                effect="light"
+                class="account-trainer-athletes__status-badge"
+              >
+                {{ group.statusLabel }}
+              </ElTag>
             </td>
 
             <td class="account__native-table-cell account__native-table-cell--center">
@@ -85,8 +122,8 @@
       class="account__dialog"
       title="Детали спортсмена"
       :close-icon="Close"
-      @closed="closeGroupDialog"
-      @update:model-value="!$event && closeGroupDialog()"
+      @closed="handleGroupDialogClosed"
+      @update:model-value="!$event && handleGroupDialogClose()"
     >
       <div v-if="selectedGroup" class="account-trainer-athletes__dialog-view">
         <div class="account-trainer-athletes__dialog-grid">
@@ -96,12 +133,23 @@
                 <strong class="account-trainer-athletes__dialog-value">
                   {{ selectedGroup.participantName || selectedGroup.ownerName || 'Не указан' }}
                 </strong>
-                <span class="account-trainer-athletes__dialog-meta">
-                  {{ selectedGroup.statusMeta.label }}
-                </span>
               </div>
-              <ElTag :type="selectedGroup.statusMeta.tagType" effect="light" round>
-                {{ selectedGroup.statusMeta.label }}
+              <ElSelect
+                v-if="selectedGroup.bookingDetailsText"
+                v-model="dialogStatusState.localStatus"
+                class="account__select account-trainer-athletes__status-select"
+                popper-class="account__select-popper account__select-popper--full"
+                placeholder="Статус"
+              >
+                <ElOption
+                  v-for="option in groupStatusOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                />
+              </ElSelect>
+              <ElTag v-else :type="selectedGroup.statusMeta.tagType" effect="light" round>
+                {{ selectedGroup.sourceLabel }}
               </ElTag>
             </div>
 
@@ -128,6 +176,11 @@
                 {{ formatCompactDateTime(selectedGroup.statusMeta.updatedAt) }}
               </span>
             </div>
+
+            <pre
+              v-if="selectedGroup.bookingDetailsText"
+              class="account-trainer-athletes__dialog-details-text"
+            >{{ selectedGroup.bookingDetailsText }}</pre>
           </section>
         </div>
 
@@ -135,9 +188,17 @@
           <button
             type="button"
             class="account__table-action account__table-action--ghost btn-reset"
-            @click="closeGroupDialog"
+            @click="handleGroupDialogClose"
           >
             Отмена
+          </button>
+          <button
+            v-if="selectedGroup?.bookingDetailsText && isGroupStatusDirty"
+            type="button"
+            class="account__table-action account__table-action--edit btn-reset"
+            @click="saveGroupStatus"
+          >
+            Сохранить
           </button>
         </div>
       </div>
@@ -148,15 +209,20 @@
 <script setup>
 import { Close } from '@element-plus/icons-vue'
 import { computed, reactive, ref, toRef, watch } from 'vue'
-import { ElButton, ElCard, ElDialog, ElEmpty, ElTag } from 'element-plus'
+import { ElButton, ElCard, ElDialog, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import { useAccountDocumentReviews } from '@/pages/account/composables/useAccountDocumentReviews'
+import { TRAINER_BOOKING_STATUS } from '@/pages/account/utils/accountConstants'
 import { formatCompactDateTime } from '@/pages/account/utils/accountFormatters'
 
 const props = defineProps({
   currentUser: {
     type: Object,
     default: null,
+  },
+  bookings: {
+    type: Array,
+    default: () => [],
   },
 })
 
@@ -165,19 +231,44 @@ const { groupedRows, refresh } = useAccountDocumentReviews({
 })
 
 const search = ref('')
+const statusFilter = ref('all')
+const hideRejected = ref(true)
 const { sortKey, toggleSort, getSortState, sortItems } = useTriStateTextSort('fullName')
 
 const groupDialogState = reactive({
   isOpen: false,
   selectedGroupId: '',
 })
+const dialogStatusState = reactive({
+  localStatus: 'new',
+})
+const groupStatusOptions = [
+  { value: 'new', label: 'Запись' },
+  { value: 'accepted', label: 'Принят' },
+  { value: 'rejected', label: 'Отклонен' },
+]
+const statusFilterOptions = [
+  { value: 'all', label: 'Все статусы' },
+  ...groupStatusOptions,
+]
+const bookingStatusMap = reactive({})
 
 const athleteGroups = computed(() =>
-  groupedRows.value
+  [
+    ...groupedRows.value
     .filter((group) => group.participantKind === 'athlete')
     .map((group) => ({
       ...group,
+      sourceLabel: 'Документы',
+      sourceTagType: 'info',
+      statusLabel: 'Документы',
+      statusTagType: 'info',
+      localStatus: 'documents',
     })),
+    ...props.bookings
+      .filter((booking) => isAccountTrainerBooking(booking))
+      .map((booking) => createBookingAthleteGroup(booking)),
+  ]
 )
 
 const filteredGroups = computed(() => {
@@ -185,6 +276,23 @@ const filteredGroups = computed(() => {
 
   return athleteGroups.value
     .filter((group) => {
+      if (hideRejected.value && group.localStatus === 'rejected') {
+        return false
+      }
+
+      if (
+        statusFilter.value !== 'all' &&
+        !(statusFilter.value === 'accepted'
+          ? group.localStatus === 'accepted'
+          : statusFilter.value === 'rejected'
+            ? group.localStatus === 'rejected'
+            : statusFilter.value === 'new'
+              ? group.localStatus === 'new'
+              : false)
+      ) {
+        return false
+      }
+
       if (!normalizedSearch) {
         return true
       }
@@ -218,6 +326,13 @@ const sortedGroups = computed(() => {
 const selectedGroup = computed(
   () => athleteGroups.value.find((group) => group.id === groupDialogState.selectedGroupId) || null,
 )
+const isGroupStatusDirty = computed(() => {
+  if (!selectedGroup.value?.bookingDetailsText) {
+    return false
+  }
+
+  return dialogStatusState.localStatus !== getSelectedGroupLocalStatus()
+})
 
 function normalizeSearchValue(value) {
   return String(value || '')
@@ -227,6 +342,114 @@ function normalizeSearchValue(value) {
 
 function getGroupFullName(group) {
   return group?.participantName || group?.ownerName || ''
+}
+
+function isAccountTrainerBooking(booking) {
+  return Boolean(formatBookingDetailsText(booking?.comment))
+}
+
+function createBookingAthleteGroup(booking) {
+  const details = parseBookingDetails(booking.comment)
+  const fullName = details['ФИО'] || [booking.lastName, booking.firstName].filter(Boolean).join(' ')
+  const localStatus = getBookingLocalStatus(booking.id, booking.status)
+
+  return {
+    id: `booking:${booking.id}`,
+    participantKind: 'trainer-booking',
+    participantName: fullName,
+    participantBirthDate: '',
+    participantClub: details['Клуб'] || '',
+    ownerName: fullName,
+    ownerPhone: booking.phone || '',
+    ownerEmail: booking.email || '',
+    bookingDetailsText: formatBookingDetailsText(booking.comment),
+    localStatus,
+    statusLabel: getGroupStatusLabel(localStatus),
+    statusTagType: getGroupStatusTagType(localStatus),
+    statusMeta: {
+      label: getGroupStatusLabel(localStatus),
+      tagType: getGroupStatusTagType(localStatus),
+      note: booking.status || '',
+      createdAt: booking.createdAt,
+      updatedAt: booking.updatedAt,
+    },
+  }
+}
+
+function parseBookingDetails(value) {
+  return formatBookingDetailsText(value)
+    .split('\n')
+    .slice(1)
+    .reduce((details, line) => {
+      const separatorIndex = line.indexOf(':')
+
+      if (separatorIndex === -1) {
+        return details
+      }
+
+      const key = line.slice(0, separatorIndex).trim()
+      const detailValue = line.slice(separatorIndex + 1).trim()
+
+      if (key && detailValue && detailValue !== 'Не указан' && detailValue !== 'Не указана') {
+        details[key] = detailValue
+      }
+
+      return details
+    }, {})
+}
+
+function formatBookingDetailsText(value) {
+  const normalizedValue = String(value || '').trim()
+
+  if (!normalizedValue.startsWith('Данные пловца:')) {
+    return ''
+  }
+
+  return normalizedValue.split(/\n{2,}/)[0] || ''
+}
+
+function normalizeBookingLocalStatus(status) {
+  if (status === TRAINER_BOOKING_STATUS.PROCESSED || status === TRAINER_BOOKING_STATUS.COMPLETED) {
+    return 'accepted'
+  }
+
+  if (status === TRAINER_BOOKING_STATUS.CANCELLED) {
+    return 'rejected'
+  }
+
+  return 'new'
+}
+
+function getGroupStatusLabel(status) {
+  if (status === 'accepted') {
+    return 'Принят'
+  }
+
+  if (status === 'rejected') {
+    return 'Отклонен'
+  }
+
+  if (status === 'documents') {
+    return 'Документы'
+  }
+
+  return 'Запись'
+}
+
+function getGroupStatusTagType(status) {
+  if (status === 'accepted') {
+    return 'info'
+  }
+
+  if (status === 'rejected') {
+    return 'danger'
+  }
+
+  if (status === 'documents') {
+    return 'info'
+  }
+
+  return 'success'
 }
 
 function getSortDirection(columnKey) {
@@ -259,11 +482,42 @@ function openGroup(group) {
   }
   groupDialogState.isOpen = true
   groupDialogState.selectedGroupId = group.id
+  dialogStatusState.localStatus = getSelectedGroupLocalStatus(group)
 }
 
-function closeGroupDialog() {
+function handleGroupDialogClose() {
   groupDialogState.isOpen = false
+}
+
+function handleGroupDialogClosed() {
   groupDialogState.selectedGroupId = ''
+  dialogStatusState.localStatus = 'new'
+}
+
+function getSelectedGroupLocalStatus(group = selectedGroup.value) {
+  return group?.localStatus || 'new'
+}
+
+function saveGroupStatus() {
+  const group = selectedGroup.value
+
+  if (!group || !group.bookingDetailsText) {
+    return
+  }
+
+  bookingStatusMap[group.id] = dialogStatusState.localStatus
+  group.localStatus = dialogStatusState.localStatus
+  handleGroupDialogClose()
+}
+
+function getBookingLocalStatus(bookingId, status) {
+  const existingStatus = bookingStatusMap[`booking:${bookingId}`]
+
+  if (existingStatus) {
+    return existingStatus
+  }
+
+  return normalizeBookingLocalStatus(status)
 }
 
 watch(
@@ -283,15 +537,112 @@ watch(
 }
 
 .account-trainer-athletes__filters {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   gap: 12px;
   align-items: end;
+  flex-wrap: nowrap;
 }
 
 .account-trainer-athletes__meta {
   display: flex;
   justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+.account-trainer-athletes__filter-select,
+.account-trainer-athletes__status-select {
+  width: min(50%, 280px);
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.account-trainer-athletes__status-badge {
+  border-radius: 5px !important;
+}
+
+.account-trainer-athletes__status-badge.el-tag--success {
+  --el-tag-text-color: #2f8d3a;
+  --el-tag-bg-color: #eef9ef;
+  --el-tag-border-color: #d5efd8;
+}
+
+.account-trainer-athletes__status-badge.el-tag--info {
+  --el-tag-text-color: #7a8494;
+  --el-tag-bg-color: #f1f3f6;
+  --el-tag-border-color: #dfe4ea;
+}
+
+.account-trainer-athletes__status-badge.el-tag--danger {
+  --el-tag-text-color: #c94343;
+  --el-tag-bg-color: #fff0f0;
+  --el-tag-border-color: #f1d0d0;
+}
+
+.account__field--search {
+  flex: 0 1 50%;
+  min-width: 280px;
+}
+
+.account__field--filter {
+  flex: 0 0 180px;
+}
+
+.account-trainer-athletes__checkbox {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 190px;
+  height: 38px;
+  padding: 0;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.account-trainer-athletes__checkbox-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  overflow: hidden;
+}
+
+.account-trainer-athletes__checkbox-box {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid color-mix(in srgb, var(--cyan) 48%, white);
+  border-radius: 5px;
+  background: rgb(255 255 255 / 0.92);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.account-trainer-athletes__checkbox-input:checked + .account-trainer-athletes__checkbox-box {
+  border-color: color-mix(in srgb, var(--orange) 60%, white);
+  background: color-mix(in srgb, var(--orange) 16%, white);
+  box-shadow: 0 0 0 3px rgb(255 181 102 / 0.12);
+}
+
+.account-trainer-athletes__checkbox-input:checked + .account-trainer-athletes__checkbox-box::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 3px;
+  background: var(--orange);
+}
+
+.account-trainer-athletes__checkbox-label {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  color: #5f6f86;
 }
 
 .account__native-table-head th:not(:first-child),
@@ -359,6 +710,25 @@ watch(
   font-weight: 700;
   line-height: 1.5;
   color: #5b6a7f;
+}
+
+.account-trainer-athletes__dialog-details {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 18%, white);
+  border-radius: 10px;
+  background: rgb(246 251 255 / 0.86);
+}
+
+.account-trainer-athletes__dialog-details-text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: Nunito, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.55;
+  color: var(--black);
 }
 
 .account-trainer-athletes__dialog-view {

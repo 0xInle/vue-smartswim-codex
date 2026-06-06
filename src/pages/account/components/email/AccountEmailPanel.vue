@@ -87,7 +87,7 @@
         <label class="account__field">
           <span class="account__field-label">Тема</span>
           <input
-            v-model="form.subject"
+            v-model.trim="form.subject"
             class="account__input"
             type="text"
             placeholder="Например: Информация по этапу Smart Swim"
@@ -97,7 +97,7 @@
         <label class="account__field">
           <span class="account__field-label">Текст письма</span>
           <textarea
-            v-model="form.body"
+            v-model.trim="form.body"
             class="account__textarea account-email__textarea"
             rows="8"
             placeholder="Текст для будущей отправки через email-провайдера"
@@ -396,14 +396,17 @@ async function handleSubmit() {
   isSaving.value = true
 
   try {
+    const normalizedSubject = form.subject.trim()
+    const normalizedBody = form.body.trim()
+
     await createQueuedEmailMessageForAdmin({
       audienceType: form.audienceType,
       contextType:
         form.audienceType === EMAIL_AUDIENCE_TYPE.STAGE_PARTICIPANTS ? 'stage' : 'manual',
       contextId:
         form.audienceType === EMAIL_AUDIENCE_TYPE.STAGE_PARTICIPANTS ? form.stageId : '',
-      subject: form.subject,
-      body: form.body,
+      subject: normalizedSubject,
+      body: normalizedBody,
       recipients: recipientPreview.value,
     })
     showToast('Письмо поставлено в очередь. Отправка включится после подключения провайдера.')

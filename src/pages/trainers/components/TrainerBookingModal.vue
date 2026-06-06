@@ -57,16 +57,19 @@
 
               <label class="trainers-booking__field">
                 <span class="trainers-booking__label">Телефон</span>
-                <input
-                  :value="form.phone"
-                  class="trainers-booking__input"
-                  type="tel"
-                  name="phone"
-                  inputmode="tel"
-                  placeholder="+7 (961) 471-33-80"
-                  :aria-invalid="Boolean(errors.phone)"
-                  @input="handlePhoneInput"
-                />
+              <input
+                :value="form.phone"
+                class="trainers-booking__input"
+                type="tel"
+                name="phone"
+                inputmode="numeric"
+                autocomplete="tel"
+                maxlength="18"
+                pattern="[0-9+()\\s-]*"
+                placeholder="+7 (961) 471-33-80"
+                :aria-invalid="Boolean(errors.phone)"
+                @input="handlePhoneInput"
+              />
                 <span v-if="errors.phone" class="trainers-booking__error">
                   {{ errors.phone }}
                 </span>
@@ -516,6 +519,19 @@ function selectTime(time) {
   isTimeOpen.value = false
 }
 
+function resetBookingFormState() {
+  form.value.fullName = ''
+  form.value.email = ''
+  form.value.phone = ''
+  form.value.preferredDate = ''
+  form.value.preferredTime = ''
+  form.value.comment = ''
+  form.value.createAccount = true
+  form.value.password = ''
+  form.value.confirmPassword = ''
+  form.value.website = ''
+}
+
 function changeCalendarMonth(direction) {
   const nextMonth = new Date(
     calendarMonth.value.getFullYear(),
@@ -565,6 +581,10 @@ watch(
 
     isDateOpen.value = false
     isTimeOpen.value = false
+
+    if (!isOpen) {
+      resetBookingFormState()
+    }
   },
   { immediate: true },
 )

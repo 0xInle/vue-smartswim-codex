@@ -210,7 +210,7 @@ function submitForm() {
   emit('save', {
     requestId: props.request.id,
     status: form.status,
-    callbackTime: isCallbackStatus.value ? form.callbackTime : '',
+    callbackTime: isCallbackStatus.value ? form.callbackTime.trim() : '',
     comment: buildNextCommentValue(),
   })
 }

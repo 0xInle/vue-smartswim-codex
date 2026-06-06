@@ -193,6 +193,18 @@ create index if not exists trainer_bookings_client_email_normalized_idx
 create index if not exists trainer_bookings_client_user_id_idx
   on public.trainer_bookings (client_user_id);
 
+create or replace function public.current_crm_email()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select lower(trim(coalesce(auth.jwt() ->> 'email', '')));
+$$;
+
+grant execute on function public.current_crm_email() to authenticated;
+
 create policy "Allow public insert trainer bookings"
 on public.trainer_bookings
 for insert
@@ -238,7 +250,10 @@ using (
     from public.crm_users as crm_user
     where crm_user.id = auth.uid()
       and crm_user.role = 'trainer'
-      and trim(coalesce(crm_user.name, '')) = trainer_bookings.trainer_name
+      and (
+        public.current_crm_email() = public.normalize_email(trainer_bookings.trainer_id)
+        or trim(coalesce(crm_user.name, '')) = trainer_bookings.trainer_name
+      )
   )
 );
 
@@ -266,7 +281,10 @@ using (
     from public.crm_users as crm_user
     where crm_user.id = auth.uid()
       and crm_user.role = 'trainer'
-      and trim(coalesce(crm_user.name, '')) = trainer_bookings.trainer_name
+      and (
+        public.current_crm_email() = public.normalize_email(trainer_bookings.trainer_id)
+        or trim(coalesce(crm_user.name, '')) = trainer_bookings.trainer_name
+      )
   )
 )
 with check (
@@ -277,7 +295,10 @@ with check (
     from public.crm_users as crm_user
     where crm_user.id = auth.uid()
       and crm_user.role = 'trainer'
-      and trim(coalesce(crm_user.name, '')) = trainer_bookings.trainer_name
+      and (
+        public.current_crm_email() = public.normalize_email(trainer_bookings.trainer_id)
+        or trim(coalesce(crm_user.name, '')) = trainer_bookings.trainer_name
+      )
   )
 );
 

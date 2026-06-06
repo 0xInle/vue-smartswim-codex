@@ -5,7 +5,7 @@ import {
   getCurrentSession,
   signUpWithPassword,
 } from '@/utils/supabaseAuth'
-import { formatPhone, isValidPhone } from '@/utils/phone'
+import { formatPhone, isRussianPhone } from '@/utils/phone'
 import { showToast } from '@/utils/toast'
 
 const TRAINER_BOOKING_TOAST_DURATION = 6500
@@ -119,8 +119,9 @@ export function useTrainerBooking() {
   }
 
   function splitBookingFullName(value) {
-    const parts = value
-      .split(' ')
+    const parts = String(value || '')
+      .trim()
+      .split(/\s+/)
       .map((part) => part.trim())
       .filter(Boolean)
 
@@ -142,8 +143,16 @@ export function useTrainerBooking() {
       return
     }
 
-    trainerBookingForm.fullName = profile.name || trainerBookingForm.fullName
-    trainerBookingForm.email = profile.email || trainerBookingForm.email
+    const profileName = String(profile.name || '').trim()
+    const profileEmail = String(profile.email || '').trim()
+
+    if (profileName && !trainerBookingForm.fullName.trim()) {
+      trainerBookingForm.fullName = profileName
+    }
+
+    if (profileEmail && !trainerBookingForm.email.trim()) {
+      trainerBookingForm.email = profileEmail
+    }
   }
 
   async function syncBookingIdentity() {
@@ -188,29 +197,35 @@ export function useTrainerBooking() {
   function validateTrainerBookingForm() {
     resetTrainerBookingErrors()
 
-    if (!trainerBookingForm.fullName) {
+    const normalizedFullName = trainerBookingForm.fullName.trim()
+    const normalizedEmail = trainerBookingForm.email.trim()
+    const normalizedPhone = trainerBookingForm.phone.trim()
+    const normalizedPreferredDate = trainerBookingForm.preferredDate.trim()
+    const normalizedPreferredTime = trainerBookingForm.preferredTime.trim()
+
+    if (!normalizedFullName) {
       trainerBookingErrors.fullName = 'Укажите ФИО.'
-    } else if (splitBookingFullName(trainerBookingForm.fullName).firstName === '') {
+    } else if (splitBookingFullName(normalizedFullName).firstName === '') {
       trainerBookingErrors.fullName = 'Введите фамилию, имя и отчество хотя бы в двух частях.'
     }
 
-    if (!trainerBookingForm.email) {
+    if (!normalizedEmail) {
       trainerBookingErrors.email = 'Укажите почту.'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trainerBookingForm.email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       trainerBookingErrors.email = 'Укажите корректную почту.'
     }
 
-    if (!trainerBookingForm.phone) {
+    if (!normalizedPhone) {
       trainerBookingErrors.phone = 'Укажите номер телефона.'
-    } else if (!isValidPhone(trainerBookingForm.phone)) {
-      trainerBookingErrors.phone = 'Укажите телефон в международном формате, например +7 (961) 471-33-80.'
+    } else if (!isRussianPhone(normalizedPhone)) {
+      trainerBookingErrors.phone = 'Укажите номер телефона из 11 цифр, например +7 (961) 471-33-80.'
     }
 
-    if (!trainerBookingForm.preferredDate) {
+    if (!normalizedPreferredDate) {
       trainerBookingErrors.preferredDate = 'Выберите дату.'
     }
 
-    if (!trainerBookingForm.preferredTime) {
+    if (!normalizedPreferredTime) {
       trainerBookingErrors.preferredTime = 'Выберите время.'
     }
 
@@ -246,7 +261,9 @@ export function useTrainerBooking() {
 
     resetTrainerBookingFeedback()
 
-    const { firstName, lastName } = splitBookingFullName(trainerBookingForm.fullName)
+    const normalizedFullName = trainerBookingForm.fullName.trim()
+    const normalizedEmail = trainerBookingForm.email.trim()
+    const { firstName, lastName } = splitBookingFullName(normalizedFullName)
     let accountWasCreated = false
     let requiresEmailConfirmation = false
     let clientUserId = bookingSession.value?.user?.id ?? null
@@ -256,9 +273,9 @@ export function useTrainerBooking() {
     try {
       if (!isBookingAuthenticated.value && trainerBookingForm.createAccount) {
         const signUpResult = await signUpWithPassword({
-          email: trainerBookingForm.email.trim(),
+          email: normalizedEmail,
           password: trainerBookingForm.password,
-          name: trainerBookingForm.fullName.trim(),
+          name: normalizedFullName,
           emailRedirectTo: buildAuthRedirectUrl('confirm-email'),
         })
 
@@ -275,9 +292,9 @@ export function useTrainerBooking() {
         firstName,
         lastName,
         phone: formatPhone(trainerBookingForm.phone),
-        email: trainerBookingForm.email.trim(),
-        preferredDate: trainerBookingForm.preferredDate,
-        preferredTime: trainerBookingForm.preferredTime,
+        email: normalizedEmail,
+        preferredDate: trainerBookingForm.preferredDate.trim(),
+        preferredTime: trainerBookingForm.preferredTime.trim(),
         comment: trainerBookingForm.comment.trim(),
       })
 

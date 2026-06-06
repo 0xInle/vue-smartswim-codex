@@ -4,7 +4,6 @@
       <div class="account__panel-head">
         <div>
           <h3 v-if="mode !== 'trainer'" class="account__panel-title">Мои записи к тренерам</h3>
-          <h3 v-if="mode === 'trainer'" class="account__panel-title">Мои заявки</h3>
         </div>
         <div class="account__panel-actions">
           <ElTag type="success" effect="light" round class="account-own-trainer-bookings__count-badge">

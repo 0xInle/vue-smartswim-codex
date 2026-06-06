@@ -157,7 +157,7 @@
                       @submit.prevent="saveLinkEditor(row, 'protocol')"
                     >
                       <input
-                        v-model="linkForm.url"
+                        v-model.trim="linkForm.url"
                         class="account__input account__input--compact"
                         type="url"
                         placeholder="Ссылка на протокол"
@@ -200,7 +200,7 @@
                       @submit.prevent="saveLinkEditor(row, 'photo')"
                     >
                       <input
-                        v-model="linkForm.url"
+                        v-model.trim="linkForm.url"
                         class="account__input account__input--compact"
                         type="url"
                         placeholder="Ссылка на фото"
@@ -251,7 +251,7 @@
                       @submit.prevent="saveLinkEditor(row, 'certificate')"
                     >
                       <input
-                        v-model="linkForm.url"
+                        v-model.trim="linkForm.url"
                         class="account__input account__input--compact"
                         type="url"
                         placeholder="Ссылка на архив сертификатов"
@@ -294,7 +294,7 @@
                       @submit.prevent="saveLinkEditor(row, 'memo')"
                     >
                       <input
-                        v-model="linkForm.url"
+                        v-model.trim="linkForm.url"
                         class="account__input account__input--compact"
                         type="url"
                         placeholder="Ссылка на памятку"
@@ -673,12 +673,14 @@ function closeLinkEditor() {
 }
 
 function saveLinkEditor(row, type) {
+  const normalizedUrl = linkForm.url.trim()
+
   emit('update-stage-links', {
     stageId: row.id,
-    protocolUrl: type === 'protocol' ? linkForm.url : undefined,
-    photoUrl: type === 'photo' ? linkForm.url : undefined,
-    certificateUrl: type === 'certificate' ? linkForm.url : undefined,
-    memoUrl: type === 'memo' ? linkForm.url : undefined,
+    protocolUrl: type === 'protocol' ? normalizedUrl : undefined,
+    photoUrl: type === 'photo' ? normalizedUrl : undefined,
+    certificateUrl: type === 'certificate' ? normalizedUrl : undefined,
+    memoUrl: type === 'memo' ? normalizedUrl : undefined,
   })
 
   closeLinkEditor()

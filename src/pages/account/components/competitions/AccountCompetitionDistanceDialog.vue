@@ -27,7 +27,7 @@
           <label class="account__field">
             <span class="account__field-label account__field-label--table">Дистанция</span>
             <input
-              v-model="item.distance"
+              v-model.trim="item.distance"
               class="account__input account__input--compact"
               type="text"
             />
@@ -36,7 +36,7 @@
           <label class="account__field">
             <span class="account__field-label account__field-label--table">Стиль</span>
             <input
-              v-model="item.label"
+              v-model.trim="item.label"
               class="account__input account__input--compact"
               type="text"
             />

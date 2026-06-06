@@ -603,6 +603,10 @@
   gap: 10px;
 }
 
+.trainers-booking__field {
+  align-content: start;
+}
+
 .trainers-booking__text,
 .trainers-booking__hint,
 .trainers-booking__trainer-meta {
@@ -1042,6 +1046,7 @@
 
 .trainers-booking__error {
   margin: 0;
+  min-height: 18px;
   font-size: 12px;
   font-weight: 800;
   line-height: 1.45;

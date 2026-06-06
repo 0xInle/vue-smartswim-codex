@@ -74,6 +74,7 @@
               <AccountTrainerAthletesPanel
                 v-show="activeSection === 'athletes'"
                 :current-user="currentUser"
+                :bookings="ownTrainerBookings"
               />
 
               <AccountOwnTrainerBookingsPanel
@@ -262,6 +263,11 @@
                 :current-user="currentUser"
               />
 
+              <AccountTrainerRequestPanel
+                v-show="activeSection === 'trainers'"
+                :current-user="currentUser"
+              />
+
               <AccountCompetitionRegistrationsPanel
                 v-show="activeSection === 'competitions'"
                 :current-user="currentUser"
@@ -331,6 +337,7 @@ import AccountProfilePanel from '@/pages/account/components/profile/AccountProfi
 import AccountUserDashboardPanel from '@/pages/account/components/dashboard/AccountUserDashboardPanel.vue'
 import AccountSettingsPanel from '@/pages/account/components/profile/AccountSettingsPanel.vue'
 import AccountSidebar from '@/pages/account/components/layout/AccountSidebar.vue'
+import AccountTrainerRequestPanel from '@/pages/account/components/trainer-bookings/AccountTrainerRequestPanel.vue'
 import AccountTrainerBookingsPanel from '@/pages/account/components/trainer-bookings/AccountTrainerBookingsPanel.vue'
 import AccountOwnTrainerBookingsPanel from '@/pages/account/components/trainer-bookings/AccountOwnTrainerBookingsPanel.vue'
 import AccountUsersPanel from '@/pages/account/components/users/AccountUsersPanel.vue'
@@ -642,6 +649,7 @@ const navigationItems = computed(() => {
     { id: 'dashboard', label: 'Дашборд', icon: Monitor },
     { id: 'profile', label: 'Личная информация', icon: User },
     { id: 'athletes', label: 'Спортсмены', icon: Trophy },
+    { id: 'trainers', label: 'Тренеры', icon: Calendar },
     { id: 'competitions', label: 'Соревнования', icon: Trophy },
     { id: 'materials', label: 'Материалы', icon: Collection },
     { id: 'email', label: 'Письма', icon: Message },
@@ -678,6 +686,7 @@ const sectionContent = computed(() => {
     dashboard: { title: 'Дашборд' },
     profile: { title: 'Личная информация' },
     athletes: { title: 'Спортсмены' },
+    trainers: { title: 'Тренеры' },
     competitions: { title: 'Соревнования' },
     materials: { title: 'Материалы' },
     email: { title: 'Письма' },

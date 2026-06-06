@@ -84,7 +84,7 @@
         <label class="account__field">
           <span class="account__field-label">Протокол</span>
           <input
-            v-model="form.protocolUrl"
+            v-model.trim="form.protocolUrl"
             class="account__input"
             type="url"
             placeholder="Ссылка на протокол"
@@ -94,7 +94,7 @@
         <label class="account__field">
           <span class="account__field-label">Фото</span>
           <input
-            v-model="form.photoUrl"
+            v-model.trim="form.photoUrl"
             class="account__input"
             type="url"
             placeholder="Ссылка на фото"
@@ -106,7 +106,7 @@
         <label class="account__field">
           <span class="account__field-label">Сертификаты</span>
           <input
-            v-model="form.certificateUrl"
+            v-model.trim="form.certificateUrl"
             class="account__input"
             type="url"
             placeholder="Ссылка на архив сертификатов"
@@ -116,7 +116,7 @@
         <label class="account__field">
           <span class="account__field-label">Памятка</span>
           <input
-            v-model="form.memoUrl"
+            v-model.trim="form.memoUrl"
             class="account__input"
             type="url"
             placeholder="Ссылка на памятку"
@@ -220,15 +220,15 @@ function submitForm() {
 
   emit('submit', {
     stageId: props.stage.id,
-    competitionName: form.competitionName,
-    date: form.date,
-    openAt: form.openDate,
-    closeAt: form.closeDate,
+    competitionName: form.competitionName.trim(),
+    date: form.date.trim(),
+    openAt: form.openDate.trim(),
+    closeAt: form.closeDate.trim(),
     registrationLimit: Number(form.registrationLimit) || 0,
-    protocolUrl: form.protocolUrl,
-    photoUrl: form.photoUrl,
-    certificateUrl: form.certificateUrl,
-    memoUrl: form.memoUrl,
+    protocolUrl: form.protocolUrl.trim(),
+    photoUrl: form.photoUrl.trim(),
+    certificateUrl: form.certificateUrl.trim(),
+    memoUrl: form.memoUrl.trim(),
   })
 }
 

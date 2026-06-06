@@ -212,7 +212,7 @@ const latestBookingRows = computed(() =>
         Date.parse(right.updatedAt || right.createdAt || 0) -
         Date.parse(left.updatedAt || left.createdAt || 0),
     )
-    .slice(0, 4),
+    .slice(0, 2),
 )
 </script>
 

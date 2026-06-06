@@ -21,9 +21,6 @@
                   {{ fullName }}
                 </strong>
                 <span class="account-trainer-booking-details__meta">
-                  Тренер: {{ booking.trainerName || 'Не указан' }}
-                </span>
-                <span class="account-trainer-booking-details__meta">
                   Телефон: {{ booking.phone || 'Не указан' }}
                 </span>
                 <span class="account-trainer-booking-details__meta">
@@ -69,6 +66,11 @@
           </div>
 
           <div class="account-trainer-booking-details__section account-trainer-booking-details__section--wide">
+            <div v-if="bookingDetailsText" class="account-trainer-booking-details__details">
+              <span class="account__field-label">Данные пловца</span>
+              <pre class="account-trainer-booking-details__details-text">{{ bookingDetailsText }}</pre>
+            </div>
+
             <label class="account__field account-trainer-booking-details__field">
               <span class="account__field-label">Комментарий</span>
               <textarea
@@ -177,6 +179,7 @@ const fullName = computed(() => formatTrainerBookingClientName(props.booking))
 const statusLabel = computed(() => formatTrainerBookingStatus(form.status))
 const statusTagType = computed(() => trainerBookingStatusType(form.status))
 const savedComments = computed(() => parseSavedComments(props.booking?.comment))
+const bookingDetailsText = computed(() => formatBookingDetailsText(props.booking?.comment))
 
 watch(
   () => [props.modelValue, props.booking],
@@ -229,17 +232,28 @@ function parseSavedComments(value) {
   return String(value || '')
     .split(/\n{2,}/)
     .map((comment) => comment.trim())
-    .filter(Boolean)
+    .filter((comment) => Boolean(comment) && !comment.startsWith('Данные пловца:'))
+}
+
+function formatBookingDetailsText(value) {
+  const normalizedValue = String(value || '').trim()
+
+  if (!normalizedValue.startsWith('Данные пловца:')) {
+    return ''
+  }
+
+  return normalizedValue.split(/\n{2,}/)[0] || ''
 }
 
 function buildNextCommentValue() {
   const nextComment = form.comment.trim()
+  const currentDetails = bookingDetailsText.value
 
   if (!nextComment) {
-    return savedComments.value.join(COMMENT_SEPARATOR)
+    return [currentDetails, ...savedComments.value].filter(Boolean).join(COMMENT_SEPARATOR)
   }
 
-  return [...savedComments.value, nextComment].join(COMMENT_SEPARATOR)
+  return [currentDetails, ...savedComments.value, nextComment].filter(Boolean).join(COMMENT_SEPARATOR)
 }
 
 function handleClosed() {
@@ -337,6 +351,25 @@ function handleClosed() {
 
 .account-trainer-booking-details__field {
   margin-top: 10px;
+}
+
+.account-trainer-booking-details__details {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 18%, white);
+  border-radius: 10px;
+  background: rgb(246 251 255 / 0.86);
+}
+
+.account-trainer-booking-details__details-text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: Nunito, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.55;
+  color: var(--black);
 }
 
 .account-trainer-booking-details__select {

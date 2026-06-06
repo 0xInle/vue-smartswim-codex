@@ -42,6 +42,26 @@ export const trainersHeroStats = [
 
 export const trainers = [
   {
+    id: 'ss-biryukoff@yandex.ru',
+    name: 'Максим Андреевич Беляев',
+    primaryProfile: 'Подготовка к соревнованиям, мини-группа, спортивная школа',
+    availableSlots: '2 места',
+    education: ['Образование высшее', 'СибГУФК'],
+    achievements: 'Заслуженный тренер России, МС',
+    experience: '11 лет',
+    audience: 'Спортсмены',
+    minimumAge: '17 лет',
+    level: 'Подготовка к соревнованиям, индивидуальные тренировки, групповые тренировки',
+    metro: 'Сокол, Аэропорт',
+    metroStations: ['Сокол', 'Аэропорт'],
+    preparationLevels: ['Подготовка к соревнованиям', 'Индивидуальные тренировки', 'Групповые тренировки'],
+    ageGroups: ['7-17 лет', '18+'],
+    email: 'ss-biryukoff@yandex.ru',
+    phone: formatRussianPhone('+7 916 729-07-73'),
+    phoneHref: toRussianPhoneHref('+7 916 729-07-73'),
+    isHiddenOnPublicSite: true,
+  },
+  {
     id: 'maksim-belyaev',
     name: 'Максим Андреевич Беляев',
     primaryProfile: 'Подготовка к соревнованиям, мини-группа, спортивная школа',
@@ -156,3 +176,5 @@ export const trainers = [
     phoneHref: toRussianPhoneHref('+7 985 410-09-67'),
   },
 ]
+
+export const publicTrainers = trainers.filter((trainer) => !trainer.isHiddenOnPublicSite)

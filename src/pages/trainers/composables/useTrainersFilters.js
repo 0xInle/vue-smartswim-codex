@@ -3,7 +3,7 @@ import {
   trainerAgeGroupFilterOptions,
   trainerMetroFilterOptions,
   trainerPreparationLevelFilterOptions,
-  trainers,
+  publicTrainers,
 } from '@/pages/trainers/trainersData'
 
 const ALL_FILTER_VALUE = 'all'
@@ -31,7 +31,7 @@ export function useTrainersFilters() {
   const filteredTrainers = computed(() => {
     const normalizedSearch = trainersSearch.value.trim().toLowerCase()
 
-    return trainers.filter((trainer) => {
+    return publicTrainers.filter((trainer) => {
       const matchesMetro =
         metroFilter.value === ALL_FILTER_VALUE
           ? true
