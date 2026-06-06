@@ -54,7 +54,13 @@
           >
             {{ summary.expired }} просрочено
           </ElTag>
-          <ElButton class="account__refresh-button" plain type="primary" @click="refresh">
+          <ElButton
+            class="account__refresh-button"
+            plain
+            type="primary"
+            :loading="isLoading"
+            @click="refresh"
+          >
             Обновить
           </ElButton>
         </div>
@@ -146,9 +152,15 @@
             <button
               type="button"
               class="account__submit account-document-review__admit-button btn-reset"
-              :disabled="!selectedGroup.statusMeta.canAdmit"
+              :disabled="!selectedGroup.statusMeta.canAdmit || isAdmissionLoading(selectedGroup)"
+              :aria-busy="isAdmissionLoading(selectedGroup)"
               @click="handleAdmitAndClose(selectedGroup)"
             >
+              <span
+                v-if="isAdmissionLoading(selectedGroup)"
+                class="account__button-spinner"
+                aria-hidden="true"
+              ></span>
               Допустить спортсмена
             </button>
           </div>
@@ -227,15 +239,22 @@
               <button
                 type="button"
                 class="account__table-action account__table-action--success btn-reset"
-                :disabled="!canApproveDocument(document)"
+                :disabled="!canApproveDocument(document) || isReviewLoading(document, verifiedStatus)"
+                :aria-busy="isReviewLoading(document, verifiedStatus)"
                 @click="handleApprove(document)"
               >
+                <span
+                  v-if="isReviewLoading(document, verifiedStatus)"
+                  class="account__button-spinner"
+                  aria-hidden="true"
+                ></span>
                 Одобрить
               </button>
               <button
                 type="button"
                 class="account__table-action account__table-action--delete btn-reset"
-                :disabled="!canReviewDocument(document)"
+                :disabled="!canReviewDocument(document) || isReviewLoading(document, rejectedStatus)"
+                :aria-busy="isReviewLoading(document, rejectedStatus)"
                 @click="openReviewDialog(document, 'reject')"
               >
                 Отклонить
@@ -287,11 +306,22 @@
           <button
             type="button"
             class="account__table-action account__table-action--ghost btn-reset"
+            :disabled="reviewDialogSubmitting"
             @click="closeReviewDialogState"
           >
             Отмена
           </button>
-          <button type="submit" class="account__submit btn-reset">
+          <button
+            type="submit"
+            class="account__submit btn-reset"
+            :disabled="reviewDialogSubmitting"
+            :aria-busy="reviewDialogSubmitting"
+          >
+            <span
+              v-if="reviewDialogSubmitting"
+              class="account__button-spinner"
+              aria-hidden="true"
+            ></span>
             Отклонить
           </button>
         </div>
@@ -307,7 +337,10 @@ import { ElButton, ElCard, ElDialog, ElEmpty, ElOption, ElSelect, ElTag } from '
 import { useAccountDocumentReviews } from '@/pages/account/composables/useAccountDocumentReviews'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import { getAccountDocumentDisplayStatus } from '@/pages/account/utils/accountFormatters'
-import { isAccountDocumentExpiryRequired } from '@/pages/account/utils/accountDocumentTypes'
+import {
+  ACCOUNT_DOCUMENT_STATUS,
+  isAccountDocumentExpiryRequired,
+} from '@/pages/account/utils/accountDocumentTypes'
 
 const props = defineProps({
   currentUser: {
@@ -340,8 +373,12 @@ const {
   summary,
   search,
   statusFilter,
+  isLoading,
   reviewDialogState,
   reviewDialogError,
+  reviewActionId,
+  admissionActionId,
+  reviewDialogSubmitting,
   reviewRecord,
   reviewDialogTitle,
   reviewDialogHint,
@@ -356,6 +393,9 @@ const {
 } = useAccountDocumentReviews({
   currentUser: toRef(props, 'currentUser'),
 })
+
+const verifiedStatus = ACCOUNT_DOCUMENT_STATUS.VERIFIED
+const rejectedStatus = ACCOUNT_DOCUMENT_STATUS.REJECTED
 
 const { sortKey, toggleSort, getSortState, sortItems } =
   useTriStateTextSort('participantName')
@@ -474,9 +514,17 @@ function closeGroupDialog() {
   closeReviewDialogState()
 }
 
-function handleAdmitAndClose(group) {
-  handleAdmit(group)
+async function handleAdmitAndClose(group) {
+  await handleAdmit(group)
   closeGroupDialog()
+}
+
+function isReviewLoading(document, status) {
+  return Boolean(document?.id && reviewActionId.value === `${document.id}:${status}`)
+}
+
+function isAdmissionLoading(group) {
+  return Boolean(group?.id && admissionActionId.value === group.id)
 }
 
 function documentStatusLabel(document) {

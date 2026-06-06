@@ -202,6 +202,7 @@ export function mapAccountDocumentUpsertPayload(
 }
 
 export function mapAccountDocumentUpdatePayload(patch = {}) {
+  const hasExpiresAtPatch = Object.prototype.hasOwnProperty.call(patch, 'expiresAt')
   const normalizedPatch = {
     ...patch,
     documentType: patch.documentType || patch.type,
@@ -213,10 +214,13 @@ export function mapAccountDocumentUpdatePayload(patch = {}) {
     fileUrl: patch.fileUrl,
     storagePath: patch.storagePath,
     uploadedAt: patch.uploadedAt,
-    expiresAt: normalizeDateOnly(patch.expiresAt),
     reviewedAt: patch.reviewedAt || patch.verifiedAt,
     reviewedByName: patch.reviewedByName || patch.verifiedBy,
     rejectionReason: patch.rejectionReason,
+  }
+
+  if (hasExpiresAtPatch) {
+    normalizedPatch.expiresAt = normalizeDateOnly(patch.expiresAt)
   }
 
   if (patch.status) {

@@ -303,11 +303,19 @@ function parseAccountDocumentDate(value) {
 }
 
 export function formatAccountDocumentDate(value) {
-  if (!value) {
+  const normalizedValue = String(value || '').trim()
+
+  if (!normalizedValue) {
     return 'Не указана'
   }
 
-  return String(value)
+  const isoMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+
+  if (isoMatch) {
+    return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`
+  }
+
+  return normalizedValue
 }
 
 export function isAccountDocumentExpired(document, now = Date.now()) {

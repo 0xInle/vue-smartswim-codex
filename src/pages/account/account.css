@@ -1172,24 +1172,6 @@
   color: #64748b;
 }
 
-.account-dashboard__actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.account-dashboard__action {
-  min-height: 38px;
-  padding-inline: 12px;
-  border: 1px solid #dbe7f4;
-  border-radius: 10px;
-  width: fit-content;
-  font-size: 13px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
 .account-dashboard__body {
   display: grid;
   gap: 12px;
@@ -1197,7 +1179,7 @@
 
 .account-dashboard__metrics {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1384,7 +1366,9 @@
 
 .account-dashboard__activity-item {
   display: grid;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
   padding: 8px 0;
   border-bottom: 1px solid #eef2f7;
 }
@@ -1406,39 +1390,51 @@
 
 .account-dashboard__activity-copy {
   display: grid;
-  gap: 2px;
+  gap: 4px;
+  min-width: 0;
 }
 
 .account-dashboard__activity-title {
-  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
   font-weight: 900;
   line-height: 1.25;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
-.account-dashboard__activity-name {
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.4;
   color: var(--black);
 }
 
+.account-dashboard__activity-name {
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.account-dashboard__card--snapshot .account-dashboard__activity-name {
+  overflow: hidden;
+  display: block;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .account-dashboard__activity-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
+  display: grid;
+  justify-items: end;
+  gap: 5px;
 }
 
 .account-dashboard__activity-time {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.35;
-  color: #526072;
-  white-space: nowrap;
+  color: #64748b;
+}
+
+.account-dashboard__status-badge.el-tag {
+  border-radius: 5px;
 }
 
 .account-dashboard__snapshot-footer {
@@ -1457,14 +1453,6 @@
   color: #526072;
 }
 
-.account-dashboard__snapshot-link {
-  font-size: 13px;
-  font-weight: 900;
-  line-height: 1.35;
-  color: var(--el-color-primary);
-  white-space: nowrap;
-}
-
 .account-dashboard__empty {
   padding: 14px 12px;
   border: 1px dashed color-mix(in srgb, var(--cyan) 22%, white);
@@ -1476,6 +1464,16 @@
   font-weight: 700;
   line-height: 1.6;
   color: #526072;
+}
+
+.account-dashboard__empty--documents {
+  min-height: 132px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.5;
 }
 
 .account-dashboard__skeleton {
@@ -2051,5 +2049,11 @@
   .account-dashboard__snapshot-footer {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 1280px) and (min-width: 768px) {
+  .account-dashboard__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

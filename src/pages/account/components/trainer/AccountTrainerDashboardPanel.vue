@@ -374,7 +374,7 @@ const latestBookingRows = computed(() =>
 }
 
 .account-trainer-dashboard__activity-time-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   line-height: 1.2;
   letter-spacing: 0.08em;

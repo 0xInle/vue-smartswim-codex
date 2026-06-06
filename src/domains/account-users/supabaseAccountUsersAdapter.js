@@ -155,5 +155,16 @@ export function mergeCrmUserWithProfile(user, profile = null) {
     name: profile?.fullName || user.name || user.email || '',
     phone: formatPhone(profile?.phone || user.phone || ''),
     email: profile?.email || user.email || '',
+    birthDate: profile?.birthDate || '',
+    club: profile?.club || '',
+    experience: profile?.experience || '',
+    mainProfile: profile?.mainProfile || '',
+    availableSeats: profile?.availableSeats || '',
+    education: profile?.education || '',
+    sportAchievements: profile?.sportAchievements || '',
+    worksWith: profile?.worksWith || '',
+    minAge: profile?.minAge || '',
+    preparationLevel: profile?.preparationLevel || '',
+    metro: profile?.metro || '',
   }
 }

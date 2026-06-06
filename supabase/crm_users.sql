@@ -57,8 +57,7 @@ set role = case
   else 'user'
 end
 where role is null
-   or role not in ('admin', 'trainer', 'user')
-   or role in ('admin', 'trainer', 'user');
+   or role not in ('admin', 'trainer', 'user', 'athlete');
 
 alter table public.crm_users
   alter column role set default 'user';
@@ -79,16 +78,12 @@ alter table public.crm_users
 
 do $$
 begin
-  if not exists (
-    select 1
-    from pg_constraint
-    where conname = 'crm_users_role_check'
-      and conrelid = 'public.crm_users'::regclass
-  ) then
-    alter table public.crm_users
-      add constraint crm_users_role_check
-      check (role in ('admin', 'trainer', 'user'));
-  end if;
+  alter table public.crm_users
+    drop constraint if exists crm_users_role_check;
+
+  alter table public.crm_users
+    add constraint crm_users_role_check
+    check (role in ('admin', 'trainer', 'user', 'athlete'));
 end;
 $$;
 

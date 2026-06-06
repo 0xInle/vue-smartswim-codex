@@ -39,6 +39,9 @@ export function useAccountDocumentReviews({ currentUser }) {
   const search = ref('')
   const statusFilter = ref('all')
   const isLoading = ref(false)
+  const reviewActionId = ref('')
+  const admissionActionId = ref('')
+  const reviewDialogSubmitting = ref(false)
   const reviewDialogError = ref('')
   const reviewDialogState = reactive({
     isOpen: false,
@@ -268,6 +271,7 @@ export function useAccountDocumentReviews({ currentUser }) {
     }
 
     const reviewerName = resolveReviewerName(currentUser)
+    reviewActionId.value = `${record.id}:${status}`
 
     try {
       await reviewAccountDocument(record.id, {
@@ -282,6 +286,8 @@ export function useAccountDocumentReviews({ currentUser }) {
         error instanceof Error ? error.message : 'Не удалось обновить статус документа',
         { type: 'error' },
       )
+    } finally {
+      reviewActionId.value = ''
     }
   }
 
@@ -293,6 +299,8 @@ export function useAccountDocumentReviews({ currentUser }) {
     if (!group || group.statusMeta.status !== 'ready') {
       return
     }
+
+    admissionActionId.value = group.id
 
     try {
       await createAccountAdmission({
@@ -313,10 +321,12 @@ export function useAccountDocumentReviews({ currentUser }) {
       showToast(error instanceof Error ? error.message : 'Не удалось сохранить допуск.', {
         type: 'error',
       })
+    } finally {
+      admissionActionId.value = ''
     }
   }
 
-  function submitReviewDialog() {
+  async function submitReviewDialog() {
     if (!reviewRecord.value || !reviewDialogState.action) {
       return
     }
@@ -333,12 +343,15 @@ export function useAccountDocumentReviews({ currentUser }) {
         ? ACCOUNT_DOCUMENT_STATUS.REJECTED
         : ACCOUNT_DOCUMENT_STATUS.NEEDS_REUPLOAD
 
-    void applyReviewAction({
+    reviewDialogSubmitting.value = true
+
+    await applyReviewAction({
       record: reviewRecord.value,
       status: nextStatus,
       reason: nextReason,
     })
 
+    reviewDialogSubmitting.value = false
     closeReviewDialog()
   }
 
@@ -385,6 +398,9 @@ export function useAccountDocumentReviews({ currentUser }) {
     statusOptions: DOCUMENT_REVIEW_STATUS_OPTIONS,
     reviewDialogState,
     reviewDialogError,
+    reviewActionId,
+    admissionActionId,
+    reviewDialogSubmitting,
     reviewRecord,
     reviewDialogTitle,
     reviewDialogHint,

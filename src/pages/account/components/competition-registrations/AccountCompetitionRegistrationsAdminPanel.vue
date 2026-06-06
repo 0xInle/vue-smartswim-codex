@@ -326,15 +326,16 @@
       :show-resolve-refund-succeeded-button="selectedRegistrationCanResolveRefund"
       :show-resolve-refund-rejected-button="selectedRegistrationCanResolveRefund"
       :show-admit-button="selectedRegistrationCanAdmit"
+      :action-loading="detailsActionLoading"
       show-account-link
       admit-button-label="Допустить"
       @close="closeDetailsDialog"
-      @save="handleRegistrationSave"
+      @save="handleDetailsSave"
       @mark-payment-succeeded="handleMarkSelectedPaymentSucceeded"
       @mark-payment-failed="handleMarkSelectedPaymentFailed"
       @resolve-refund-succeeded="handleResolveSelectedRefund(refundSucceededStatus)"
       @resolve-refund-rejected="handleResolveSelectedRefund(refundRejectedStatus)"
-      @admit="handleAdmitSelectedRegistration"
+      @admit="handleAdmitSelectedRegistrationWithLoading"
       @open-account="handleOpenSelectedAccount"
     />
   </ElCard>
@@ -342,7 +343,7 @@
 
 <script setup>
 import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS } from '@/pages/account/utils/accountConstants'
 import { useAccountCompetitionRegistrationsAdmin } from '@/pages/account/composables/useAccountCompetitionRegistrationsAdmin'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
@@ -402,6 +403,7 @@ const documentsStatusOptions = [
 ]
 const refundSucceededStatus = COMPETITION_REFUND_STATUS.SUCCEEDED
 const refundRejectedStatus = COMPETITION_REFUND_STATUS.REJECTED
+const detailsActionLoading = ref('')
 const { sortKey, toggleSort, getSortState, sortItems } =
   useTriStateTextSort('participantName')
 
@@ -461,12 +463,32 @@ function getRefundStatusTagType(refund) {
   return getCompetitionRefundStatusMeta(refund?.status).tagType
 }
 
+async function runDetailsAction(action, callback) {
+  if (detailsActionLoading.value) {
+    return
+  }
+
+  detailsActionLoading.value = action
+
+  try {
+    await callback()
+  } finally {
+    detailsActionLoading.value = ''
+  }
+}
+
+async function handleDetailsSave(payload) {
+  await runDetailsAction('save', () => handleRegistrationSave(payload))
+}
+
 async function handleMarkSelectedPaymentSucceeded() {
   if (!selectedRegistration.value?.id) {
     return
   }
 
-  await handleMarkPaymentSucceeded(selectedRegistration.value.id)
+  await runDetailsAction('mark-payment-succeeded', () =>
+    handleMarkPaymentSucceeded(selectedRegistration.value.id),
+  )
 }
 
 async function handleMarkSelectedPaymentFailed() {
@@ -474,7 +496,9 @@ async function handleMarkSelectedPaymentFailed() {
     return
   }
 
-  await handleMarkPaymentFailed(selectedRegistration.value.id)
+  await runDetailsAction('mark-payment-failed', () =>
+    handleMarkPaymentFailed(selectedRegistration.value.id),
+  )
 }
 
 async function handleResolveSelectedRefund(status) {
@@ -484,7 +508,14 @@ async function handleResolveSelectedRefund(status) {
     return
   }
 
-  await handleResolveRefund(refund.id, status)
+  const action =
+    status === refundSucceededStatus ? 'resolve-refund-succeeded' : 'resolve-refund-rejected'
+
+  await runDetailsAction(action, () => handleResolveRefund(refund.id, status))
+}
+
+async function handleAdmitSelectedRegistrationWithLoading() {
+  await runDetailsAction('admit', () => handleAdmitSelectedRegistration())
 }
 
 function handleOpenSelectedAccount(accountKey) {

@@ -116,8 +116,10 @@
             type="submit"
             class="account__table-action account__table-action--edit btn-reset"
             :disabled="isSaving"
+            :aria-busy="isSaving"
           >
-            {{ isSaving ? 'Сохранение...' : 'Сохранить' }}
+            <span v-if="isSaving" class="account__button-spinner" aria-hidden="true"></span>
+            Сохранить
           </button>
         </div>
       </div>

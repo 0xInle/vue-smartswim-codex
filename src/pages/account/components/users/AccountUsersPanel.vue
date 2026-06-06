@@ -33,7 +33,7 @@
       </label>
 
       <div class="account__users-toolbar-meta">
-        <ElTag type="primary" effect="light" round>{{ total }} пользователей</ElTag>
+        <ElTag type="primary" effect="light" round>{{ total }} записей</ElTag>
       </div>
     </div>
 
@@ -85,6 +85,7 @@
                     Просмотр
                   </button>
                   <button
+                    v-if="!row.isAthleteRecord"
                     type="button"
                     class="account__table-action account__table-action--delete btn-reset"
                     @click="$emit('delete-user', row)"
@@ -122,72 +123,57 @@
       class="account__dialog account__dialog--user-view"
       title="Просмотр пользователя"
       :close-icon="Close"
-      @closed="$emit('close-edit')"
+      @closed="$emit('closed-edit')"
       @update:model-value="!$event && $emit('close-edit')"
     >
       <div class="account__dialog-form account-users__dialog-form">
+        <div class="account-users__dialog-head">
+          <div>
+            <h4 class="account__panel-title account-users__dialog-title">{{ dialogTitle }}</h4>
+          </div>
+
+          <label class="account__field account-users__role-select">
+            <span class="account__field-label">Роль</span>
+            <ElSelect
+              v-model="editForm.role"
+              class="account__select"
+              popper-class="account__select-popper"
+              placeholder="Выберите роль"
+              :disabled="isAthleteRecord"
+            >
+              <ElOption
+                v-for="option in roleAssignmentOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </ElSelect>
+          </label>
+        </div>
+
         <div class="account-users__summary-grid">
-          <article class="account__profile-item account-users__summary-item">
-            <span class="account__profile-label">Имя и фамилия</span>
+          <article
+            v-for="field in activeSummaryFields"
+            :key="field.label"
+            class="account__profile-item account-users__summary-item"
+          >
+            <span class="account__profile-label">{{ field.label }}</span>
             <strong class="account__profile-value account-users__summary-value">
-              {{ editForm.name || 'Не указано' }}
-            </strong>
-          </article>
-
-          <article class="account__profile-item account-users__summary-item">
-            <span class="account__profile-label">Почта</span>
-            <strong class="account__profile-value account-users__summary-value">
-              {{ editForm.email || 'Не указана' }}
-            </strong>
-          </article>
-
-          <article class="account__profile-item account-users__summary-item">
-            <span class="account__profile-label">Телефон</span>
-            <strong class="account__profile-value account-users__summary-value">
-              {{ editForm.phone || 'Не указан' }}
-            </strong>
-          </article>
-
-          <article class="account__profile-item account-users__summary-item">
-            <span class="account__profile-label">Роль</span>
-            <strong class="account__profile-value account-users__summary-value">
-              {{ formatUserRole(editForm.role) }}
-            </strong>
-          </article>
-
-          <article class="account__profile-item account-users__summary-item">
-            <span class="account__profile-label">Статус</span>
-            <strong class="account__profile-value account-users__summary-value">
-              {{ formatUserStatus(editForm.status) }}
-            </strong>
-          </article>
-
-          <article class="account__profile-item account-users__summary-item">
-            <span class="account__profile-label">Дата регистрации</span>
-            <strong class="account__profile-value account-users__summary-value">
-              {{
-                editForm.registeredAt ? formatCompactDateTime(editForm.registeredAt) : 'Не указана'
-              }}
+              {{ field.value || 'Не указано' }}
             </strong>
           </article>
         </div>
 
-        <AccountDocumentChecklist
-          :documents="editForm.documents"
-          :show-header="false"
-          embedded
-          mode="readonly"
-          :show-action-button="false"
-        />
-
-        <section class="account-users__documents-review">
+        <section v-if="showDocumentReview" class="account-users__documents-review">
           <div class="account__panel-head account-users__documents-review-head">
-            <h4 class="account__panel-title">Проверка документов</h4>
+            <h4 class="account__panel-title">
+              {{ selectedAthlete || isAthleteRecord ? 'Документы спортсмена' : 'Документы пользователя' }}
+            </h4>
           </div>
 
           <div class="account-users__documents-review-list">
             <article
-              v-for="group in documentReviewGroups"
+              v-for="group in activeDocumentReviewGroups"
               :key="group.id"
               class="account-users__documents-review-group"
             >
@@ -220,6 +206,9 @@
                     <span class="account-users__documents-review-hint">
                       {{ documentReviewHint(document) }}
                     </span>
+                    <span class="account-users__documents-review-expiry">
+                      Срок действия: {{ formatDocumentExpiry(document) }}
+                    </span>
                     <span class="account-users__documents-review-file">
                       Файл:
                       <a
@@ -238,36 +227,54 @@
                     <button
                       type="button"
                       class="account__table-action account__table-action--success btn-reset"
-                      :disabled="!canApproveDocument(document)"
+                      :disabled="!canApproveDocument(document) || isDocumentActionLoading(document, 'verified')"
+                      :aria-busy="isDocumentActionLoading(document, 'verified')"
                       @click="$emit('approve-document', document)"
                     >
+                      <span
+                        v-if="isDocumentActionLoading(document, 'verified')"
+                        class="account__button-spinner"
+                        aria-hidden="true"
+                      ></span>
                       Одобрить
                     </button>
                     <button
                       type="button"
                       class="account__table-action account__table-action--delete btn-reset"
-                      :disabled="!canReviewDocument(document)"
+                      :disabled="!canReviewDocument(document) || isDocumentActionLoading(document, 'needs_reupload')"
+                      :aria-busy="isDocumentActionLoading(document, 'needs_reupload')"
                       @click="$emit('request-document-reupload', document)"
                     >
+                      <span
+                        v-if="isDocumentActionLoading(document, 'needs_reupload')"
+                        class="account__button-spinner"
+                        aria-hidden="true"
+                      ></span>
                       Запросить обновление
                     </button>
                   </div>
                 </article>
+
+                <p v-if="!group.documents.length" class="account-users__documents-review-empty">
+                  Документов на проверку нет.
+                </p>
               </div>
             </article>
           </div>
         </section>
 
-        <section class="account-users__admission-section">
+        <section v-if="showAthleteList" class="account-users__admission-section">
           <div class="account__panel-head account-users__admission-head">
-            <h4 class="account__panel-title">Спортсмены и допуск</h4>
+            <h4 class="account__panel-title">Спортсмены</h4>
           </div>
 
           <div v-if="viewedAthleteAdmissions.length" class="account-users__admission-list">
-            <article
+            <button
               v-for="athlete in viewedAthleteAdmissions"
               :key="athlete.id"
-              class="account-users__admission-item"
+              type="button"
+              class="account-users__admission-item btn-reset"
+              @click="selectedAthleteId = athlete.id"
             >
               <div class="account-users__admission-copy">
                 <strong class="account-users__admission-name">{{ athlete.fullName }}</strong>
@@ -279,7 +286,7 @@
               <span class="account-users__admission-status" :class="`account-users__admission-status--${athlete.admission.status}`">
                 {{ athlete.admission.label }}
               </span>
-            </article>
+            </button>
           </div>
 
           <p v-else class="account-users__admission-empty">
@@ -289,11 +296,30 @@
 
         <div class="account__dialog-actions">
           <button
+            v-if="selectedAthlete"
+            type="button"
+            class="account__table-action account__table-action--ghost btn-reset"
+            @click="selectedAthleteId = ''"
+          >
+            Вернуться к пользователю
+          </button>
+          <button
             type="button"
             class="account__table-action account__table-action--ghost btn-reset"
             @click="$emit('close-edit')"
           >
             Закрыть
+          </button>
+          <button
+            v-if="!isAthleteRecord"
+            type="button"
+            class="account__table-action account__table-action--edit btn-reset"
+            :disabled="isEditSubmitting"
+            :aria-busy="isEditSubmitting"
+            @click="$emit('submit-edit')"
+          >
+            <span v-if="isEditSubmitting" class="account__button-spinner" aria-hidden="true"></span>
+            Сохранить
           </button>
         </div>
       </div>
@@ -339,8 +365,11 @@
         <button
           type="button"
           class="account__table-action account__table-action--delete btn-reset"
+          :disabled="isDeleteSubmitting"
+          :aria-busy="isDeleteSubmitting"
           @click="$emit('confirm-delete')"
         >
+          <span v-if="isDeleteSubmitting" class="account__button-spinner" aria-hidden="true"></span>
           Удалить
         </button>
       </div>
@@ -350,13 +379,13 @@
 
 <script setup>
 import { Close } from '@element-plus/icons-vue'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElCard, ElDialog, ElEmpty, ElOption, ElPagination, ElSelect, ElTag } from 'element-plus'
-import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
 import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
 import { resolveAccountAdmissionStatus } from '@/pages/account/utils/accountAdmissions'
 import { isAccountDocumentExpiryRequired } from '@/pages/account/utils/accountDocumentTypes'
 import { USER_ROLE_OPTIONS, USERS_PAGE_SIZE } from '@/pages/account/utils/accountConstants'
+import { CRM_ROLE } from '@/utils/crmRoles'
 import {
   formatCompactDateTime,
   formatAccountDocumentDate,
@@ -418,6 +447,18 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  isEditSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  isDeleteSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  documentActionId: {
+    type: String,
+    default: '',
+  },
 })
 
 defineEmits([
@@ -427,6 +468,7 @@ defineEmits([
   'edit-user',
   'delete-user',
   'close-edit',
+  'closed-edit',
   'submit-edit',
   'close-delete',
   'confirm-delete',
@@ -440,7 +482,34 @@ defineEmits([
 ])
 
 const userRoleOptions = USER_ROLE_OPTIONS
+const roleAssignmentOptions = [
+  USER_ROLE_OPTIONS.find((option) => option.value === CRM_ROLE.ADMIN),
+  USER_ROLE_OPTIONS.find((option) => option.value === CRM_ROLE.TRAINER),
+  USER_ROLE_OPTIONS.find((option) => option.value === CRM_ROLE.USER),
+  USER_ROLE_OPTIONS.find((option) => option.value === CRM_ROLE.ATHLETE),
+].filter(Boolean)
 const usersPageSize = USERS_PAGE_SIZE
+const selectedAthleteId = ref('')
+
+function formatValue(value, fallback = 'Не указано') {
+  return value ? String(value) : fallback
+}
+
+function formatRegisteredAt(value) {
+  return value ? formatCompactDateTime(value) : 'Не указана'
+}
+
+function formatGender(value) {
+  if (value === 'male') {
+    return 'Мужской'
+  }
+
+  if (value === 'female') {
+    return 'Женский'
+  }
+
+  return ''
+}
 
 function getSortIndicator(columnKey) {
   if (props.sortKey !== columnKey) {
@@ -481,8 +550,136 @@ const viewedAthleteAdmissions = computed(() => {
   }))
 })
 
-const documentReviewGroups = computed(() => {
-  const groups = [
+const selectedAthlete = computed(() => {
+  if (!selectedAthleteId.value) {
+    return null
+  }
+
+  return viewedAthleteAdmissions.value.find((athlete) => athlete.id === selectedAthleteId.value) || null
+})
+
+const isAdminView = computed(() => props.editForm?.role === CRM_ROLE.ADMIN)
+const isTrainerView = computed(() => props.editForm?.role === CRM_ROLE.TRAINER)
+const isAthleteRecord = computed(() => Boolean(props.editForm?.isAthleteRecord))
+const isUserView = computed(() =>
+  isAthleteRecord.value || [CRM_ROLE.USER, CRM_ROLE.ATHLETE].includes(props.editForm?.role),
+)
+
+const dialogTitle = computed(() => {
+  if (selectedAthlete.value) {
+    return selectedAthlete.value.fullName || 'Спортсмен без имени'
+  }
+
+  return props.editForm?.name || 'Пользователь без имени'
+})
+
+const adminSummaryFields = computed(() => [
+  { label: 'Имя и фамилия', value: formatValue(props.editForm?.name) },
+  { label: 'Почта', value: formatValue(props.editForm?.email, 'Не указана') },
+  { label: 'Телефон', value: formatValue(props.editForm?.phone) },
+  { label: 'Роль', value: formatUserRole(props.editForm?.role) },
+  { label: 'Дата регистрации', value: formatRegisteredAt(props.editForm?.registeredAt) },
+])
+
+const trainerSummaryFields = computed(() => [
+  ...adminSummaryFields.value,
+  { label: 'Дата рождения', value: formatValue(props.editForm?.birthDate, 'Не указана') },
+  { label: 'Опыт работы', value: formatValue(props.editForm?.experience) },
+  { label: 'Основной профиль', value: formatValue(props.editForm?.mainProfile) },
+  { label: 'Свободно мест', value: formatValue(props.editForm?.availableSeats) },
+  { label: 'Образование', value: formatValue(props.editForm?.education) },
+  { label: 'Спортивные достижения', value: formatValue(props.editForm?.sportAchievements) },
+  { label: 'С кем работает', value: formatValue(props.editForm?.worksWith) },
+  { label: 'Минимальный возраст', value: formatValue(props.editForm?.minAge) },
+  { label: 'Уровень подготовки', value: formatValue(props.editForm?.preparationLevel) },
+  { label: 'Метро', value: formatValue(props.editForm?.metro) },
+])
+
+const userSummaryFields = computed(() => [
+  ...adminSummaryFields.value,
+  { label: 'Статус', value: formatUserStatus(props.editForm?.status) },
+  { label: 'Дата рождения', value: formatValue(props.editForm?.birthDate, 'Не указана') },
+  { label: 'Клуб', value: formatValue(props.editForm?.club) },
+])
+
+const standaloneAthleteSummaryFields = computed(() => [
+  { label: 'ФИО спортсмена', value: formatValue(props.editForm?.name) },
+  { label: 'Роль', value: formatUserRole(props.editForm?.role) },
+  { label: 'Владелец ЛК', value: formatValue(props.editForm?.ownerName) },
+  { label: 'Почта владельца', value: formatValue(props.editForm?.ownerEmail, 'Не указана') },
+  { label: 'Дата рождения', value: formatValue(props.editForm?.birthDate, 'Не указана') },
+  { label: 'Пол', value: formatValue(formatGender(props.editForm?.gender)) },
+  { label: 'Клуб', value: formatValue(props.editForm?.club) },
+  { label: 'Разряд', value: formatValue(props.editForm?.rank) },
+  { label: 'Тренер', value: formatValue(props.editForm?.coach) },
+])
+
+const athleteSummaryFields = computed(() => {
+  const athlete = selectedAthlete.value
+
+  if (!athlete) {
+    return []
+  }
+
+  return [
+    { label: 'ФИО спортсмена', value: formatValue(athlete.fullName) },
+    { label: 'Дата рождения', value: formatValue(athlete.birthDate, 'Не указана') },
+    { label: 'Пол', value: formatValue(formatGender(athlete.gender)) },
+    { label: 'Клуб', value: formatValue(athlete.club) },
+    { label: 'Разряд', value: formatValue(athlete.rank) },
+    { label: 'Тренер', value: formatValue(athlete.coach) },
+    { label: 'Допуск', value: athlete.admission?.label || 'Не указан' },
+  ]
+})
+
+const activeSummaryFields = computed(() => {
+  if (selectedAthlete.value) {
+    return athleteSummaryFields.value
+  }
+
+  if (isAthleteRecord.value) {
+    return standaloneAthleteSummaryFields.value
+  }
+
+  if (isTrainerView.value) {
+    return trainerSummaryFields.value
+  }
+
+  if (isAdminView.value) {
+    return adminSummaryFields.value
+  }
+
+  return userSummaryFields.value
+})
+
+const activeDocumentReviewGroups = computed(() => {
+  if (isAthleteRecord.value) {
+    return [
+      {
+        id: `athlete-${props.editForm?.athleteId || props.editForm?.id}`,
+        title: props.editForm?.name || 'Спортсмен без имени',
+        meta: props.editForm?.birthDate || 'Дата рождения не указана',
+        documents: Array.isArray(props.editForm?.documents) ? props.editForm.documents : [],
+      },
+    ]
+  }
+
+  if (selectedAthlete.value) {
+    return [
+      {
+        id: `athlete-${selectedAthlete.value.id}`,
+        title: selectedAthlete.value.fullName || 'Спортсмен без имени',
+        meta: selectedAthlete.value.birthDate || 'Дата рождения не указана',
+        documents: Array.isArray(selectedAthlete.value.documents) ? selectedAthlete.value.documents : [],
+      },
+    ]
+  }
+
+  if (!isUserView.value) {
+    return []
+  }
+
+  return [
     {
       id: 'profile',
       title: 'Профиль владельца ЛК',
@@ -490,20 +687,12 @@ const documentReviewGroups = computed(() => {
       documents: Array.isArray(props.editForm?.documents) ? props.editForm.documents : [],
     },
   ]
-
-  const athletes = Array.isArray(props.editForm?.athletes) ? props.editForm.athletes : []
-
-  athletes.forEach((athlete) => {
-    groups.push({
-      id: `athlete-${athlete.id}`,
-      title: athlete.fullName || 'Спортсмен без имени',
-      meta: athlete.birthDate || 'Дата рождения не указана',
-      documents: Array.isArray(athlete.documents) ? athlete.documents : [],
-    })
-  })
-
-  return groups
 })
+
+const showDocumentReview = computed(() => activeDocumentReviewGroups.value.length > 0)
+const showAthleteList = computed(() =>
+  isUserView.value && !isAthleteRecord.value && !selectedAthlete.value,
+)
 
 function documentStatusMeta(document) {
   return getAccountDocumentDisplayStatus(document)
@@ -537,6 +726,18 @@ function canApproveDocument(document) {
   )
 }
 
+function isDocumentActionLoading(document, status) {
+  return Boolean(document?.id && props.documentActionId === `${document.id}:${status}`)
+}
+
+function formatDocumentExpiry(document) {
+  if (!isAccountDocumentExpiryRequired(document?.type)) {
+    return 'Не требуется'
+  }
+
+  return formatAccountDocumentDate(document?.expiresAt)
+}
+
 function documentReviewHint(document) {
   const dateLabel = formatAccountDocumentDate(document?.expiresAt)
 
@@ -548,11 +749,38 @@ function documentReviewHint(document) {
     ? `Срок указан: ${dateLabel}. Для этого документа срок не обязателен.`
     : 'Срок действия для этого документа не требуется.'
 }
+
+watch(
+  () => [props.isEditDialogOpen, props.editForm?.id, props.editForm?.role],
+  ([isOpen]) => {
+    if (!isOpen) {
+      return
+    }
+
+    selectedAthleteId.value = ''
+  },
+)
 </script>
 
 <style scoped>
 .account-users__dialog-form {
   gap: 18px;
+}
+
+.account-users__dialog-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.account-users__dialog-title {
+  margin-top: 0;
+}
+
+.account-users__role-select {
+  width: min(260px, 100%);
+  flex: 0 0 260px;
 }
 
 .account-users__summary-grid {
@@ -600,7 +828,7 @@ function documentReviewHint(document) {
   padding: 12px;
   border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
   border-radius: 10px;
-  background: rgb(255 255 255 / 0.72);
+  background: transparent;
 }
 
 .account-users__documents-review-group-head {
@@ -638,7 +866,7 @@ function documentReviewHint(document) {
   padding: 10px;
   border: 1px solid color-mix(in srgb, var(--cyan) 12%, white);
   border-radius: 10px;
-  background: rgb(246 251 255 / 0.82);
+  background: transparent;
 }
 
 .account-users__documents-review-item--verified {
@@ -682,6 +910,7 @@ function documentReviewHint(document) {
 }
 
 .account-users__documents-review-hint,
+.account-users__documents-review-expiry,
 .account-users__documents-review-file {
   color: #64748b;
   font-size: 12px;
@@ -801,7 +1030,7 @@ function documentReviewHint(document) {
   padding: 16px;
   border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
   border-radius: 10px;
-  background: linear-gradient(180deg, rgb(246 251 255 / 0.96) 0%, rgb(255 255 255 / 0.88) 100%);
+  background: transparent;
 }
 
 .account-users__admission-head {
@@ -818,10 +1047,25 @@ function documentReviewHint(document) {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  width: 100%;
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--cyan) 14%, white);
   border-radius: 10px;
-  background: rgb(255 255 255 / 0.86);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.account-users__admission-item:hover,
+.account-users__admission-item:focus-visible {
+  border-color: color-mix(in srgb, var(--cyan) 38%, white);
+  background: rgb(255 255 255 / 0.64);
+  box-shadow: 0 10px 18px rgb(15 23 42 / 0.06);
+  outline: none;
 }
 
 .account-users__admission-copy {
@@ -888,6 +1132,15 @@ function documentReviewHint(document) {
 }
 
 @media (max-width: 900px) {
+  .account-users__dialog-head {
+    flex-direction: column;
+  }
+
+  .account-users__role-select {
+    width: 100%;
+    flex-basis: auto;
+  }
+
   .account-users__summary-grid {
     grid-template-columns: 1fr;
   }

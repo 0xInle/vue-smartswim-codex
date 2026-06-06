@@ -2,12 +2,14 @@ export const CRM_ROLE = Object.freeze({
   ADMIN: 'admin',
   TRAINER: 'trainer',
   USER: 'user',
+  ATHLETE: 'athlete',
 })
 
 export const CRM_ROLE_LABEL = Object.freeze({
   [CRM_ROLE.ADMIN]: 'Администратор',
   [CRM_ROLE.TRAINER]: 'Тренер',
   [CRM_ROLE.USER]: 'Пользователь',
+  [CRM_ROLE.ATHLETE]: 'Спортсмен',
 })
 
 export function isAdminRole(role) {

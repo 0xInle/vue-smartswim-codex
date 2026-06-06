@@ -9,6 +9,7 @@ import {
   createAccountDocumentsState,
   createAccountDocumentUploadPatch,
   ACCOUNT_DOCUMENT_STATUS,
+  isAccountDocumentExpiryRequired,
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
 import { formatUserStatus } from '@/pages/account/utils/accountFormatters'
@@ -41,6 +42,9 @@ export function useAccountUsers({ currentUser = null } = {}) {
   const isUserDeleteDialogOpen = ref(false)
   const userPendingDelete = ref(null)
   const usersError = ref('')
+  const userEditSubmitting = ref(false)
+  const userDeleteSubmitting = ref(false)
+  const userDocumentActionId = ref('')
   let usersLoadRequestId = 0
   let unsubscribeFromUsers = null
   let unsubscribeFromAccountData = null
@@ -54,6 +58,7 @@ export function useAccountUsers({ currentUser = null } = {}) {
     fileSize: 0,
     expiresAt: '',
   })
+  const isUsersLoading = ref(false)
 
   function resolveReviewerName() {
     return currentUser?.value?.name || currentUser?.name || 'Администратор'
@@ -63,6 +68,7 @@ export function useAccountUsers({ currentUser = null } = {}) {
     const requestId = usersLoadRequestId + 1
     usersLoadRequestId = requestId
     usersError.value = ''
+    isUsersLoading.value = true
 
     try {
       const nextUsers = await loadAllAccountUsersForAdmin()
@@ -75,6 +81,10 @@ export function useAccountUsers({ currentUser = null } = {}) {
         users.value = []
         usersError.value = error instanceof Error ? error.message : 'Не удалось загрузить пользователей.'
         showToast(usersError.value, { type: 'error' })
+      }
+    } finally {
+      if (requestId === usersLoadRequestId) {
+        isUsersLoading.value = false
       }
     }
   }
@@ -99,6 +109,11 @@ export function useAccountUsers({ currentUser = null } = {}) {
         user.name,
         user.email,
         user.phone,
+        user.ownerName,
+        user.ownerEmail,
+        user.club,
+        user.rank,
+        user.coach,
         getPhoneSearchValue(user.phone),
         user.role,
         getCrmRoleLabel(user.role),
@@ -144,15 +159,42 @@ export function useAccountUsers({ currentUser = null } = {}) {
     Object.assign(userEditForm, createDefaultUserEditForm())
   }
 
+  function resetDocumentUploadState() {
+    documentUploadState.isOpen = false
+    documentUploadState.documentType = ''
+    documentUploadState.fileName = ''
+    documentUploadState.fileSize = 0
+    documentUploadState.expiresAt = ''
+  }
+
   function handleOpenUserEdit(user) {
     Object.assign(userEditForm, {
       id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
+      isAthleteRecord: Boolean(user.isAthleteRecord),
+      athleteId: user.athleteId || '',
+      ownerUserId: user.ownerUserId || '',
+      ownerName: user.ownerName || '',
+      ownerEmail: user.ownerEmail || '',
+      gender: user.gender || '',
+      rank: user.rank || '',
+      coach: user.coach || '',
+      birthDate: user.birthDate || '',
+      club: user.club || '',
       role: user.role,
       status: user.status,
       registeredAt: user.registeredAt || null,
+      experience: user.experience || '',
+      mainProfile: user.mainProfile || '',
+      availableSeats: user.availableSeats || '',
+      education: user.education || '',
+      sportAchievements: user.sportAchievements || '',
+      worksWith: user.worksWith || '',
+      minAge: user.minAge || '',
+      preparationLevel: user.preparationLevel || '',
+      metro: user.metro || '',
       documents: normalizeAccountDocumentsState(user.documents || createAccountDocumentsState()),
       athletes: Array.isArray(user.athletes) ? user.athletes : [],
     })
@@ -162,11 +204,11 @@ export function useAccountUsers({ currentUser = null } = {}) {
 
   function handleCloseUserEdit() {
     isUserEditDialogOpen.value = false
-    documentUploadState.isOpen = false
-    documentUploadState.documentType = ''
-    documentUploadState.fileName = ''
-    documentUploadState.fileSize = 0
-    documentUploadState.expiresAt = ''
+    resetDocumentUploadState()
+  }
+
+  function handleUserEditDialogClosed() {
+    resetDocumentUploadState()
     resetUserEditForm()
   }
 
@@ -231,11 +273,51 @@ export function useAccountUsers({ currentUser = null } = {}) {
     }))
   }
 
+  function findUserDocumentById(documentId) {
+    const profileDocument = userEditForm.documents.find((document) => document.id === documentId)
+
+    if (profileDocument) {
+      return profileDocument
+    }
+
+    for (const athlete of userEditForm.athletes) {
+      const athleteDocument = athlete.documents?.find((document) => document.id === documentId)
+
+      if (athleteDocument) {
+        return athleteDocument
+      }
+    }
+
+    return null
+  }
+
+  function findLoadedUserDocumentById(documentId) {
+    for (const user of users.value) {
+      const profileDocument = user.documents?.find((document) => document.id === documentId)
+
+      if (profileDocument) {
+        return profileDocument
+      }
+
+      for (const athlete of user.athletes || []) {
+        const athleteDocument = athlete.documents?.find((document) => document.id === documentId)
+
+        if (athleteDocument) {
+          return athleteDocument
+        }
+      }
+    }
+
+    return null
+  }
+
   async function handleReviewUserDocument(document, status, reason = '') {
     if (!document?.id) {
       showToast('Документ еще не сохранен в Supabase, его нельзя проверить.', { type: 'error' })
       return
     }
+
+    userDocumentActionId.value = `${document.id}:${status}`
 
     try {
       const updatedDocument = await reviewAccountDocument(document.id, {
@@ -251,11 +333,26 @@ export function useAccountUsers({ currentUser = null } = {}) {
       showToast(error instanceof Error ? error.message : 'Не удалось обновить статус документа', {
         type: 'error',
       })
+    } finally {
+      userDocumentActionId.value = ''
     }
   }
 
-  function handleApproveUserDocument(document) {
-    void handleReviewUserDocument(document, ACCOUNT_DOCUMENT_STATUS.VERIFIED)
+  async function handleApproveUserDocument(document) {
+    if (isAccountDocumentExpiryRequired(document?.type) && !document?.expiresAt) {
+      await loadUsers()
+    }
+
+    const latestDocument = findLoadedUserDocumentById(document?.id) || findUserDocumentById(document?.id) || document
+
+    if (isAccountDocumentExpiryRequired(latestDocument?.type) && !latestDocument?.expiresAt) {
+      showToast('У документа не указан срок действия. Попросите пользователя загрузить документ со сроком.', {
+        type: 'error',
+      })
+      return
+    }
+
+    await handleReviewUserDocument(latestDocument, ACCOUNT_DOCUMENT_STATUS.VERIFIED)
   }
 
   function handleRequestUserDocumentReupload(document) {
@@ -338,12 +435,19 @@ export function useAccountUsers({ currentUser = null } = {}) {
   }
 
   async function handleUserEditSubmit() {
+    if (userEditForm.isAthleteRecord) {
+      handleCloseUserEdit()
+      return
+    }
+
     const userIndex = users.value.findIndex((item) => item.id === userEditForm.id)
 
     if (userIndex === -1) {
       handleCloseUserEdit()
       return
     }
+
+    userEditSubmitting.value = true
 
     try {
       await saveAccountUserForAdmin(userEditForm.id, {
@@ -358,6 +462,8 @@ export function useAccountUsers({ currentUser = null } = {}) {
       })
       handleCloseUserEdit()
       return
+    } finally {
+      userEditSubmitting.value = false
     }
 
     showToast('Пользователь обновлён')
@@ -379,6 +485,8 @@ export function useAccountUsers({ currentUser = null } = {}) {
       return
     }
 
+    userDeleteSubmitting.value = true
+
     try {
       await removeAccountUserFromCrmForAdmin(userPendingDelete.value.id)
       users.value = users.value.filter((item) => item.id !== userPendingDelete.value.id)
@@ -388,6 +496,8 @@ export function useAccountUsers({ currentUser = null } = {}) {
       })
       handleCloseUserDelete()
       return
+    } finally {
+      userDeleteSubmitting.value = false
     }
 
     showToast('Пользователь удалён из CRM')
@@ -450,6 +560,7 @@ export function useAccountUsers({ currentUser = null } = {}) {
     usersSearch,
     usersRoleFilter,
     usersError,
+    isUsersLoading,
     filteredUsersTotal,
     usersPageCount,
     paginatedUsers,
@@ -461,10 +572,14 @@ export function useAccountUsers({ currentUser = null } = {}) {
     userPendingDelete,
     userEditForm,
     documentUploadState,
+    userEditSubmitting,
+    userDeleteSubmitting,
+    userDocumentActionId,
     handleUsersPageChange,
     resetUsersPage,
     handleOpenUserEdit,
     handleCloseUserEdit,
+    handleUserEditDialogClosed,
     handleUserEditSubmit,
     handleOpenUserDelete,
     handleCloseUserDelete,

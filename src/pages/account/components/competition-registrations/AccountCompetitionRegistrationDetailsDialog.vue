@@ -267,10 +267,12 @@
           type="button"
           class="account__table-action account__table-action--success btn-reset"
           :disabled="
+            isAnyActionLoading ||
             (canEditStage && !form.stageId) ||
             (canEditRegistrationKind && !form.registrationKind) ||
             (canEditStatus && !form.status)
           "
+          :aria-busy="isActionLoading('save')"
           @click="
             emit('save', {
               stageId: form.stageId,
@@ -279,62 +281,84 @@
             })
           "
         >
+          <span v-if="isActionLoading('save')" class="account__button-spinner" aria-hidden="true"></span>
           Сохранить
         </button>
         <button
           v-if="showPaymentButton"
           type="button"
           class="account__table-action account__table-action--success btn-reset"
+          :disabled="isAnyActionLoading"
+          :aria-busy="isActionLoading('create-payment')"
           @click="emit('create-payment')"
         >
+          <span v-if="isActionLoading('create-payment')" class="account__button-spinner" aria-hidden="true"></span>
           {{ paymentButtonLabel }}
         </button>
         <button
           v-if="showRefundButton"
           type="button"
           class="account__table-action account__table-action--edit btn-reset"
+          :disabled="isAnyActionLoading"
+          :aria-busy="isActionLoading('request-refund')"
           @click="emit('request-refund')"
         >
+          <span v-if="isActionLoading('request-refund')" class="account__button-spinner" aria-hidden="true"></span>
           {{ refundButtonLabel }}
         </button>
         <button
           v-if="showMarkPaymentSucceededButton"
           type="button"
           class="account__table-action account__table-action--success btn-reset"
+          :disabled="isAnyActionLoading"
+          :aria-busy="isActionLoading('mark-payment-succeeded')"
           @click="emit('mark-payment-succeeded')"
         >
+          <span v-if="isActionLoading('mark-payment-succeeded')" class="account__button-spinner" aria-hidden="true"></span>
           Отметить оплаченной
         </button>
         <button
           v-if="showMarkPaymentFailedButton"
           type="button"
           class="account__table-action account__table-action--delete btn-reset"
+          :disabled="isAnyActionLoading"
+          :aria-busy="isActionLoading('mark-payment-failed')"
           @click="emit('mark-payment-failed')"
         >
+          <span v-if="isActionLoading('mark-payment-failed')" class="account__button-spinner" aria-hidden="true"></span>
           Ошибка оплаты
         </button>
         <button
           v-if="showResolveRefundSucceededButton"
           type="button"
           class="account__table-action account__table-action--success btn-reset"
+          :disabled="isAnyActionLoading"
+          :aria-busy="isActionLoading('resolve-refund-succeeded')"
           @click="emit('resolve-refund-succeeded')"
         >
+          <span v-if="isActionLoading('resolve-refund-succeeded')" class="account__button-spinner" aria-hidden="true"></span>
           Возврат выполнен
         </button>
         <button
           v-if="showResolveRefundRejectedButton"
           type="button"
           class="account__table-action account__table-action--delete btn-reset"
+          :disabled="isAnyActionLoading"
+          :aria-busy="isActionLoading('resolve-refund-rejected')"
           @click="emit('resolve-refund-rejected')"
         >
+          <span v-if="isActionLoading('resolve-refund-rejected')" class="account__button-spinner" aria-hidden="true"></span>
           Возврат отклонен
         </button>
         <button
           v-if="showAdmitButton"
           type="button"
           class="account__table-action account__table-action--success btn-reset"
+          :disabled="isAnyActionLoading"
+          :aria-busy="isActionLoading('admit')"
           @click="emit('admit')"
         >
+          <span v-if="isActionLoading('admit')" class="account__button-spinner" aria-hidden="true"></span>
           {{ admitButtonLabel }}
         </button>
         <button
@@ -505,6 +529,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  actionLoading: {
+    type: String,
+    default: '',
+  },
   statusOptions: {
     type: Array,
     default: () => COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS,
@@ -561,6 +589,11 @@ const closeButtonLabel = computed(() =>
     ? 'Отменить'
     : 'Закрыть',
 )
+const isAnyActionLoading = computed(() => Boolean(props.actionLoading))
+
+function isActionLoading(action) {
+  return props.actionLoading === action
+}
 
 const paymentFlowSteps = computed(() => {
   const normalizedLabel = String(props.paymentStatusLabel || '').trim()

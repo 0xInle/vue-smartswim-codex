@@ -125,8 +125,14 @@
         >
           Отмена
         </button>
-        <button type="submit" class="account__submit btn-reset" :disabled="isSaving || !request">
-          {{ isSaving ? 'Сохранение...' : 'Сохранить' }}
+        <button
+          type="submit"
+          class="account__submit btn-reset"
+          :disabled="isSaving || !request"
+          :aria-busy="isSaving"
+        >
+          <span v-if="isSaving" class="account__button-spinner" aria-hidden="true"></span>
+          Сохранить
         </button>
       </div>
     </form>

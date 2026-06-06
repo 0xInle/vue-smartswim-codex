@@ -110,7 +110,7 @@
 
               <AccountDashboardPanel
                 v-show="activeSection === 'dashboard'"
-                :is-loading="isAdminDataLoading"
+                :is-loading="isAdminDashboardLoading"
                 :consultation-requests="consultationRequests"
                 :trainer-bookings="trainerBookings"
                 :users="users"
@@ -213,6 +213,9 @@
                 :edit-form="userEditForm"
                 :pending-delete-user="userPendingDelete"
                 :document-upload-state="documentUploadState"
+                :is-edit-submitting="userEditSubmitting"
+                :is-delete-submitting="userDeleteSubmitting"
+                :document-action-id="userDocumentActionId"
                 @update:search="usersSearch = $event"
                 @update:role-filter="usersRoleFilter = $event"
                 @page-change="handleUsersPageChange"
@@ -220,6 +223,7 @@
                 @edit-user="handleOpenUserEdit"
                 @delete-user="handleOpenUserDelete"
                 @close-edit="handleCloseUserEdit"
+                @closed-edit="handleUserEditDialogClosed"
                 @submit-edit="handleUserEditSubmit"
                 @close-delete="handleCloseUserDelete"
                 @confirm-delete="handleConfirmUserDelete"
@@ -532,6 +536,7 @@ const {
   usersPage,
   usersSearch,
   usersRoleFilter,
+  isUsersLoading,
   usersSortKey,
   usersSortDirection,
   filteredUsersTotal,
@@ -542,11 +547,15 @@ const {
   userPendingDelete,
   userEditForm,
   documentUploadState,
+  userEditSubmitting,
+  userDeleteSubmitting,
+  userDocumentActionId,
   handleUsersPageChange,
   handleUsersSortChange,
   resetUsersPage,
   handleOpenUserEdit,
   handleCloseUserEdit,
+  handleUserEditDialogClosed,
   handleUserEditSubmit,
   handleOpenUserDelete,
   handleCloseUserDelete,
@@ -696,6 +705,9 @@ const sectionContent = computed(() => {
 
 const currentSectionTitle = computed(
   () => sectionContent.value[activeSection.value]?.title || 'Кабинет',
+)
+const isAdminDashboardLoading = computed(
+  () => isAdminDataLoading.value || trainerBookingsLoading.value || isUsersLoading.value,
 )
 
 watch(

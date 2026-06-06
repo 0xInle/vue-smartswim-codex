@@ -93,24 +93,6 @@
         <article class="account-dashboard__card account-dashboard__card--activity">
           <div class="account-dashboard__card-head">
             <p class="account__panel-eyebrow">Последние события</p>
-            <div class="account-dashboard__actions">
-              <ElButton
-                class="account-dashboard__action"
-                plain
-                type="primary"
-                @click="$emit('select-section', 'consultations')"
-              >
-                Открыть CRM
-              </ElButton>
-              <ElButton
-                class="account-dashboard__action"
-                plain
-                type="primary"
-                @click="$emit('select-section', 'email')"
-              >
-                Письма
-              </ElButton>
-            </div>
           </div>
 
           <div class="account-dashboard__activity-list">
@@ -122,12 +104,12 @@
             >
               <template v-if="!item.isEmpty">
                 <div class="account-dashboard__activity-copy">
-                  <span class="account-dashboard__activity-title">{{ item.title }}</span>
-                  <span class="account-dashboard__activity-name">{{ item.name }}</span>
+                  <span class="account-dashboard__activity-title">{{ item.name }}</span>
+                  <span class="account-dashboard__activity-name">{{ item.actionLabel }}</span>
                 </div>
 
                 <div class="account-dashboard__activity-meta">
-                  <ElTag :type="item.tagType" effect="light" round>
+                  <ElTag :type="item.tagType" effect="light" round class="account-dashboard__status-badge">
                     {{ item.tagLabel }}
                   </ElTag>
                   <span class="account-dashboard__activity-time">{{ item.timeLabel }}</span>
@@ -144,79 +126,32 @@
         <article class="account-dashboard__card account-dashboard__card--snapshot">
           <div class="account-dashboard__card-head">
             <p class="account__panel-eyebrow">Документы</p>
-            <ElButton
-              class="account-dashboard__action"
-              plain
-              type="primary"
-              @click="$emit('select-section', 'documents')"
+          </div>
+
+          <div v-if="latestDocumentRows.length" class="account-dashboard__activity-list">
+            <div
+              v-for="item in latestDocumentRows"
+              :key="item.id"
+              class="account-dashboard__activity-item"
             >
-              Проверить
-            </ElButton>
+              <div class="account-dashboard__activity-copy">
+                <span class="account-dashboard__activity-title">{{ item.ownerName }}</span>
+                <span class="account-dashboard__activity-name">{{ item.documentLabel }}</span>
+              </div>
+
+              <div class="account-dashboard__activity-meta">
+                <ElTag :type="item.tagType" effect="light" round class="account-dashboard__status-badge">
+                  {{ item.tagLabel }}
+                </ElTag>
+                <span class="account-dashboard__activity-time">{{ item.timeLabel }}</span>
+              </div>
+            </div>
           </div>
 
-          <div
-            v-if="latestDocumentContributor"
-            class="account-dashboard__document-highlight"
-            :class="{
-              'account-dashboard__document-highlight--empty': !latestDocumentContributor.ownerName,
-            }"
-          >
-            <span class="account-dashboard__document-highlight-label">
-              Последний загрузивший документы
-            </span>
-            <strong class="account-dashboard__document-highlight-name">
-              {{ latestDocumentContributor.ownerName }}
-            </strong>
-            <span class="account-dashboard__document-highlight-meta">
-              {{ latestDocumentContributor.documentLabel }} · {{ latestDocumentContributor.timeLabel }}
-            </span>
-            <span class="account-dashboard__document-highlight-meta">
-              {{ latestDocumentContributor.documentCount }} документов загружено
-            </span>
+          <div v-else class="account-dashboard__empty account-dashboard__empty--documents">
+            Документов на проверку нет.
           </div>
 
-          <div v-else class="account-dashboard__document-highlight account-dashboard__document-highlight--empty">
-            <span class="account-dashboard__document-highlight-label">
-              Последний загрузивший документы
-            </span>
-            <strong class="account-dashboard__document-highlight-name">Нет данных</strong>
-            <span class="account-dashboard__document-highlight-meta">Документы пока не загружены</span>
-          </div>
-
-          <div class="account-dashboard__mini-stats">
-            <article class="account-dashboard__mini-stat">
-              <span class="account-dashboard__mini-stat-label">На проверке</span>
-              <strong class="account-dashboard__mini-stat-value">{{ documentsSummary.pending }}</strong>
-            </article>
-
-            <article class="account-dashboard__mini-stat">
-              <span class="account-dashboard__mini-stat-label">С замечаниями</span>
-              <strong class="account-dashboard__mini-stat-value">{{ documentsSummary.attention }}</strong>
-            </article>
-
-            <article class="account-dashboard__mini-stat">
-              <span class="account-dashboard__mini-stat-label">Подано</span>
-              <strong class="account-dashboard__mini-stat-value">{{ competitionSubmittedCount }}</strong>
-            </article>
-
-            <article class="account-dashboard__mini-stat">
-              <span class="account-dashboard__mini-stat-label">Снято</span>
-              <strong class="account-dashboard__mini-stat-value">{{ competitionWithdrawnCount }}</strong>
-            </article>
-          </div>
-
-          <div class="account-dashboard__snapshot-footer">
-            <span class="account-dashboard__snapshot-note">
-              Открытых этапов: {{ openCompetitionRegistrationsCount }}
-            </span>
-            <button
-              type="button"
-              class="account-dashboard__snapshot-link btn-reset"
-              @click="$emit('select-section', 'registrations')"
-            >
-              К заявкам на соревнования
-            </button>
-          </div>
         </article>
       </section>
     </div>
@@ -225,7 +160,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { ElButton, ElCard, ElTag } from 'element-plus'
+import { ElCard, ElTag } from 'element-plus'
 import { CRM_ROLE } from '@/utils/crmRoles'
 import {
   competitionRegistrationRecordStatusType,
@@ -234,7 +169,8 @@ import {
   formatConsultationStatus,
   formatTrainerBookingClientName,
   formatTrainerBookingStatus,
-  getAccountDocumentsAdmissionStatus,
+  consultationStatusType,
+  trainerBookingStatusType,
 } from '@/pages/account/utils/accountFormatters'
 import { CONSULTATION_STATUS, TRAINER_BOOKING_STATUS } from '@/pages/account/utils/accountConstants'
 import {
@@ -267,26 +203,10 @@ const props = defineProps({
 
 defineEmits(['select-section'])
 
-const showSkeleton = computed(() => {
-  const hasDashboardData =
-    props.consultationRequests.length > 0 ||
-    props.trainerBookings.length > 0 ||
-    props.users.length > 0 ||
-    props.openCompetitionRegistrationsCount > 0
-
-  return props.isLoading && !hasDashboardData
-})
+const showSkeleton = computed(() => props.isLoading)
 
 const DASHBOARD_ACTIVITY_ROWS_COUNT = 4
-
-function sortByDateDesc(items, field) {
-  return [...items].sort((left, right) => {
-    const leftValue = new Date(left?.[field] || 0).getTime()
-    const rightValue = new Date(right?.[field] || 0).getTime()
-
-    return rightValue - leftValue
-  })
-}
+const DASHBOARD_DOCUMENT_ROWS_COUNT = 4
 
 function getRecordTimestamp(record) {
   return (
@@ -324,48 +244,24 @@ async function loadCompetitionRegistrations() {
   }
 }
 
-const latestConsultation = computed(
-  () => sortByDateDesc(props.consultationRequests, 'createdAt')[0] || null,
-)
-
-const latestTrainerBooking = computed(
-  () => sortByDateDesc(props.trainerBookings, 'createdAt')[0] || null,
-)
-
-const latestCompetitionRegistration = computed(
-  () =>
-    sortByDateDesc(competitionRegistrations.value, 'updatedAt')[0] ||
-    sortByDateDesc(competitionRegistrations.value, 'statusChangedAt')[0] ||
-    sortByDateDesc(competitionRegistrations.value, 'createdAt')[0] ||
-    null,
-)
-
-const latestDocumentContributor = computed(() => {
-  const candidates = props.users
-    .map((user) => {
-      const loadedDocuments = (user.documents || [])
+const latestDocumentRows = computed(() => {
+  const items = props.users
+    .flatMap((user) =>
+      (user.documents || [])
         .filter((document) => document && document.status && document.status !== 'missing')
-        .slice()
-        .sort((left, right) => getRecordTimestamp(right) - getRecordTimestamp(left))
+        .map((document) => ({
+          id: `${user.id || user.email || user.name || 'unknown-user'}-${document.id || document.label || getRecordTimestamp(document)}`,
+          ownerName: user.name || 'Без имени',
+          documentLabel: document.label || 'Документ',
+          tagType: 'info',
+          tagLabel: 'На проверке',
+          timeLabel: formatRelativeShortDate(document),
+          at: getRecordTimestamp(document),
+        })),
+    )
+    .filter((item) => item.at > 0)
 
-      if (!loadedDocuments.length) {
-        return null
-      }
-
-      const latestDocument = loadedDocuments[0]
-
-      return {
-        id: user.id || user.email || user.name || 'unknown-user',
-        ownerName: user.name || 'Без имени',
-        documentLabel: latestDocument.label,
-        documentCount: loadedDocuments.length,
-        timeLabel: formatRelativeShortDate(latestDocument),
-        at: getRecordTimestamp(latestDocument),
-      }
-    })
-    .filter(Boolean)
-
-  return candidates.sort((left, right) => right.at - left.at)[0] || null
+  return items.sort((left, right) => right.at - left.at).slice(0, DASHBOARD_DOCUMENT_ROWS_COUNT)
 })
 
 const consultationRequestsCount = computed(() => props.consultationRequests.length)
@@ -390,101 +286,47 @@ const attentionCount = computed(
   () => newConsultationsCount.value + newTrainerBookingsCount.value + unpaidUsersCount.value,
 )
 
-const documentsSummary = computed(() => {
-  const summary = {
-    pending: 0,
-    attention: 0,
-    admitted: 0,
-    missing: 0,
-  }
-
-  props.users.forEach((user) => {
-    const documentStatus = getAccountDocumentsAdmissionStatus(user.documents || [])
-
-    if (documentStatus.status === 'pending') {
-      summary.pending += 1
-      return
-    }
-
-    if (documentStatus.status === 'attention') {
-      summary.attention += 1
-      return
-    }
-
-    if (documentStatus.status === 'admitted') {
-      summary.admitted += 1
-      return
-    }
-
-    summary.missing += 1
-  })
-
-  return summary
-})
-
-const competitionSubmittedCount = computed(
-  () => competitionRegistrations.value.filter((registration) => registration.status === 'submitted').length,
-)
-const competitionWithdrawnCount = computed(
-  () => competitionRegistrations.value.filter((registration) => registration.status === 'withdrawn').length,
-)
-
 const latestActivityItems = computed(() => {
-  const items = []
+  const consultationItems = props.consultationRequests.map((request) => ({
+    id: `consultation-${request.id}`,
+    name: formatConsultationFullName(request),
+    actionLabel: 'Консультация запланирована',
+    tagType: consultationStatusType(request.status),
+    tagLabel: formatConsultationStatus(request.status),
+    timeLabel: formatRelativeShortDate(request),
+    section: 'consultations',
+    at: getRecordTimestamp(request),
+  }))
 
-  if (latestConsultation.value) {
-    items.push({
-      id: `consultation-${latestConsultation.value.id}`,
-      title: 'Консультация',
-      name: formatConsultationFullName(latestConsultation.value),
-      tagType: 'danger',
-      tagLabel: formatConsultationStatus(latestConsultation.value.status),
-      timeLabel: formatRelativeShortDate(latestConsultation.value),
-      section: 'consultations',
-      at: getRecordTimestamp(latestConsultation.value),
-    })
-  }
+  const trainerBookingItems = props.trainerBookings.map((booking) => ({
+    id: `trainer-booking-${booking.id}`,
+    name: formatTrainerBookingClientName(booking),
+    actionLabel: 'Спортсмен добавлен',
+    tagType: trainerBookingStatusType(booking.status),
+    tagLabel: formatTrainerBookingStatus(booking.status),
+    timeLabel: formatRelativeShortDate(booking),
+    section: 'trainer-bookings',
+    at: getRecordTimestamp(booking),
+  }))
 
-  if (latestTrainerBooking.value) {
-    items.push({
-      id: `trainer-booking-${latestTrainerBooking.value.id}`,
-      title: 'Тренер',
-      name: formatTrainerBookingClientName(latestTrainerBooking.value),
-      tagType: 'primary',
-      tagLabel: formatTrainerBookingStatus(latestTrainerBooking.value.status),
-      timeLabel: formatRelativeShortDate(latestTrainerBooking.value),
-      section: 'trainer-bookings',
-      at: getRecordTimestamp(latestTrainerBooking.value),
-    })
-  }
+  const competitionRegistrationItems = competitionRegistrations.value.map((registration) => ({
+    id: `competition-registration-${registration.id}`,
+    name: `${registration.participantName || 'Без имени'} · ${
+      registration.competitionName || 'Соревнование не указано'
+    }`,
+    actionLabel: registration.status === 'withdrawn' ? 'Участник снят' : 'Участник подан',
+    tagType: competitionRegistrationRecordStatusType(registration.status),
+    tagLabel: registration.status === 'withdrawn' ? 'Снята' : 'Подана',
+    timeLabel: formatRelativeShortDate(registration),
+    section: 'registrations',
+    at: getRecordTimestamp(registration),
+  }))
 
-  if (latestCompetitionRegistration.value) {
-    items.push({
-      id: `competition-registration-${latestCompetitionRegistration.value.id}`,
-      title: 'Спортсмен',
-      name: `${latestCompetitionRegistration.value.participantName || 'Без имени'} · ${
-        latestCompetitionRegistration.value.competitionName || 'Соревнование не указано'
-      }`,
-      tagType: competitionRegistrationRecordStatusType(latestCompetitionRegistration.value.status),
-      tagLabel: latestCompetitionRegistration.value.status === 'withdrawn' ? 'Снята' : 'Подана',
-      timeLabel: formatRelativeShortDate(latestCompetitionRegistration.value),
-      section: 'registrations',
-      at: getRecordTimestamp(latestCompetitionRegistration.value),
-    })
-  }
-
-  if (latestDocumentContributor.value) {
-    items.push({
-      id: `document-${latestDocumentContributor.value.id}`,
-      title: 'Документы',
-      name: latestDocumentContributor.value.ownerName,
-      tagType: 'primary',
-      tagLabel: 'Последний загрузивший',
-      timeLabel: `${latestDocumentContributor.value.documentLabel} · ${latestDocumentContributor.value.timeLabel}`,
-      section: 'documents',
-      at: latestDocumentContributor.value.at,
-    })
-  }
+  const items = [
+    ...consultationItems,
+    ...trainerBookingItems,
+    ...competitionRegistrationItems,
+  ].filter((item) => item.at > 0)
 
   return items.sort((left, right) => {
     const leftTime = left.at || 0
@@ -520,6 +362,5 @@ onBeforeUnmount(() => {
     unsubscribeFromCompetitionApplications()
     unsubscribeFromCompetitionApplications = null
   }
-
 })
 </script>

@@ -1,4 +1,5 @@
 import { createAccountDocumentsState, normalizeAccountDocumentsState } from '@/pages/account/utils/accountDocumentTypes'
+import { CRM_ROLE } from '@/utils/crmRoles'
 import {
   deleteCrmUserForAdmin,
   fetchAllCrmUsersForAdmin,
@@ -35,6 +36,31 @@ function getDocumentsForScope(documentsByScope, { ownerUserId, scope, scopeId })
   return normalizeAccountDocumentsState(documentsByScope.get(key) || createAccountDocumentsState())
 }
 
+function createAthleteCrmRow({ athlete, owner, documents }) {
+  return {
+    id: `athlete:${athlete.id}`,
+    athleteId: athlete.id,
+    ownerUserId: owner.id,
+    ownerName: owner.name || owner.email || '',
+    ownerEmail: owner.email || '',
+    ownerPhone: owner.phone || '',
+    isAthleteRecord: true,
+    email: owner.email || '',
+    name: athlete.fullName || 'Спортсмен без имени',
+    phone: owner.phone || '',
+    birthDate: athlete.birthDate || '',
+    club: athlete.club || '',
+    gender: athlete.gender || '',
+    rank: athlete.rank || '',
+    coach: athlete.coach || '',
+    role: CRM_ROLE.ATHLETE,
+    status: owner.status || 'paid',
+    registeredAt: athlete.createdAt || owner.registeredAt || null,
+    documents,
+    athletes: [],
+  }
+}
+
 export async function loadAllAccountUsersForAdmin() {
   const [crmUsers, profiles, athletes, documents] = await Promise.all([
     fetchAllCrmUsersForAdmin(),
@@ -46,7 +72,7 @@ export async function loadAllAccountUsersForAdmin() {
   const profilesByOwner = new Map(profiles.map((profile) => [profile.ownerUserId, profile]))
   const documentsByScope = groupByOwnerAndScope(documents)
 
-  return crmUsers.map((user) => {
+  return crmUsers.flatMap((user) => {
     const profile = profilesByOwner.get(user.id) || null
     const mergedUser = mergeCrmUserWithProfile(user, profile)
     const userAthletes = athletes
@@ -60,7 +86,7 @@ export async function loadAllAccountUsersForAdmin() {
         }),
       }))
 
-    return {
+    const userRow = {
       ...mergedUser,
       documents: getDocumentsForScope(documentsByScope, {
         ownerUserId: user.id,
@@ -69,6 +95,16 @@ export async function loadAllAccountUsersForAdmin() {
       }),
       athletes: userAthletes,
     }
+
+    const athleteRows = userAthletes.map((athlete) =>
+      createAthleteCrmRow({
+        athlete,
+        owner: mergedUser,
+        documents: athlete.documents,
+      }),
+    )
+
+    return [userRow, ...athleteRows]
   })
 }
 
