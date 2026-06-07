@@ -101,6 +101,7 @@ import {
   getAccountDocumentDefinition,
   isAccountDocumentExpiryRequired,
 } from '@/pages/account/utils/accountDocumentTypes'
+import { normalizeDateInput } from '@/utils/dateInput'
 
 const props = defineProps({
   modelValue: {
@@ -253,7 +254,7 @@ function isValidDocumentExpiryDate(value) {
 }
 
 function handleExpiresAtInput(event) {
-  expiresAt.value = formatDocumentExpiryInput(event.target.value)
+  expiresAt.value = String(event.target.value || '')
   expiresAtError.value = ''
 }
 
@@ -313,12 +314,14 @@ async function handleSubmit() {
 
   expiresAtError.value = ''
 
-  if (isExpiryRequired.value && !expiresAt.value.trim()) {
+  const normalizedExpiresAt = normalizeDateInput(expiresAt.value)
+
+  if (isExpiryRequired.value && !normalizedExpiresAt) {
     expiresAtError.value = 'Укажите срок действия документа.'
     return
   }
 
-  if (expiresAt.value.trim() && !isValidDocumentExpiryDate(expiresAt.value.trim())) {
+  if (normalizedExpiresAt && !isValidDocumentExpiryDate(normalizedExpiresAt)) {
     expiresAtError.value = 'Введите дату в формате дд.мм.гггг.'
     return
   }
@@ -336,7 +339,7 @@ async function handleSubmit() {
     file: selectedFile.value,
     fileDataUrl: selectedFileDataUrl.value,
     fileType: selectedFileType.value,
-    expiresAt: expiresAt.value,
+    expiresAt: normalizedExpiresAt,
   })
 }
 

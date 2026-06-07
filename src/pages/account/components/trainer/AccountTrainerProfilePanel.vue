@@ -204,7 +204,7 @@
 import { reactive, ref, toRef, watch } from 'vue'
 import { ElCard } from 'element-plus'
 import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
-import { formatDateInput } from '@/utils/dateInput'
+import { normalizeDateInput } from '@/utils/dateInput'
 import { showToast } from '@/utils/toast'
 import {
   loadAccountProfileForCurrentUser,
@@ -293,14 +293,15 @@ async function syncFromSource() {
 function validateProfile() {
   resetErrors()
   const birthDatePattern = /^\d{2}\.\d{2}\.\d{4}$/
+  const normalizedBirthDate = normalizeDateInput(profile.birthDate)
 
   if (!profile.fullName) {
     errors.fullName = 'Укажите ФИО.'
   }
 
-  if (!profile.birthDate) {
+  if (!normalizedBirthDate) {
     errors.birthDate = 'Укажите дату рождения.'
-  } else if (!birthDatePattern.test(profile.birthDate)) {
+  } else if (!birthDatePattern.test(normalizedBirthDate)) {
     errors.birthDate = 'Введите дату в формате дд.мм.гггг.'
   }
 
@@ -324,7 +325,7 @@ function updateTextField(field, value, { trim = false } = {}) {
 }
 
 function handleBirthDateInput(event) {
-  profile.birthDate = formatDateInput(event.target.value)
+  profile.birthDate = String(event.target.value || '')
   errors.birthDate = ''
 }
 
@@ -345,12 +346,17 @@ async function handleSubmit() {
   }
 
   isSaving.value = true
+  const normalizedBirthDate = normalizeDateInput(profile.birthDate)
 
   try {
     await saveAccountProfileForCurrentUser({
       currentUser: currentUserRef,
-      profile,
+      profile: {
+        ...profile,
+        birthDate: normalizedBirthDate,
+      },
     })
+    profile.birthDate = normalizedBirthDate
     showToast('Профиль тренера сохранён')
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Не удалось сохранить профиль тренера.', {

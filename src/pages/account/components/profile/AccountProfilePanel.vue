@@ -116,6 +116,7 @@ import { onBeforeUnmount, onMounted, reactive, ref, toRef, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { ElCard } from 'element-plus'
 import { formatPhoneInput, isValidPhone } from '@/utils/phone'
+import { normalizeDateInput } from '@/utils/dateInput'
 import { showToast } from '@/utils/toast'
 import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
 import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
@@ -227,14 +228,15 @@ async function syncProfileFromSource() {
 function validateProfile() {
   resetErrors()
   const birthDatePattern = /^\d{2}\.\d{2}\.\d{4}$/
+  const normalizedBirthDate = normalizeDateInput(profile.birthDate)
 
   if (!profile.fullName) {
     errors.fullName = 'Укажите ФИО.'
   }
 
-  if (!profile.birthDate) {
+  if (!normalizedBirthDate) {
     errors.birthDate = 'Укажите дату рождения.'
-  } else if (!birthDatePattern.test(profile.birthDate)) {
+  } else if (!birthDatePattern.test(normalizedBirthDate)) {
     errors.birthDate = 'Введите дату в формате дд.мм.гггг.'
   }
 
@@ -412,11 +414,15 @@ async function handleSubmit() {
   }
 
   isProfileSaving.value = true
+  const normalizedBirthDate = normalizeDateInput(profile.birthDate)
 
   try {
     const savedProfile = await saveAccountProfileForCurrentUser({
       currentUser: currentUserRef,
-      profile,
+      profile: {
+        ...profile,
+        birthDate: normalizedBirthDate,
+      },
     })
 
     profile.fullName = savedProfile.fullName

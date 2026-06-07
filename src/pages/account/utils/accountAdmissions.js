@@ -155,6 +155,25 @@ export async function createAccountAdmission({
   })
 }
 
+export async function admitAccountParticipant(group, admittedBy = 'Администратор') {
+  if (!group || group.statusMeta?.status !== 'ready') {
+    return null
+  }
+
+  return createAccountAdmission({
+    ownerUserKey: group.ownerUserKey,
+    ownerName: group.ownerName,
+    ownerEmail: group.ownerEmail,
+    scope: group.scope,
+    scopeId: group.scopeId,
+    participantName: group.participantName,
+    participantBirthDate: group.participantBirthDate,
+    participantClub: group.participantClub,
+    participantKind: group.participantKind,
+    admittedBy,
+  })
+}
+
 function getApplicationStatusMeta(status) {
   if (status === CONSULTATION_STATUS.NEW || status === ATHLETE_APPLICATION_STATUS.NEW) {
     return {

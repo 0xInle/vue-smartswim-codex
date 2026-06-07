@@ -12,7 +12,7 @@ import {
   normalizeAccountDocumentsState,
 } from '@/pages/account/utils/accountDocumentTypes'
 import {
-  createAccountAdmission,
+  admitAccountParticipant,
   refreshAllAccountAdmissionWorkflowForStaff,
   resolveAccountAdmissionStatus,
 } from '@/pages/account/utils/accountAdmissions'
@@ -235,11 +235,11 @@ export function useAccountDocumentReviews({ currentUser }) {
 
   const reviewDialogHint = computed(() => {
     if (reviewDialogState.action === 'reject') {
-      return 'Опишите причину отклонения. Пользователь увидит этот комментарий в личном кабинете.'
+      return 'Опишите причину отклонения.'
     }
 
     if (reviewDialogState.action === 'needs_reupload') {
-      return 'Укажите, что именно нужно исправить. Это отобразится у пользователя как запрос на повторную загрузку.'
+      return 'Укажите, что нужно исправить.'
     }
 
     return 'Подтвердите документ, если он соответствует требованиям.'
@@ -303,18 +303,7 @@ export function useAccountDocumentReviews({ currentUser }) {
     admissionActionId.value = group.id
 
     try {
-      await createAccountAdmission({
-        ownerUserKey: group.ownerUserKey,
-        ownerName: group.ownerName,
-        ownerEmail: group.ownerEmail,
-        scope: group.scope,
-        scopeId: group.scopeId,
-        participantName: group.participantName,
-        participantBirthDate: group.participantBirthDate,
-        participantClub: group.participantClub,
-        participantKind: group.participantKind,
-        admittedBy: resolveReviewerName(currentUser),
-      })
+      await admitAccountParticipant(group, resolveReviewerName(currentUser))
       showToast('Спортсмен допущен. Email-уведомление подготовлено к отправке.')
       loadRecords()
     } catch (error) {
@@ -334,7 +323,7 @@ export function useAccountDocumentReviews({ currentUser }) {
     const nextReason = String(reviewDialogState.reason || '').trim()
 
     if (reviewDialogState.action !== 'verified' && !nextReason) {
-      reviewDialogError.value = 'Укажите причину, чтобы пользователь увидел комментарий.'
+      reviewDialogError.value = 'Укажите причину.'
       return
     }
 

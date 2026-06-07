@@ -216,6 +216,7 @@
                 :is-edit-submitting="userEditSubmitting"
                 :is-delete-submitting="userDeleteSubmitting"
                 :document-action-id="userDocumentActionId"
+                :admission-action-id="userAdmissionActionId"
                 @update:search="usersSearch = $event"
                 @update:role-filter="usersRoleFilter = $event"
                 @page-change="handleUsersPageChange"
@@ -233,6 +234,7 @@
                 @remove-document="handleDocumentRemove"
                 @approve-document="handleApproveUserDocument"
                 @request-document-reupload="handleRequestUserDocumentReupload"
+                @admit-document-group="handleAdmitUserDocumentGroup"
               />
 
               <AccountSettingsPanel
@@ -550,6 +552,7 @@ const {
   userEditSubmitting,
   userDeleteSubmitting,
   userDocumentActionId,
+  userAdmissionActionId,
   handleUsersPageChange,
   handleUsersSortChange,
   resetUsersPage,
@@ -566,6 +569,7 @@ const {
   handleDocumentRemove,
   handleApproveUserDocument,
   handleRequestUserDocumentReupload,
+  handleAdmitUserDocumentGroup,
 } = useAccountUsers({ currentUser })
 
 async function syncAccountData({ force = false, silent = false } = {}) {

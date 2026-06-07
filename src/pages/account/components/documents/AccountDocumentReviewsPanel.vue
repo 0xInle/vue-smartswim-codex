@@ -281,12 +281,6 @@
       <form class="account__dialog-form" @submit.prevent="submitReviewDialog">
         <div class="account__dialog-copy">
           <p class="account__dialog-text">{{ reviewDialogHint }}</p>
-          <p class="account__dialog-hint">
-            {{
-              reviewRecord?.documentLabel ||
-              'Выберите документ, чтобы оставить комментарий и применить решение.'
-            }}
-          </p>
         </div>
 
         <label class="account__field">
@@ -652,6 +646,10 @@ watch(
   color: #2f8f5b;
 }
 
+.account-document-review__status--verified.account-document-review__status--plain {
+  border-radius: 5px;
+}
+
 .account-document-review__status--uploaded:not(.account-document-review__status--plain),
 .account-document-review__status--pending:not(.account-document-review__status--plain) {
   color: #176384;
@@ -855,8 +853,14 @@ watch(
 
 .account-document-review__document-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  width: min(100%, 320px);
   gap: 8px;
+}
+
+.account-document-review__document-actions > * {
+  width: 100%;
 }
 
 .account__textarea {
@@ -895,10 +899,6 @@ watch(
   }
 
   .account-document-review__document-actions {
-    flex-direction: column;
-  }
-
-  .account-document-review__document-actions > * {
     width: 100%;
   }
 

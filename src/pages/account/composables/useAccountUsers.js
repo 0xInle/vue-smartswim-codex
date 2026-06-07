@@ -30,6 +30,7 @@ import {
   subscribeToAccountDocumentChanges,
 } from '@/domains/account-documents/documentRepository'
 import { subscribeToAccountAdmissionWorkflowChanges } from '@/domains/account-admissions/accountAdmissionRepository'
+import { admitAccountParticipant } from '@/pages/account/utils/accountAdmissions'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 
 export function useAccountUsers({ currentUser = null } = {}) {
@@ -45,6 +46,7 @@ export function useAccountUsers({ currentUser = null } = {}) {
   const userEditSubmitting = ref(false)
   const userDeleteSubmitting = ref(false)
   const userDocumentActionId = ref('')
+  const userAdmissionActionId = ref('')
   let usersLoadRequestId = 0
   let unsubscribeFromUsers = null
   let unsubscribeFromAccountData = null
@@ -204,7 +206,7 @@ export function useAccountUsers({ currentUser = null } = {}) {
 
   function handleCloseUserEdit() {
     isUserEditDialogOpen.value = false
-    resetDocumentUploadState()
+    documentUploadState.isOpen = false
   }
 
   function handleUserEditDialogClosed() {
@@ -273,6 +275,29 @@ export function useAccountUsers({ currentUser = null } = {}) {
     }))
   }
 
+  function updateLoadedUserDocumentInUsers(documentId, patch) {
+    const updateDocuments = (documents = []) =>
+      normalizeAccountDocumentsState(documents).map((document) =>
+        document.id === documentId
+          ? {
+              ...document,
+              ...patch,
+            }
+          : document,
+      )
+
+    users.value = users.value.map((user) => ({
+      ...user,
+      documents: updateDocuments(user.documents),
+      athletes: Array.isArray(user.athletes)
+        ? user.athletes.map((athlete) => ({
+            ...athlete,
+            documents: updateDocuments(athlete.documents),
+          }))
+        : [],
+    }))
+  }
+
   function findUserDocumentById(documentId) {
     const profileDocument = userEditForm.documents.find((document) => document.id === documentId)
 
@@ -327,7 +352,7 @@ export function useAccountUsers({ currentUser = null } = {}) {
       })
 
       updateUserDocumentInEditForm(document.id, updatedDocument)
-      await loadUsers()
+      updateLoadedUserDocumentInUsers(document.id, updatedDocument)
       showToast(status === ACCOUNT_DOCUMENT_STATUS.VERIFIED ? 'Документ одобрен' : 'Запрошено обновление документа')
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Не удалось обновить статус документа', {
@@ -362,7 +387,7 @@ export function useAccountUsers({ currentUser = null } = {}) {
     }
 
     void ElMessageBox.prompt(
-      'Комментарий увидит пользователь в личном кабинете.',
+      'Укажите, что нужно исправить.',
       'Запросить обновление документа',
       {
         customClass: 'account__confirm-messagebox',
@@ -385,6 +410,27 @@ export function useAccountUsers({ currentUser = null } = {}) {
         )
       })
       .catch(() => {})
+  }
+
+  async function handleAdmitUserDocumentGroup(group) {
+    if (!group || group.statusMeta?.status !== 'ready') {
+      return
+    }
+
+    userAdmissionActionId.value = group.id
+
+    try {
+      await admitAccountParticipant(group, resolveReviewerName())
+      await loadUsers()
+      syncUserEditFormFromLoadedUsers()
+      showToast('Спортсмен допущен. Email-уведомление подготовлено к отправке.')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось сохранить допуск.', {
+        type: 'error',
+      })
+    } finally {
+      userAdmissionActionId.value = ''
+    }
   }
 
   function handleDocumentUploadSubmit({ file, fileDataUrl = '', fileType = '', expiresAt }) {
@@ -575,6 +621,7 @@ export function useAccountUsers({ currentUser = null } = {}) {
     userEditSubmitting,
     userDeleteSubmitting,
     userDocumentActionId,
+    userAdmissionActionId,
     handleUsersPageChange,
     resetUsersPage,
     handleOpenUserEdit,
@@ -590,5 +637,6 @@ export function useAccountUsers({ currentUser = null } = {}) {
     handleDocumentRemove,
     handleApproveUserDocument,
     handleRequestUserDocumentReupload,
+    handleAdmitUserDocumentGroup,
   }
 }

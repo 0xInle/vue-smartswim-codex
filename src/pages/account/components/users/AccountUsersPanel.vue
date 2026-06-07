@@ -58,12 +58,21 @@
               </button>
             </th>
             <th>Роль</th>
-            <th>Действия</th>
+            <th>Телефон</th>
           </tr>
         </thead>
 
         <tbody>
-          <tr v-for="row in users" :key="row.id" class="account__native-table-row">
+          <tr
+            v-for="row in users"
+            :key="row.id"
+            class="account__native-table-row account-users__table-row"
+            tabindex="0"
+            role="button"
+            @click="$emit('edit-user', row)"
+            @keydown.enter.prevent="$emit('edit-user', row)"
+            @keydown.space.prevent="$emit('edit-user', row)"
+          >
             <td class="account__native-table-cell account__native-table-cell--primary">
               <div class="account__table-user">
                 <div class="account__table-primary">{{ row.name }}</div>
@@ -75,25 +84,7 @@
               </div>
             </td>
             <td class="account__native-table-cell account__native-table-cell--center">
-              <div class="account-users__actions-cell">
-                <div class="account__table-actions">
-                  <button
-                    type="button"
-                    class="account__table-action account__table-action--edit btn-reset"
-                    @click="$emit('edit-user', row)"
-                  >
-                    Просмотр
-                  </button>
-                  <button
-                    v-if="!row.isAthleteRecord"
-                    type="button"
-                    class="account__table-action account__table-action--delete btn-reset"
-                    @click="$emit('delete-user', row)"
-                  >
-                    Удалить
-                  </button>
-                </div>
-              </div>
+              <div class="account-users__phone-cell">{{ row.phone || 'Не указан' }}</div>
             </td>
           </tr>
         </tbody>
@@ -169,6 +160,34 @@
             <h4 class="account__panel-title">
               {{ selectedAthlete || isAthleteRecord ? 'Документы спортсмена' : 'Документы пользователя' }}
             </h4>
+            <div
+              v-if="showActiveDocumentAdmissionAction"
+              class="account-users__documents-review-head-actions"
+            >
+              <ElTag
+                v-if="activeDocumentAdmissionStatus.status === 'admitted'"
+                :type="activeDocumentAdmissionStatus.tagType"
+                effect="light"
+                class="account-users__documents-review-admission-tag"
+              >
+                {{ activeDocumentAdmissionStatus.label }}
+              </ElTag>
+              <button
+                v-else-if="canAdmitActiveDocumentGroup"
+                type="button"
+                class="account__table-action account__table-action--delete account-users__documents-review-admit btn-reset"
+                :disabled="isActiveDocumentAdmissionLoading"
+                :aria-busy="isActiveDocumentAdmissionLoading"
+                @click="$emit('admit-document-group', activeDocumentReviewGroup)"
+              >
+                <span
+                  v-if="isActiveDocumentAdmissionLoading"
+                  class="account__button-spinner"
+                  aria-hidden="true"
+                ></span>
+                Допустить к соревнованиям
+              </button>
+            </div>
           </div>
 
           <div class="account-users__documents-review-list">
@@ -226,7 +245,7 @@
                   <div class="account-users__documents-review-actions">
                     <button
                       type="button"
-                      class="account__table-action account__table-action--success btn-reset"
+                      class="account__table-action account__table-action--edit btn-reset"
                       :disabled="!canApproveDocument(document) || isDocumentActionLoading(document, 'verified')"
                       :aria-busy="isDocumentActionLoading(document, 'verified')"
                       @click="$emit('approve-document', document)"
@@ -313,6 +332,17 @@
           <button
             v-if="!isAthleteRecord"
             type="button"
+            class="account__table-action account__table-action--delete btn-reset"
+            :disabled="isDeleteSubmitting"
+            :aria-busy="isDeleteSubmitting"
+            @click="$emit('delete-user', props.editForm)"
+          >
+            <span v-if="isDeleteSubmitting" class="account__button-spinner" aria-hidden="true"></span>
+            Удалить
+          </button>
+          <button
+            v-if="!isAthleteRecord"
+            type="button"
             class="account__table-action account__table-action--edit btn-reset"
             :disabled="isEditSubmitting"
             :aria-busy="isEditSubmitting"
@@ -344,13 +374,10 @@
       @closed="$emit('close-delete')"
       @update:model-value="!$event && $emit('close-delete')"
     >
-      <div class="account__dialog-copy">
-        <p class="account__dialog-text">
+      <div class="account__dialog-copy account-users__delete-copy">
+        <p class="account__dialog-text account-users__delete-question">
           Удалить пользователя <strong>{{ pendingDeleteUser?.name || 'Без имени' }}</strong
           >?
-        </p>
-        <p class="account__dialog-hint">
-          Запись будет удалена из CRM-списка. Учетная запись Supabase Auth не удаляется клиентским интерфейсом.
         </p>
       </div>
 
@@ -459,6 +486,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  admissionActionId: {
+    type: String,
+    default: '',
+  },
 })
 
 defineEmits([
@@ -478,6 +509,7 @@ defineEmits([
   'remove-document',
   'approve-document',
   'request-document-reupload',
+  'admit-document-group',
   'toggle-sort',
 ])
 
@@ -533,6 +565,54 @@ function getSortAriaLabel(label, columnKey) {
   }
 
   return `Сбросить сортировку по ${label}`
+}
+
+function getOwnerUserKey() {
+  if (isAthleteRecord.value) {
+    return props.editForm?.ownerUserId || props.editForm?.ownerEmail || 'anonymous'
+  }
+
+  return props.editForm?.id || props.editForm?.email || 'anonymous'
+}
+
+function createDocumentReviewGroup({
+  id,
+  title,
+  meta,
+  documents = [],
+  ownerUserKey,
+  ownerName = '',
+  ownerEmail = '',
+  scope = 'profile',
+  scopeId = 'profile',
+  participantName = '',
+  participantBirthDate = '',
+  participantClub = '',
+  participantKind = 'owner',
+}) {
+  const normalizedDocuments = Array.isArray(documents) ? documents : []
+
+  return {
+    id,
+    title,
+    meta,
+    ownerUserKey,
+    ownerName,
+    ownerEmail,
+    scope,
+    scopeId,
+    participantName,
+    participantBirthDate,
+    participantClub,
+    participantKind,
+    documents: normalizedDocuments,
+    statusMeta: resolveAccountAdmissionStatus({
+      ownerUserKey,
+      scope,
+      scopeId,
+      documents: normalizedDocuments,
+    }),
+  }
 }
 
 const viewedAthleteAdmissions = computed(() => {
@@ -653,25 +733,50 @@ const activeSummaryFields = computed(() => {
 })
 
 const activeDocumentReviewGroups = computed(() => {
+  void props.admissionActionId
+
   if (isAthleteRecord.value) {
+    const ownerUserKey = getOwnerUserKey()
+    const athleteId = props.editForm?.athleteId || props.editForm?.id || 'profile'
+
     return [
-      {
+      createDocumentReviewGroup({
         id: `athlete-${props.editForm?.athleteId || props.editForm?.id}`,
         title: props.editForm?.name || 'Спортсмен без имени',
         meta: props.editForm?.birthDate || 'Дата рождения не указана',
+        ownerUserKey,
+        ownerName: props.editForm?.ownerName || '',
+        ownerEmail: props.editForm?.ownerEmail || '',
+        scope: 'athlete',
+        scopeId: athleteId,
+        participantName: props.editForm?.name || 'Спортсмен без имени',
+        participantBirthDate: props.editForm?.birthDate || '',
+        participantClub: props.editForm?.club || '',
+        participantKind: 'athlete',
         documents: Array.isArray(props.editForm?.documents) ? props.editForm.documents : [],
-      },
+      }),
     ]
   }
 
   if (selectedAthlete.value) {
+    const ownerUserKey = getOwnerUserKey()
+
     return [
-      {
+      createDocumentReviewGroup({
         id: `athlete-${selectedAthlete.value.id}`,
         title: selectedAthlete.value.fullName || 'Спортсмен без имени',
         meta: selectedAthlete.value.birthDate || 'Дата рождения не указана',
+        ownerUserKey,
+        ownerName: props.editForm?.name || '',
+        ownerEmail: props.editForm?.email || '',
+        scope: 'athlete',
+        scopeId: selectedAthlete.value.id,
+        participantName: selectedAthlete.value.fullName || 'Спортсмен без имени',
+        participantBirthDate: selectedAthlete.value.birthDate || '',
+        participantClub: selectedAthlete.value.club || '',
+        participantKind: 'athlete',
         documents: Array.isArray(selectedAthlete.value.documents) ? selectedAthlete.value.documents : [],
-      },
+      }),
     ]
   }
 
@@ -679,17 +784,41 @@ const activeDocumentReviewGroups = computed(() => {
     return []
   }
 
+  const ownerUserKey = getOwnerUserKey()
+
   return [
-    {
+    createDocumentReviewGroup({
       id: 'profile',
       title: 'Профиль владельца ЛК',
       meta: props.editForm?.email || 'Основные документы пользователя',
+      ownerUserKey,
+      ownerName: props.editForm?.name || '',
+      ownerEmail: props.editForm?.email || '',
+      scope: 'profile',
+      scopeId: 'profile',
+      participantName: props.editForm?.name || 'Пользователь без имени',
+      participantBirthDate: props.editForm?.birthDate || '',
+      participantClub: props.editForm?.club || '',
+      participantKind: 'owner',
       documents: Array.isArray(props.editForm?.documents) ? props.editForm.documents : [],
-    },
+    }),
   ]
 })
 
 const showDocumentReview = computed(() => activeDocumentReviewGroups.value.length > 0)
+const activeDocumentReviewGroup = computed(() => activeDocumentReviewGroups.value[0] || null)
+const activeDocumentAdmissionStatus = computed(
+  () => activeDocumentReviewGroup.value?.statusMeta || null,
+)
+const canAdmitActiveDocumentGroup = computed(
+  () => activeDocumentAdmissionStatus.value?.status === 'ready',
+)
+const showActiveDocumentAdmissionAction = computed(
+  () => activeDocumentAdmissionStatus.value?.status === 'admitted' || canAdmitActiveDocumentGroup.value,
+)
+const isActiveDocumentAdmissionLoading = computed(
+  () => Boolean(activeDocumentReviewGroup.value?.id && props.admissionActionId === activeDocumentReviewGroup.value.id),
+)
 const showAthleteList = computed(() =>
   isUserView.value && !isAthleteRecord.value && !selectedAthlete.value,
 )
@@ -795,12 +924,49 @@ watch(
   background: transparent;
 }
 
+.account-users__table-wrap .account__native-table-row,
+.account-users__table-wrap .account__native-table-row:nth-child(even),
+.account-users__table-wrap .account__native-table-row:nth-child(odd) {
+  background: #fff;
+}
+
+.account-users__table-wrap .account__native-table-cell {
+  background: #fff;
+}
+
+.account-users__table-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.account-users__table-row:hover,
+.account-users__table-row:focus-visible,
+.account-users__table-row:hover .account__native-table-cell,
+.account-users__table-row:focus-visible .account__native-table-cell {
+  background: #f2f5f8;
+  outline: none;
+}
+
 .account-users__role-cell {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   gap: 12px;
+}
+
+.account-users__phone-cell {
+  font-weight: 800;
+  color: #526072;
+}
+
+.account-users__delete-copy {
+  text-align: left;
+}
+
+.account-users__delete-question {
+  margin: 0;
+  text-align: left;
 }
 
 .account-users__role-text {
@@ -814,7 +980,37 @@ watch(
 }
 
 .account-users__documents-review-head {
+  align-items: center;
   padding: 0;
+}
+
+.account-users__documents-review-head .account__panel-title {
+  margin-top: 0;
+}
+
+.account-users__documents-review-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.account-users__documents-review-admit {
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 10px 16px;
+  white-space: nowrap;
+  text-transform: none;
+}
+
+.account-users__documents-review-admission-tag {
+  min-height: 34px;
+  align-items: center;
+  border-radius: 5px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .account-users__documents-review-list {
@@ -909,6 +1105,10 @@ watch(
   text-transform: uppercase;
 }
 
+.account-users__documents-review-item--verified .account-users__documents-review-tag {
+  border-radius: 5px;
+}
+
 .account-users__documents-review-hint,
 .account-users__documents-review-expiry,
 .account-users__documents-review-file {
@@ -930,12 +1130,27 @@ watch(
 
 .account-users__documents-review-actions {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: stretch;
+  width: min(100%, 320px);
   gap: 8px;
 }
 
+.account-users__documents-review-actions > * {
+  width: 100%;
+}
+
 @media (max-width: 720px) {
+  .account-users__documents-review-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .account-users__documents-review-head-actions,
+  .account-users__documents-review-admit {
+    width: 100%;
+  }
+
   .account-users__documents-review-group-head,
   .account-users__documents-review-title-row {
     align-items: flex-start;
@@ -951,7 +1166,7 @@ watch(
   }
 
   .account-users__documents-review-actions {
-    justify-content: flex-start;
+    width: 100%;
   }
 }
 

@@ -379,7 +379,10 @@ export function getAccountDocumentsAdmissionStatus(documents = [], now = Date.no
       document.status === ACCOUNT_DOCUMENT_STATUS.REJECTED ||
       document.status === ACCOUNT_DOCUMENT_STATUS.NEEDS_REUPLOAD,
   )
-  const hasExpired = normalizedDocuments.some((document) => isAccountDocumentExpired(document, now))
+  const verifiedDocuments = normalizedDocuments.filter(
+    (document) => document.status === ACCOUNT_DOCUMENT_STATUS.VERIFIED,
+  )
+  const hasExpired = verifiedDocuments.some((document) => isAccountDocumentExpired(document, now))
   const hasMissingRequiredExpiry = normalizedDocuments.some(
     (document) =>
       document.status === ACCOUNT_DOCUMENT_STATUS.VERIFIED &&
