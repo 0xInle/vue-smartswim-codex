@@ -45,11 +45,11 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import HomeFooterSection from '@/pages/home/components/HomeFooterSection.vue'
-import { getCompetitionBySlug } from './competitionData'
+import { ensureCompetitionDirectionsLoaded, getCompetitionBySlug } from './competitionData'
 import { publicAsset } from '@/utils/publicAsset'
 import CompetitionDetailHero from './components/CompetitionDetailHero.vue'
 import CompetitionStageCard from './components/CompetitionStageCard.vue'
@@ -160,6 +160,10 @@ watch(
   },
   { immediate: true },
 )
+
+onMounted(() => {
+  void ensureCompetitionDirectionsLoaded()
+})
 </script>
 
 <style scoped>

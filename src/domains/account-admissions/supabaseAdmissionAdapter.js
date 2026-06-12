@@ -87,7 +87,7 @@ async function requireCurrentSession(message) {
   return session
 }
 
-async function fetchWorkflowRows({ ownerOnly = false } = {}) {
+async function fetchWorkflowRows({ ownerOnly = false, ownerUserId = '' } = {}) {
   const session = await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
   const client = getSupabaseClient()
   let applicationsQuery = client
@@ -102,6 +102,11 @@ async function fetchWorkflowRows({ ownerOnly = false } = {}) {
   if (ownerOnly) {
     applicationsQuery = applicationsQuery.eq('owner_user_id', session.user.id)
     admissionsQuery = admissionsQuery.eq('owner_user_id', session.user.id)
+  }
+
+  if (ownerUserId) {
+    applicationsQuery = applicationsQuery.eq('owner_user_id', ownerUserId)
+    admissionsQuery = admissionsQuery.eq('owner_user_id', ownerUserId)
   }
 
   const [applicationsResult, admissionsResult] = await Promise.all([
@@ -137,6 +142,10 @@ export async function fetchAccountAdmissionWorkflowForCurrentUser() {
 
 export async function fetchAllAccountAdmissionWorkflowForStaff() {
   return fetchWorkflowRows({ ownerOnly: false })
+}
+
+export async function fetchAccountAdmissionWorkflowForOwnerForStaff(ownerUserId) {
+  return fetchWorkflowRows({ ownerUserId })
 }
 
 export async function upsertAthleteApplication(record = {}) {

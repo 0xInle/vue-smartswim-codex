@@ -325,11 +325,14 @@ onBeforeUnmount(() => {
 
 .account-date-picker__trigger {
   display: flex;
+  box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  min-height: 48px;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
   padding: 0 16px;
   border: 1px solid color-mix(in srgb, var(--cyan) 24%, white);
   border-radius: 10px;

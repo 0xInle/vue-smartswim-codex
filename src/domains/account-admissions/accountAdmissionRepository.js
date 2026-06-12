@@ -1,5 +1,6 @@
 import {
   deleteAthleteApplication,
+  fetchAccountAdmissionWorkflowForOwnerForStaff,
   fetchAccountAdmissionWorkflowForCurrentUser,
   fetchAllAccountAdmissionWorkflowForStaff,
   subscribeToAccountAdmissionWorkflow,
@@ -13,6 +14,10 @@ export async function loadAccountAdmissionWorkflowForCurrentUser() {
 
 export async function loadAllAccountAdmissionWorkflowForStaff() {
   return fetchAllAccountAdmissionWorkflowForStaff()
+}
+
+export async function loadAccountAdmissionWorkflowForOwnerForStaff(ownerUserId) {
+  return fetchAccountAdmissionWorkflowForOwnerForStaff(ownerUserId)
 }
 
 export async function saveAccountAthleteApplication(record = {}) {

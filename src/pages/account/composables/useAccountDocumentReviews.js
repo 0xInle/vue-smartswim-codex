@@ -19,10 +19,13 @@ import {
 import { showToast } from '@/utils/toast'
 import {
   loadAllAccountDocumentReviewsForAdmin,
+  loadAccountDocumentReviewForAdmin,
   reviewAccountDocument,
   subscribeToAccountDocumentChanges,
 } from '@/domains/account-documents/documentRepository'
 import { subscribeToAccountAdmissionWorkflowChanges } from '@/domains/account-admissions/accountAdmissionRepository'
+
+const DOCUMENT_REVIEW_REFRESH_DEBOUNCE_MS = 300
 
 function normalizeSearchValue(value) {
   return String(value || '')
@@ -41,6 +44,7 @@ export function useAccountDocumentReviews({ currentUser }) {
   const isLoading = ref(false)
   const reviewActionId = ref('')
   const admissionActionId = ref('')
+  const groupDocumentsLoadingId = ref('')
   const reviewDialogSubmitting = ref(false)
   const reviewDialogError = ref('')
   const reviewDialogState = reactive({
@@ -51,6 +55,9 @@ export function useAccountDocumentReviews({ currentUser }) {
   })
   let unsubscribeFromSupabaseDocuments = null
   let unsubscribeFromSupabaseAdmissionWorkflow = null
+  let recordsRefreshTimer = null
+  let isScheduledRecordsRefreshRunning = false
+  let hasPendingRecordsRefresh = false
 
   async function loadSupabaseRecords() {
     isLoading.value = true
@@ -79,6 +86,48 @@ export function useAccountDocumentReviews({ currentUser }) {
     void loadSupabaseRecords()
   }
 
+  function cancelScheduledRecordsRefresh() {
+    if (recordsRefreshTimer) {
+      clearTimeout(recordsRefreshTimer)
+      recordsRefreshTimer = null
+    }
+
+    hasPendingRecordsRefresh = false
+  }
+
+  function flushScheduledRecordsRefresh() {
+    recordsRefreshTimer = null
+
+    if (isScheduledRecordsRefreshRunning) {
+      hasPendingRecordsRefresh = true
+      return
+    }
+
+    hasPendingRecordsRefresh = false
+    isScheduledRecordsRefreshRunning = true
+
+    void loadSupabaseRecords().finally(() => {
+      isScheduledRecordsRefreshRunning = false
+
+      if (hasPendingRecordsRefresh) {
+        scheduleRecordsRefresh()
+      }
+    })
+  }
+
+  function scheduleRecordsRefresh() {
+    hasPendingRecordsRefresh = true
+
+    if (recordsRefreshTimer) {
+      return
+    }
+
+    recordsRefreshTimer = window.setTimeout(
+      flushScheduledRecordsRefresh,
+      DOCUMENT_REVIEW_REFRESH_DEBOUNCE_MS,
+    )
+  }
+
   function normalizeReviewRecord(record) {
     return {
       ...record,
@@ -95,6 +144,43 @@ export function useAccountDocumentReviews({ currentUser }) {
       documentLabel: document.label,
       documentHint: document.hint,
     }))
+  }
+
+  function replaceRecord(updatedRecord) {
+    if (!updatedRecord?.id) {
+      return
+    }
+
+    records.value = records.value.map((record) =>
+      record.id === updatedRecord.id ? updatedRecord : record,
+    )
+  }
+
+  async function ensureGroupDocumentsLoaded(group) {
+    const documentIds = (group?.documents || [])
+      .filter((document) => document?.id && !document.fileUrl && !document.fileDataUrl)
+      .map((document) => document.id)
+
+    if (!documentIds.length) {
+      return
+    }
+
+    groupDocumentsLoadingId.value = group.id
+
+    try {
+      const hydratedRecords = await Promise.all(
+        documentIds.map((documentId) => loadAccountDocumentReviewForAdmin(documentId)),
+      )
+      hydratedRecords.forEach(replaceRecord)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось загрузить файл документа.', {
+        type: 'error',
+      })
+    } finally {
+      if (groupDocumentsLoadingId.value === group.id) {
+        groupDocumentsLoadingId.value = ''
+      }
+    }
   }
 
   const groupedRows = computed(() => {
@@ -274,13 +360,13 @@ export function useAccountDocumentReviews({ currentUser }) {
     reviewActionId.value = `${record.id}:${status}`
 
     try {
-      await reviewAccountDocument(record.id, {
+      const updatedRecord = await reviewAccountDocument(record.id, {
         status,
         rejectionReason:
           status === ACCOUNT_DOCUMENT_STATUS.VERIFIED ? '' : String(reason || '').trim(),
         reviewerName,
       })
-      await loadSupabaseRecords()
+      replaceRecord(updatedRecord)
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : 'Не удалось обновить статус документа',
@@ -305,7 +391,7 @@ export function useAccountDocumentReviews({ currentUser }) {
     try {
       await admitAccountParticipant(group, resolveReviewerName(currentUser))
       showToast('Спортсмен допущен. Email-уведомление подготовлено к отправке.')
-      loadRecords()
+      records.value = [...records.value]
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Не удалось сохранить допуск.', {
         type: 'error',
@@ -358,14 +444,16 @@ export function useAccountDocumentReviews({ currentUser }) {
 
   onMounted(() => {
     unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
-      void loadSupabaseRecords()
+      scheduleRecordsRefresh()
     })
     unsubscribeFromSupabaseAdmissionWorkflow = subscribeToAccountAdmissionWorkflowChanges(() => {
-      void loadSupabaseRecords()
+      scheduleRecordsRefresh()
     })
   })
 
   onBeforeUnmount(() => {
+    cancelScheduledRecordsRefresh()
+
     if (unsubscribeFromSupabaseDocuments) {
       unsubscribeFromSupabaseDocuments()
       unsubscribeFromSupabaseDocuments = null
@@ -389,12 +477,14 @@ export function useAccountDocumentReviews({ currentUser }) {
     reviewDialogError,
     reviewActionId,
     admissionActionId,
+    groupDocumentsLoadingId,
     reviewDialogSubmitting,
     reviewRecord,
     reviewDialogTitle,
     reviewDialogHint,
     closeReviewDialog,
     openReviewDialog,
+    ensureGroupDocumentsLoaded,
     handleApprove,
     handleAdmit,
     submitReviewDialog,

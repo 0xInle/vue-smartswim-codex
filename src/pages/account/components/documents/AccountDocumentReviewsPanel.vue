@@ -173,7 +173,11 @@
               {{ documentsWorkflowMeta.label }}
             </strong>
             <span class="account-document-review__workflow-description">
-              {{ documentsWorkflowMeta.description }}
+              {{
+                groupDocumentsLoadingId === selectedGroup.id
+                  ? 'Загружаем файлы документов...'
+                  : documentsWorkflowMeta.description
+              }}
             </span>
           </article>
 
@@ -372,12 +376,14 @@ const {
   reviewDialogError,
   reviewActionId,
   admissionActionId,
+  groupDocumentsLoadingId,
   reviewDialogSubmitting,
   reviewRecord,
   reviewDialogTitle,
   reviewDialogHint,
   closeReviewDialog: closeReviewDialogState,
   openReviewDialog,
+  ensureGroupDocumentsLoaded,
   handleApprove,
   handleAdmit,
   submitReviewDialog,
@@ -500,6 +506,7 @@ const finalAdmissionWorkflowMeta = computed(() => {
 function openGroup(group) {
   groupDialogState.isOpen = true
   groupDialogState.selectedGroupId = group.id
+  void ensureGroupDocumentsLoaded(group)
 }
 
 function closeGroupDialog() {
@@ -554,12 +561,12 @@ function documentExpiryReviewText(document) {
 }
 
 function canReviewDocument(document) {
-  return Boolean(getDocumentPreviewUrl(document))
+  return Boolean(document?.id)
 }
 
 function canApproveDocument(document) {
   return Boolean(
-    getDocumentPreviewUrl(document) &&
+    document?.id &&
       (!isAccountDocumentExpiryRequired(document?.type) || document?.expiresAt),
   )
 }

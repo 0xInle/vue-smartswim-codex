@@ -32,6 +32,7 @@ const GENDER_OPTIONS = [
   { value: 'male', label: 'Мужской' },
   { value: 'female', label: 'Женский' },
 ]
+const ATHLETES_REFRESH_DEBOUNCE_MS = 300
 
 function createClientUuid() {
   if (globalThis.crypto?.randomUUID) {
@@ -53,6 +54,8 @@ export function useAccountAthletes({ currentUser }) {
   let unsubscribeFromSupabaseDocuments = null
   let unsubscribeFromSupabaseAccountData = null
   let unsubscribeFromSupabaseAdmissionWorkflow = null
+  let athleteDocumentsRefreshTimer = null
+  let athletesRefreshTimer = null
 
   const form = reactive({
     fullName: '',
@@ -75,6 +78,54 @@ export function useAccountAthletes({ currentUser }) {
   const coachPlaceholder = computed(() =>
     trainers.length ? 'Введите ФИО тренера' : 'Тренеры пока не добавлены',
   )
+
+  function getCurrentOwnerId() {
+    return currentUser?.value?.id || currentUser?.id || ''
+  }
+
+  function getRealtimePayloadOwnerId(payload) {
+    return payload?.new?.owner_user_id || payload?.old?.owner_user_id || ''
+  }
+
+  function shouldHandleCurrentOwnerPayload(payload) {
+    const ownerId = getRealtimePayloadOwnerId(payload)
+
+    return !ownerId || ownerId === getCurrentOwnerId()
+  }
+
+  function scheduleAthleteDocumentsSync() {
+    if (athleteDocumentsRefreshTimer) {
+      return
+    }
+
+    athleteDocumentsRefreshTimer = window.setTimeout(() => {
+      athleteDocumentsRefreshTimer = null
+      void syncAthleteDocumentsFromSource()
+    }, ATHLETES_REFRESH_DEBOUNCE_MS)
+  }
+
+  function scheduleAthletesSync() {
+    if (athletesRefreshTimer) {
+      return
+    }
+
+    athletesRefreshTimer = window.setTimeout(() => {
+      athletesRefreshTimer = null
+      void syncAthletesFromSource()
+    }, ATHLETES_REFRESH_DEBOUNCE_MS)
+  }
+
+  function cancelAthletesRefreshTimers() {
+    if (athleteDocumentsRefreshTimer) {
+      clearTimeout(athleteDocumentsRefreshTimer)
+      athleteDocumentsRefreshTimer = null
+    }
+
+    if (athletesRefreshTimer) {
+      clearTimeout(athletesRefreshTimer)
+      athletesRefreshTimer = null
+    }
+  }
 
   const trainerSuggestions = computed(() =>
     trainers.map((trainer) => ({
@@ -104,24 +155,39 @@ export function useAccountAthletes({ currentUser }) {
     }
   }
 
-  async function loadSupabaseDocumentsForAthlete(athlete) {
+  async function loadSupabaseDocumentsForAthletes(nextAthletes = []) {
+    const athleteIds = nextAthletes.map((athlete) => athlete.id).filter(Boolean)
+
+    if (!athleteIds.length) {
+      return new Map()
+    }
+
     const sourceDocuments = await loadAccountDocumentsForCurrentUser({
       scope: 'athlete',
-      scopeId: athlete.id,
+      scopeIds: athleteIds,
+    })
+    const documentsByAthleteId = new Map(athleteIds.map((athleteId) => [athleteId, []]))
+
+    sourceDocuments.forEach((document) => {
+      const athleteId = document.scopeId || document.participantId
+
+      if (!documentsByAthleteId.has(athleteId)) {
+        return
+      }
+
+      documentsByAthleteId.get(athleteId).push(document)
     })
 
-    return normalizeAccountDocumentsState(sourceDocuments)
+    return documentsByAthleteId
   }
 
   async function syncAthleteDocumentsFromSource() {
     try {
-      const nextAthletes = await Promise.all(
-        athletes.value.map(async (athlete) => ({
-          ...athlete,
-          documents: await loadSupabaseDocumentsForAthlete(athlete),
-        })),
-      )
-      athletes.value = nextAthletes
+      const documentsByAthleteId = await loadSupabaseDocumentsForAthletes(athletes.value)
+      athletes.value = athletes.value.map((athlete) => ({
+        ...athlete,
+        documents: normalizeAccountDocumentsState(documentsByAthleteId.get(athlete.id)),
+      }))
 
       if (editingAthleteId.value) {
         const editedAthlete = athletes.value.find((athlete) => athlete.id === editingAthleteId.value)
@@ -144,16 +210,12 @@ export function useAccountAthletes({ currentUser }) {
         loadAccountAthletesForCurrentUser(),
         refreshAccountAdmissionWorkflowForCurrentUser(),
       ])
-      const nextAthletes = await Promise.all(
-        sourceAthletes.map(async (sourceAthlete) => {
-          const athlete = normalizeAthlete(sourceAthlete)
-
-          return {
-            ...athlete,
-            documents: await loadSupabaseDocumentsForAthlete(athlete),
-          }
-        }),
-      )
+      const normalizedAthletes = sourceAthletes.map((sourceAthlete) => normalizeAthlete(sourceAthlete))
+      const documentsByAthleteId = await loadSupabaseDocumentsForAthletes(normalizedAthletes)
+      const nextAthletes = normalizedAthletes.map((athlete) => ({
+        ...athlete,
+        documents: normalizeAccountDocumentsState(documentsByAthleteId.get(athlete.id)),
+      }))
 
       athletes.value = nextAthletes
 
@@ -506,6 +568,7 @@ export function useAccountAthletes({ currentUser }) {
       createAccountDocumentUploadPatch({
         fileName: file.name,
         fileSize: file.size,
+        file,
         fileDataUrl,
         fileType,
         expiresAt: expiresAt || '',
@@ -606,30 +669,44 @@ export function useAccountAthletes({ currentUser }) {
   )
 
   onMounted(() => {
-    unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
+    unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges((payload) => {
       if (isSubmitting.value) {
         return
       }
 
-      void syncAthleteDocumentsFromSource()
+      if (!shouldHandleCurrentOwnerPayload(payload)) {
+        return
+      }
+
+      scheduleAthleteDocumentsSync()
     })
-    unsubscribeFromSupabaseAccountData = subscribeToAccountProfileAthleteChanges(() => {
+    unsubscribeFromSupabaseAccountData = subscribeToAccountProfileAthleteChanges((payload) => {
       if (isSubmitting.value) {
         return
       }
 
-      void syncAthletesFromSource()
+      if (!shouldHandleCurrentOwnerPayload(payload)) {
+        return
+      }
+
+      scheduleAthletesSync()
     })
-    unsubscribeFromSupabaseAdmissionWorkflow = subscribeToAccountAdmissionWorkflowChanges(() => {
+    unsubscribeFromSupabaseAdmissionWorkflow = subscribeToAccountAdmissionWorkflowChanges((payload) => {
       if (isSubmitting.value) {
         return
       }
 
-      void syncAthletesFromSource()
+      if (!shouldHandleCurrentOwnerPayload(payload)) {
+        return
+      }
+
+      scheduleAthletesSync()
     })
   })
 
   onBeforeUnmount(() => {
+    cancelAthletesRefreshTimers()
+
     if (unsubscribeFromSupabaseDocuments) {
       unsubscribeFromSupabaseDocuments()
       unsubscribeFromSupabaseDocuments = null

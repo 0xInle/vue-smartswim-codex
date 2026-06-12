@@ -9,10 +9,12 @@ import {
 } from '@/domains/account-admissions/accountAdmissionMappers'
 import {
   loadAccountAdmissionWorkflowForCurrentUser,
+  loadAccountAdmissionWorkflowForOwnerForStaff,
   loadAllAccountAdmissionWorkflowForStaff,
   saveAccountAdmission,
 } from '@/domains/account-admissions/accountAdmissionRepository'
 import {
+  mergeCachedAccountAthleteApplications,
   readAccountAthleteApplication,
   setCachedAccountAthleteApplications,
 } from '@/pages/account/utils/accountAthleteApplications'
@@ -70,9 +72,24 @@ function setCachedAccountAdmissions(records = []) {
   cachedAdmissions = Array.isArray(records) ? records.map(normalizeAdmission).filter(Boolean) : []
 }
 
+function mergeCachedAccountAdmissions(records = []) {
+  const normalizedRecords = Array.isArray(records) ? records.map(normalizeAdmission).filter(Boolean) : []
+  const nextRecordsById = new Map(normalizedRecords.map((record) => [record.id, record]))
+
+  cachedAdmissions = [
+    ...normalizedRecords,
+    ...cachedAdmissions.filter((record) => !nextRecordsById.has(record.id)),
+  ]
+}
+
 function setCachedAdmissionWorkflow(workflow = {}) {
   setCachedAccountAthleteApplications(workflow.applications || [])
   setCachedAccountAdmissions(workflow.admissions || [])
+}
+
+function mergeCachedAdmissionWorkflow(workflow = {}) {
+  mergeCachedAccountAthleteApplications(workflow.applications || [])
+  mergeCachedAccountAdmissions(workflow.admissions || [])
 }
 
 export function getAccountAdmissionId({ ownerUserKey, scope, scopeId }) {
@@ -91,6 +108,15 @@ export async function refreshAccountAdmissionWorkflowForCurrentUser() {
 export async function refreshAllAccountAdmissionWorkflowForStaff() {
   const workflow = await loadAllAccountAdmissionWorkflowForStaff()
   setCachedAdmissionWorkflow(workflow)
+  return {
+    applications: workflow.applications || [],
+    admissions: workflow.admissions || [],
+  }
+}
+
+export async function refreshAccountAdmissionWorkflowForOwnerForStaff(ownerUserId) {
+  const workflow = await loadAccountAdmissionWorkflowForOwnerForStaff(ownerUserId)
+  mergeCachedAdmissionWorkflow(workflow)
   return {
     applications: workflow.applications || [],
     admissions: workflow.admissions || [],

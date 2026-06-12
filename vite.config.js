@@ -24,11 +24,23 @@ export default defineConfig(({ command }) => ({
 
           const normalizedId = id.replace(/\\/g, '/')
 
+          if (normalizedId.includes('/node_modules/@element-plus/icons-vue/')) {
+            return 'element-plus-icons'
+          }
+
+          if (normalizedId.includes('/node_modules/element-plus/es/components/')) {
+            const componentMatch = normalizedId.match(
+              /\/node_modules\/element-plus\/es\/components\/([^/]+)/,
+            )
+
+            return componentMatch ? `element-plus-${componentMatch[1]}` : 'element-plus-core'
+          }
+
           if (
             normalizedId.includes('/node_modules/element-plus/') ||
             normalizedId.includes('/node_modules/@element-plus/')
           ) {
-            return 'element-plus'
+            return 'element-plus-core'
           }
 
           if (normalizedId.includes('/node_modules/@supabase/supabase-js/')) {

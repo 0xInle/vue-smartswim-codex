@@ -23,6 +23,7 @@
         <button
           type="button"
           class="account__table-action account__table-action--ghost btn-reset"
+          :disabled="isSubmitting"
           @click="emit('close')"
         >
           Отмена
@@ -30,9 +31,11 @@
         <button
           type="button"
           class="account__table-action account__table-action--delete btn-reset"
-          :disabled="activeRegistrationsCount > 0"
+          :disabled="activeRegistrationsCount > 0 || isSubmitting"
+          :aria-busy="isSubmitting"
           @click="confirmDelete"
         >
+          <span v-if="isSubmitting" class="account__button-spinner" aria-hidden="true"></span>
           Удалить
         </button>
       </div>
@@ -61,6 +64,10 @@ const props = defineProps({
   activeRegistrationsCount: {
     type: Number,
     default: 0,
+  },
+  isSubmitting: {
+    type: Boolean,
+    default: false,
   },
 })
 

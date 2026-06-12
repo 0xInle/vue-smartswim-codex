@@ -209,7 +209,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import {
   EMAIL_AUDIENCE_TYPE,
@@ -223,17 +223,14 @@ import {
   subscribeToAccountEmailChanges,
 } from '@/domains/account-email/emailRepository'
 import { dedupeEmailRecipients } from '@/domains/account-email/emailMappers'
+import {
+  loadAccountEmailRecipientsForAdmin,
+  subscribeToAccountUsersChanges,
+} from '@/domains/account-users/accountUsersRepository'
 import { loadAllCompetitionRegistrationsForAdmin } from '@/pages/account/utils/accountCompetitionRegistrations'
 import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import { formatCompactDateTime } from '@/pages/account/utils/accountFormatters'
 import { showToast } from '@/utils/toast'
-
-const props = defineProps({
-  users: {
-    type: Array,
-    required: true,
-  },
-})
 
 const form = reactive({
   audienceType: EMAIL_AUDIENCE_TYPE.SELECTED_USERS,
@@ -246,9 +243,17 @@ const userSearch = ref('')
 const messageContextFilter = ref('all')
 const messages = ref([])
 const registrations = ref([])
+const users = ref([])
 const isLoading = ref(false)
 const isSaving = ref(false)
+const isRegistrationsLoaded = ref(false)
+const isRegistrationsLoading = ref(false)
 let unsubscribeFromEmail = null
+let unsubscribeFromRecipientUsers = null
+let messagesRefreshTimer = null
+let recipientUsersRefreshTimer = null
+
+const EMAIL_REFRESH_DEBOUNCE_MS = 300
 
 const emailContextOptions = [
   { value: 'all', label: 'Все письма' },
@@ -284,7 +289,7 @@ const stageOptions = computed(() =>
 const filteredUsers = computed(() => {
   const search = userSearch.value.trim().toLowerCase()
 
-  return props.users
+  return users.value
     .filter((user) => user.email)
     .filter((user) => {
       if (!search) {
@@ -299,7 +304,7 @@ const filteredUsers = computed(() => {
 const selectedUserRecipients = computed(() => {
   const selectedIds = new Set(form.selectedUserIds)
 
-  return props.users
+  return users.value
     .filter((user) => selectedIds.has(user.id))
     .map((user) => ({
       ownerUserId: user.id,
@@ -381,10 +386,71 @@ async function loadMessages() {
 }
 
 async function loadRegistrations() {
+  isRegistrationsLoading.value = true
+
   try {
     registrations.value = await loadAllCompetitionRegistrationsForAdmin()
+    isRegistrationsLoaded.value = true
   } catch {
     registrations.value = []
+    isRegistrationsLoaded.value = false
+  } finally {
+    isRegistrationsLoading.value = false
+  }
+}
+
+function ensureRegistrationsLoaded() {
+  if (
+    form.audienceType !== EMAIL_AUDIENCE_TYPE.STAGE_PARTICIPANTS ||
+    isRegistrationsLoaded.value ||
+    isRegistrationsLoading.value
+  ) {
+    return
+  }
+
+  void loadRegistrations()
+}
+
+async function loadRecipientUsers() {
+  try {
+    users.value = await loadAccountEmailRecipientsForAdmin()
+  } catch (error) {
+    users.value = []
+    showToast(error, { type: 'error' })
+  }
+}
+
+function scheduleMessagesRefresh() {
+  if (messagesRefreshTimer) {
+    return
+  }
+
+  messagesRefreshTimer = window.setTimeout(() => {
+    messagesRefreshTimer = null
+    void loadMessages()
+  }, EMAIL_REFRESH_DEBOUNCE_MS)
+}
+
+function scheduleRecipientUsersRefresh() {
+  if (recipientUsersRefreshTimer) {
+    return
+  }
+
+  recipientUsersRefreshTimer = window.setTimeout(() => {
+    recipientUsersRefreshTimer = null
+    void loadRecipientUsers()
+  }, EMAIL_REFRESH_DEBOUNCE_MS)
+}
+
+function cancelEmailRefreshTimers() {
+  if (messagesRefreshTimer) {
+    clearTimeout(messagesRefreshTimer)
+    messagesRefreshTimer = null
+  }
+
+  if (recipientUsersRefreshTimer) {
+    clearTimeout(recipientUsersRefreshTimer)
+    recipientUsersRefreshTimer = null
   }
 }
 
@@ -421,17 +487,32 @@ async function handleSubmit() {
 
 onMounted(() => {
   void loadMessages()
-  void loadRegistrations()
+  void loadRecipientUsers()
 
   unsubscribeFromEmail = subscribeToAccountEmailChanges(() => {
-    void loadMessages()
+    scheduleMessagesRefresh()
+  })
+  unsubscribeFromRecipientUsers = subscribeToAccountUsersChanges(() => {
+    scheduleRecipientUsersRefresh()
   })
 })
 
+watch(
+  () => [form.audienceType, form.stageId],
+  ensureRegistrationsLoaded,
+)
+
 onBeforeUnmount(() => {
+  cancelEmailRefreshTimers()
+
   if (unsubscribeFromEmail) {
     unsubscribeFromEmail()
     unsubscribeFromEmail = null
+  }
+
+  if (unsubscribeFromRecipientUsers) {
+    unsubscribeFromRecipientUsers()
+    unsubscribeFromRecipientUsers = null
   }
 })
 </script>

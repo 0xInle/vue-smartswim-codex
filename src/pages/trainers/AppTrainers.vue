@@ -152,7 +152,6 @@ const {
   openTrainerBookingModal,
   closeTrainerBookingModal,
   handleTrainerBookingSubmit,
-  syncBookingIdentity,
   setBookingSession,
   cleanupTrainerBookingState,
 } = useTrainerBooking()
@@ -212,7 +211,6 @@ watch(filteredTrainers, (nextTrainers) => {
 })
 
 onMounted(() => {
-  void syncBookingIdentity()
   authSubscription = subscribeToAuthStateChange((_event, session) => {
     setBookingSession(session)
   })

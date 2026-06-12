@@ -37,7 +37,7 @@
       </div>
     </div>
 
-    <div v-if="users.length" class="account__native-table-wrap account-users__table-wrap">
+    <div v-if="users.length || isLoading" class="account__native-table-wrap account-users__table-wrap">
       <table class="account__native-table account__native-table--users">
         <thead class="account__native-table-head">
           <tr>
@@ -63,30 +63,50 @@
         </thead>
 
         <tbody>
-          <tr
-            v-for="row in users"
-            :key="row.id"
-            class="account__native-table-row account-users__table-row"
-            tabindex="0"
-            role="button"
-            @click="$emit('edit-user', row)"
-            @keydown.enter.prevent="$emit('edit-user', row)"
-            @keydown.space.prevent="$emit('edit-user', row)"
-          >
-            <td class="account__native-table-cell account__native-table-cell--primary">
-              <div class="account__table-user">
-                <div class="account__table-primary">{{ row.name }}</div>
-              </div>
-            </td>
-            <td class="account__native-table-cell account__native-table-cell--center">
-              <div class="account-users__role-cell">
-                <span class="account-users__role-text">{{ formatUserRole(row.role) }}</span>
-              </div>
-            </td>
-            <td class="account__native-table-cell account__native-table-cell--center">
-              <div class="account-users__phone-cell">{{ row.phone || 'Не указан' }}</div>
-            </td>
-          </tr>
+          <template v-if="isLoading">
+            <tr
+              v-for="rowIndex in skeletonRows"
+              :key="`users-skeleton-${rowIndex}`"
+              class="account__native-table-row account-users__table-row account-users__table-row--skeleton"
+              aria-hidden="true"
+            >
+              <td class="account__native-table-cell account__native-table-cell--primary">
+                <span class="account-users__skeleton-line account-users__skeleton-line--name"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-users__skeleton-line account-users__skeleton-line--role"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-users__skeleton-line account-users__skeleton-line--phone"></span>
+              </td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr
+              v-for="row in users"
+              :key="row.id"
+              class="account__native-table-row account-users__table-row"
+              tabindex="0"
+              role="button"
+              @click="$emit('edit-user', row)"
+              @keydown.enter.prevent="$emit('edit-user', row)"
+              @keydown.space.prevent="$emit('edit-user', row)"
+            >
+              <td class="account__native-table-cell account__native-table-cell--primary">
+                <div class="account__table-user">
+                  <div class="account__table-primary">{{ row.name }}</div>
+                </div>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <div class="account-users__role-cell">
+                  <span class="account-users__role-text">{{ formatUserRole(row.role) }}</span>
+                </div>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <div class="account-users__phone-cell">{{ row.phone || 'Не указан' }}</div>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
@@ -490,6 +510,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  isLoading: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits([
@@ -514,6 +538,7 @@ defineEmits([
 ])
 
 const userRoleOptions = USER_ROLE_OPTIONS
+const skeletonRows = Array.from({ length: USERS_PAGE_SIZE }, (_, index) => index + 1)
 const roleAssignmentOptions = [
   USER_ROLE_OPTIONS.find((option) => option.value === CRM_ROLE.ADMIN),
   USER_ROLE_OPTIONS.find((option) => option.value === CRM_ROLE.TRAINER),
@@ -844,13 +869,12 @@ function getDocumentPreviewUrl(document) {
 }
 
 function canReviewDocument(document) {
-  return Boolean(document?.id && getDocumentPreviewUrl(document))
+  return Boolean(document?.id)
 }
 
 function canApproveDocument(document) {
   return Boolean(
     document?.id &&
-      getDocumentPreviewUrl(document) &&
       (!isAccountDocumentExpiryRequired(document?.type) || document?.expiresAt),
   )
 }
@@ -939,6 +963,11 @@ watch(
   transition: background-color 0.2s ease;
 }
 
+.account-users__table-row--skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
 .account-users__table-row:hover,
 .account-users__table-row:focus-visible,
 .account-users__table-row:hover .account__native-table-cell,
@@ -958,6 +987,46 @@ watch(
 .account-users__phone-cell {
   font-weight: 800;
   color: #526072;
+}
+
+.account-users__skeleton-line {
+  display: inline-flex;
+  width: 100%;
+  height: 14px;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      90deg,
+      rgb(226 238 246 / 0.78) 0%,
+      rgb(247 251 253 / 0.96) 48%,
+      rgb(226 238 246 / 0.78) 100%
+    );
+  background-size: 220% 100%;
+  animation: account-users-skeleton 1.2s ease-in-out infinite;
+}
+
+.account-users__skeleton-line--name {
+  width: min(260px, 72%);
+}
+
+.account-users__skeleton-line--role {
+  width: min(132px, 80%);
+}
+
+.account-users__skeleton-line--phone {
+  width: min(150px, 84%);
+}
+
+@keyframes account-users-skeleton {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
 }
 
 .account-users__delete-copy {

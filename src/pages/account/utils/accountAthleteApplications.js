@@ -83,6 +83,16 @@ export function setCachedAccountAthleteApplications(records = []) {
   cachedApplications = Array.isArray(records) ? records.map(normalizeApplication).filter(Boolean) : []
 }
 
+export function mergeCachedAccountAthleteApplications(records = []) {
+  const normalizedRecords = Array.isArray(records) ? records.map(normalizeApplication).filter(Boolean) : []
+  const nextRecordsById = new Map(normalizedRecords.map((record) => [record.id, record]))
+
+  cachedApplications = [
+    ...normalizedRecords,
+    ...cachedApplications.filter((record) => !nextRecordsById.has(record.id)),
+  ]
+}
+
 export async function refreshAccountAthleteApplicationsForCurrentUser() {
   const workflow = await loadAccountAdmissionWorkflowForCurrentUser()
   setCachedAccountAthleteApplications(workflow.applications)

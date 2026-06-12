@@ -114,6 +114,8 @@
                 :consultation-requests="consultationRequests"
                 :trainer-bookings="trainerBookings"
                 :users="users"
+                :dashboard-summary="adminDashboardSummary"
+                :latest-documents="adminLatestDocuments"
                 :open-competition-registrations-count="openCompetitionRegistrationsCount"
                 @select-section="handleSectionSelect"
               />
@@ -357,6 +359,8 @@ import { useTrainerBookings } from '@/pages/account/composables/useTrainerBookin
 import { ACCOUNT_SYNC_COOLDOWN_MS } from '@/pages/account/utils/accountConstants'
 import { CRM_ROLE } from '@/utils/crmRoles'
 import { subscribeToAuthStateChange } from '@/utils/supabaseAuth'
+import { loadLatestAccountDocumentReviewsForAdmin } from '@/domains/account-documents/documentRepository'
+import { loadAccountUsersDashboardSummaryForAdmin } from '@/domains/account-users/accountUsersRepository'
 import 'element-plus/es/components/alert/style/css'
 import 'element-plus/es/components/aside/style/css'
 import 'element-plus/es/components/button/style/css'
@@ -382,6 +386,7 @@ const competitionRegistrationTarget = ref(null)
 let authSubscription = null
 let accountSyncPromise = null
 let lastAccountSyncAt = 0
+let adminDashboardSnapshotPromise = null
 
 const {
   currentUser,
@@ -452,6 +457,14 @@ const {
   stopConsultationFeed,
   clearConsultationState,
 } = useConsultationRequests({ isAdmin })
+
+const adminDashboardSummary = ref({
+  usersCount: 0,
+  trainersCount: 0,
+  unpaidUsersCount: 0,
+})
+const adminLatestDocuments = ref([])
+const isAdminDashboardSnapshotLoading = ref(false)
 
 const {
   trainerBookingsLoading,
@@ -544,6 +557,7 @@ const {
   filteredUsersTotal,
   usersPageCount,
   paginatedUsers,
+  ensureUsersLoaded,
   isUserEditDialogOpen,
   isUserDeleteDialogOpen,
   userPendingDelete,
@@ -572,6 +586,46 @@ const {
   handleAdmitUserDocumentGroup,
 } = useAccountUsers({ currentUser })
 
+async function syncAdminDashboardSnapshot({ silent = false } = {}) {
+  if (!isAdmin.value) {
+    adminDashboardSummary.value = {
+      usersCount: 0,
+      trainersCount: 0,
+      unpaidUsersCount: 0,
+    }
+    adminLatestDocuments.value = []
+    return
+  }
+
+  if (adminDashboardSnapshotPromise) {
+    return adminDashboardSnapshotPromise
+  }
+
+  if (!silent) {
+    isAdminDashboardSnapshotLoading.value = true
+  }
+
+  adminDashboardSnapshotPromise = (async () => {
+    try {
+      const [summary, latestDocuments] = await Promise.all([
+        loadAccountUsersDashboardSummaryForAdmin(),
+        loadLatestAccountDocumentReviewsForAdmin({ limit: 4 }),
+      ])
+
+      adminDashboardSummary.value = summary
+      adminLatestDocuments.value = latestDocuments
+    } finally {
+      if (!silent) {
+        isAdminDashboardSnapshotLoading.value = false
+      }
+
+      adminDashboardSnapshotPromise = null
+    }
+  })()
+
+  return adminDashboardSnapshotPromise
+}
+
 async function syncAccountData({ force = false, silent = false } = {}) {
   const now = Date.now()
 
@@ -590,6 +644,7 @@ async function syncAccountData({ force = false, silent = false } = {}) {
       if (accountMode.value === 'admin') {
         await syncAdminData({ silent })
         await syncTrainerBookings({ silent })
+        await syncAdminDashboardSnapshot({ silent })
         clearOwnTrainerBookings()
       } else if (accountMode.value === 'trainer') {
         clearConsultationState()
@@ -711,7 +766,11 @@ const currentSectionTitle = computed(
   () => sectionContent.value[activeSection.value]?.title || 'Кабинет',
 )
 const isAdminDashboardLoading = computed(
-  () => isAdminDataLoading.value || trainerBookingsLoading.value || isUsersLoading.value,
+  () =>
+    isAdminDataLoading.value ||
+    trainerBookingsLoading.value ||
+    isUsersLoading.value ||
+    isAdminDashboardSnapshotLoading.value,
 )
 
 watch(
@@ -773,6 +832,18 @@ watch(
     if (section) {
       activeSection.value = navigationItems.value[0]?.id || 'dashboard'
     }
+  },
+  { immediate: true },
+)
+
+watch(
+  [isAccountShellReady, accountMode],
+  ([shellReady, mode]) => {
+    if (!shellReady || mode !== 'admin') {
+      return
+    }
+
+    void ensureUsersLoaded()
   },
   { immediate: true },
 )

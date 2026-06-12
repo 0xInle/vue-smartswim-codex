@@ -220,9 +220,10 @@ function updateField(field, value, { trim = false } = {}) {
 
 .account-athletes__radio {
   display: inline-flex;
+  box-sizing: border-box;
   align-items: center;
   gap: 10px;
-  min-height: 48px;
+  min-height: 38px;
   padding: 0 14px;
   border: 1px solid #d7e2ec;
   border-radius: 10px;
@@ -298,7 +299,10 @@ function updateField(field, value, { trim = false } = {}) {
 }
 
 .account-athletes__autocomplete :global(.el-input__wrapper) {
-  min-height: 48px;
+  box-sizing: border-box;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
   border-radius: 10px;
   background: rgb(255 255 255 / 0.9);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 24%, white);

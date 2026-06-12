@@ -5,6 +5,7 @@ import {
   countCompetitionRegistrationsByStageIdFromSource,
   createCompetitionRegistration,
   createCompetitionRegistrationRecord,
+  deleteCompetitionRegistration,
   loadCompetitionRegistrationsForCurrentUser,
   patchCompetitionRegistration,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
@@ -47,6 +48,7 @@ import {
 
 const DEFAULT_PARTICIPANT_KIND = 'owner'
 const DEFAULT_REGISTRATION_KIND = 'individual'
+const USER_REGISTRATIONS_REFRESH_DEBOUNCE_MS = 300
 
 function createDefaultForm() {
   return {
@@ -72,6 +74,56 @@ function formatParticipantLabel(participant) {
   }
 
   return participant.fullName || 'Без имени'
+}
+
+function createScheduledRefresh(refresh) {
+  let refreshTimer = null
+  let isRefreshRunning = false
+  let hasPendingRefresh = false
+
+  function schedule() {
+    hasPendingRefresh = true
+
+    if (refreshTimer) {
+      return
+    }
+
+    refreshTimer = window.setTimeout(flush, USER_REGISTRATIONS_REFRESH_DEBOUNCE_MS)
+  }
+
+  function flush() {
+    refreshTimer = null
+
+    if (isRefreshRunning) {
+      hasPendingRefresh = true
+      return
+    }
+
+    hasPendingRefresh = false
+    isRefreshRunning = true
+
+    void refresh().finally(() => {
+      isRefreshRunning = false
+
+      if (hasPendingRefresh) {
+        schedule()
+      }
+    })
+  }
+
+  function cancel() {
+    if (refreshTimer) {
+      clearTimeout(refreshTimer)
+      refreshTimer = null
+    }
+
+    hasPendingRefresh = false
+  }
+
+  return {
+    cancel,
+    schedule,
+  }
 }
 
 export function useAccountCompetitionRegistrations({ currentUser }) {
@@ -190,15 +242,26 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
         loadAccountDocumentsForCurrentUser({ scope: 'profile', scopeId: 'profile' }),
         loadAccountAthletesForCurrentUser(),
       ])
-      const athletesWithDocuments = await Promise.all(
-        sourceAthletes.map(async (athlete) => ({
-          ...athlete,
-          documents: await loadAccountDocumentsForCurrentUser({
+      const athleteIds = sourceAthletes.map((athlete) => athlete.id).filter(Boolean)
+      const athleteDocuments = athleteIds.length
+        ? await loadAccountDocumentsForCurrentUser({
             scope: 'athlete',
-            scopeId: athlete.id,
-          }),
-        })),
-      )
+            scopeIds: athleteIds,
+          })
+        : []
+      const athleteDocumentsById = new Map(athleteIds.map((athleteId) => [athleteId, []]))
+
+      athleteDocuments.forEach((document) => {
+        const athleteId = document.scopeId || document.participantId
+
+        if (athleteDocumentsById.has(athleteId)) {
+          athleteDocumentsById.get(athleteId).push(document)
+        }
+      })
+      const athletesWithDocuments = sourceAthletes.map((athlete) => ({
+        ...athlete,
+        documents: athleteDocumentsById.get(athlete.id) || [],
+      }))
 
       ownerSnapshot.value = {
         ...profile,
@@ -266,6 +329,9 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
       }
     }
   }
+
+  const scheduledRegistrationsRefresh = createScheduledRefresh(loadRegistrations)
+  const scheduledPaymentRecordsRefresh = createScheduledRefresh(loadPaymentRecords)
 
   function resetRegistrationErrors() {
     registrationErrors.participantId = ''
@@ -371,7 +437,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     }
 
     const stageLimit = Number(
-      selectedStage.value.registrationLimit || selectedStage.value.registration?.participantLimit || 0,
+      selectedStage.value.registrationLimit ?? selectedStage.value.registration?.participantLimit ?? 0,
     )
 
     if (stageLimit > 0) {
@@ -504,8 +570,27 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
       registration.id === registrationId ? updatedRegistration : registration,
     )
 
-      showToast('Спортсмен снят с соревнований')
+    showToast('Спортсмен снят с соревнований')
     return updatedRegistration
+  }
+
+  async function handleDeleteRegistration(registrationId) {
+    const registration = registrations.value.find((item) => item.id === registrationId)
+
+    if (!registration || registration.status !== COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN) {
+      return false
+    }
+
+    try {
+      await deleteCompetitionRegistration(null, registration.id)
+      registrations.value = registrations.value.filter((item) => item.id !== registration.id)
+      return true
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось удалить заявку', {
+        type: 'error',
+      })
+      return false
+    }
   }
 
   async function updateSelectedRegistration(registrationId, patch = {}) {
@@ -657,7 +742,6 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
         payment,
         ...payments.value.filter((item) => item.id !== payment.id),
       ]
-      await loadRegistrations()
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Не удалось создать платеж', {
         type: 'error',
@@ -773,20 +857,23 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
 
     if (!unsubscribeFromPayments) {
       unsubscribeFromPayments = subscribeToCompetitionPaymentChanges(() => {
-        void loadPaymentRecords()
-        void loadRegistrations()
+        scheduledPaymentRecordsRefresh.schedule()
+        scheduledRegistrationsRefresh.schedule()
       })
     }
 
     if (!unsubscribeFromRefunds) {
       unsubscribeFromRefunds = subscribeToCompetitionRefundChanges(() => {
-        void loadPaymentRecords()
-        void loadRegistrations()
+        scheduledPaymentRecordsRefresh.schedule()
+        scheduledRegistrationsRefresh.schedule()
       })
     }
   }, { immediate: true })
 
   onBeforeUnmount(() => {
+    scheduledRegistrationsRefresh.cancel()
+    scheduledPaymentRecordsRefresh.cancel()
+
     if (unsubscribeFromPayments) {
       unsubscribeFromPayments()
       unsubscribeFromPayments = null
@@ -823,6 +910,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
     closeRegistrationDialog,
     handleRegistrationSubmit,
     handleWithdrawRegistration,
+    handleDeleteRegistration,
     updateSelectedRegistration,
     handleCreatePayment,
     handleRequestRefund,

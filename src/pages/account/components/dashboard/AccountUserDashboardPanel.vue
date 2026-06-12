@@ -105,6 +105,7 @@ import {
   loadAccountDocumentsForCurrentUser,
   subscribeToAccountDocumentChanges,
 } from '@/domains/account-documents/documentRepository'
+import { normalizeAccountDocumentsState } from '@/pages/account/utils/accountDocumentTypes'
 import { createEmptyAccountProfile } from '@/domains/account-data/accountDataMappers'
 import { subscribeToAccountAdmissionWorkflowChanges } from '@/domains/account-admissions/accountAdmissionRepository'
 
@@ -120,6 +121,7 @@ const props = defineProps({
 })
 
 const currentUserRef = toRef(props, 'currentUser')
+const USER_DASHBOARD_REFRESH_DEBOUNCE_MS = 300
 
 const profileSnapshot = ref(createEmptyAccountProfile(props.currentUser))
 const athleteSnapshots = ref([])
@@ -133,6 +135,7 @@ let dashboardDataLoadRequestId = 0
 let unsubscribeFromAccountData = null
 let unsubscribeFromAccountDocuments = null
 let unsubscribeFromAdmissionWorkflow = null
+let dashboardDataRefreshTimer = null
 
 const currentUserKey = computed(() => {
   const user = currentUserRef.value || null
@@ -255,6 +258,55 @@ function formatCount(value, forms) {
   return `${value} ${forms[2]}`
 }
 
+function getCurrentOwnerId() {
+  return currentUserRef.value?.id || ''
+}
+
+function getRealtimePayloadOwnerId(payload) {
+  return payload?.new?.owner_user_id || payload?.old?.owner_user_id || ''
+}
+
+function shouldRefreshDashboardDataForPayload(payload) {
+  const ownerId = getRealtimePayloadOwnerId(payload)
+
+  return !ownerId || ownerId === getCurrentOwnerId()
+}
+
+function scheduleDashboardDataRefresh() {
+  if (dashboardDataRefreshTimer) {
+    return
+  }
+
+  dashboardDataRefreshTimer = window.setTimeout(() => {
+    dashboardDataRefreshTimer = null
+    void loadDashboardData()
+  }, USER_DASHBOARD_REFRESH_DEBOUNCE_MS)
+}
+
+function handleDashboardDataChanged(payload) {
+  if (!shouldRefreshDashboardDataForPayload(payload)) {
+    return
+  }
+
+  scheduleDashboardDataRefresh()
+}
+
+function cancelDashboardDataRefresh() {
+  if (dashboardDataRefreshTimer) {
+    clearTimeout(dashboardDataRefreshTimer)
+    dashboardDataRefreshTimer = null
+  }
+}
+
+function getDocumentsForScope(documents = [], { scope = 'profile', scopeId = 'profile' } = {}) {
+  return normalizeAccountDocumentsState(
+    documents.filter(
+      (document) =>
+        (document.scope || 'profile') === scope && (document.scopeId || 'profile') === scopeId,
+    ),
+  )
+}
+
 async function loadRegistrations() {
   const requestId = registrationsLoadRequestId + 1
   registrationsLoadRequestId = requestId
@@ -285,21 +337,23 @@ async function loadDashboardData() {
   isDashboardDataLoading.value = true
 
   try {
-    const [profile, profileDocuments, sourceAthletes] = await Promise.all([
+    const [profile, ownerDocuments, sourceAthletes] = await Promise.all([
       loadAccountProfileForCurrentUser({ currentUser: currentUserRef }),
-      loadAccountDocumentsForCurrentUser({ scope: 'profile', scopeId: 'profile' }),
+      loadAccountDocumentsForCurrentUser({ scope: '', scopeId: '' }),
       loadAccountAthletesForCurrentUser(),
       refreshAccountAdmissionWorkflowForCurrentUser(),
     ])
-    const athletesWithDocuments = await Promise.all(
-      sourceAthletes.map(async (athlete) => ({
-        ...athlete,
-        documents: await loadAccountDocumentsForCurrentUser({
-          scope: 'athlete',
-          scopeId: athlete.id,
-        }),
-      })),
-    )
+    const athletesWithDocuments = sourceAthletes.map((athlete) => ({
+      ...athlete,
+      documents: getDocumentsForScope(ownerDocuments, {
+        scope: 'athlete',
+        scopeId: athlete.id,
+      }),
+    }))
+    const profileDocuments = getDocumentsForScope(ownerDocuments, {
+      scope: 'profile',
+      scopeId: 'profile',
+    })
 
     if (requestId !== dashboardDataLoadRequestId) {
       return
@@ -332,18 +386,20 @@ watch(currentUserKey, () => {
 }, { immediate: true })
 
 onMounted(() => {
-  unsubscribeFromAccountData = subscribeToAccountProfileAthleteChanges(() => {
-    void loadDashboardData()
+  unsubscribeFromAccountData = subscribeToAccountProfileAthleteChanges((payload) => {
+    handleDashboardDataChanged(payload)
   })
-  unsubscribeFromAccountDocuments = subscribeToAccountDocumentChanges(() => {
-    void loadDashboardData()
+  unsubscribeFromAccountDocuments = subscribeToAccountDocumentChanges((payload) => {
+    handleDashboardDataChanged(payload)
   })
-  unsubscribeFromAdmissionWorkflow = subscribeToAccountAdmissionWorkflowChanges(() => {
-    void loadDashboardData()
+  unsubscribeFromAdmissionWorkflow = subscribeToAccountAdmissionWorkflowChanges((payload) => {
+    handleDashboardDataChanged(payload)
   })
 })
 
 onBeforeUnmount(() => {
+  cancelDashboardDataRefresh()
+
   if (unsubscribeFromAccountData) {
     unsubscribeFromAccountData()
     unsubscribeFromAccountData = null

@@ -203,7 +203,7 @@ watch(
     form.openDate = formatCompetitionDateForInput(props.stage.registration?.openAt)
     form.closeDate = formatCompetitionDateForInput(props.stage.registration?.closeAt)
     form.registrationLimit = Number(
-      props.stage.registrationLimit || props.stage.registration?.participantLimit || 0,
+      props.stage.registrationLimit ?? props.stage.registration?.participantLimit ?? 0,
     )
     form.protocolUrl = props.stage.protocolUrl || ''
     form.photoUrl = props.stage.photoUrl || ''

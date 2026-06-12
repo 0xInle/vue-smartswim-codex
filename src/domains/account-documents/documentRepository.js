@@ -1,6 +1,10 @@
 import {
   fetchAccountDocumentsForCurrentUser,
+  fetchAccountDocumentReviewForAdmin,
+  fetchAccountDocumentReviewsForOwnerForAdmin,
+  fetchAccountDocumentReviewsForOwnersForAdmin,
   fetchAllAccountDocumentReviewsForAdmin,
+  fetchLatestAccountDocumentReviewsForAdmin,
   subscribeToAccountDocuments,
   updateAccountDocumentReview,
   upsertAccountDocumentForCurrentUser,
@@ -16,6 +20,22 @@ export async function saveAccountDocumentForCurrentUser(params = {}) {
 
 export async function loadAllAccountDocumentReviewsForAdmin() {
   return fetchAllAccountDocumentReviewsForAdmin()
+}
+
+export async function loadAccountDocumentReviewsForOwnerForAdmin(ownerUserId, options = {}) {
+  return fetchAccountDocumentReviewsForOwnerForAdmin(ownerUserId, options)
+}
+
+export async function loadAccountDocumentReviewsForOwnersForAdmin(ownerUserIds = []) {
+  return fetchAccountDocumentReviewsForOwnersForAdmin(ownerUserIds)
+}
+
+export async function loadLatestAccountDocumentReviewsForAdmin(params = {}) {
+  return fetchLatestAccountDocumentReviewsForAdmin(params)
+}
+
+export async function loadAccountDocumentReviewForAdmin(documentId) {
+  return fetchAccountDocumentReviewForAdmin(documentId)
 }
 
 export async function reviewAccountDocument(documentId, patch = {}) {

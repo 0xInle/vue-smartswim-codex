@@ -539,6 +539,20 @@ async function syncRegisteredUser() {
   }
 }
 
+let registeredUserSyncPromise = null
+
+function ensureRegisteredUserSynced() {
+  if (registeredUserSyncPromise) {
+    return registeredUserSyncPromise
+  }
+
+  registeredUserSyncPromise = syncRegisteredUser().finally(() => {
+    registeredUserSyncPromise = null
+  })
+
+  return registeredUserSyncPromise
+}
+
 async function handleAuthRedirectIntent(session, event = '') {
   const authIntent = typeof route.query.auth === 'string' ? route.query.auth : ''
 
@@ -555,7 +569,7 @@ async function handleAuthRedirectIntent(session, event = '') {
       return
     }
 
-    openRegistrationModal({
+    await openRegistrationModal({
       mode: 'reset-password',
       allowAuthenticatedModal: true,
     })
@@ -903,11 +917,11 @@ function buildAuthRedirectUrl(authAction) {
   return url.toString()
 }
 
-function handleOpenAuthModalEvent(event) {
+async function handleOpenAuthModalEvent(event) {
   const mode = event?.detail?.mode === 'sign-up' ? 'sign-up' : 'sign-in'
   authRedirectPath.value = typeof event?.detail?.next === 'string' ? event.detail.next : ''
 
-  openRegistrationModal({ mode })
+  await openRegistrationModal({ mode })
 }
 
 function resetPasswordVisibility() {
@@ -960,14 +974,16 @@ function toggleAuthMode() {
   setAuthMode(isSignInMode.value ? 'sign-up' : 'sign-in')
 }
 
-function openRegistrationModal(options = {}) {
+async function openRegistrationModal(options = {}) {
   const { mode = authMode.value, allowAuthenticatedModal = false, preserveEmail = false } = options
 
   if (mode !== authMode.value) {
     setAuthMode(mode, { preserveEmail })
   }
 
-  if (hasActiveSession.value && !allowAuthenticatedModal) {
+  const session = allowAuthenticatedModal ? null : await ensureRegisteredUserSynced()
+
+  if ((hasActiveSession.value || session) && !allowAuthenticatedModal) {
     closeMobileMenu()
     router.push('/account')
     return
@@ -1356,9 +1372,11 @@ function handleKeydown(event) {
 onMounted(() => {
   hasPasswordRecoveryIntent.value = isSupabaseRecoveryUrl()
 
-  void syncRegisteredUser().then((session) => {
-    void handleAuthRedirectIntent(session)
-  })
+  if (hasPasswordRecoveryIntent.value || route.query.auth) {
+    void ensureRegisteredUserSynced().then((session) => {
+      void handleAuthRedirectIntent(session)
+    })
+  }
   window.addEventListener('smartswim:open-auth-modal', handleOpenAuthModalEvent)
   syncViewportMode()
   window.addEventListener('scroll', handleScroll, { passive: true })

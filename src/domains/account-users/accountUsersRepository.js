@@ -3,16 +3,29 @@ import { CRM_ROLE } from '@/utils/crmRoles'
 import {
   deleteCrmUserForAdmin,
   fetchAllCrmUsersForAdmin,
+  fetchCrmUsersPageForAdmin,
+  fetchCrmUserForAdmin,
   mergeCrmUserWithProfile,
+  searchAccountUsersPageForAdmin,
   subscribeToCrmUsers,
   updateCrmUserForAdmin,
 } from './supabaseAccountUsersAdapter.js'
 import {
+  loadAccountAthletesForOwnerForAdmin,
+  loadAccountAthletesForOwnersForAdmin,
+  loadAccountProfileForOwnerForAdmin,
+  loadAccountProfilesForOwnersForAdmin,
   loadAllAccountAthletesForAdmin,
   loadAllAccountProfilesForAdmin,
 } from '@/domains/account-data/accountDataRepository'
-import { loadAllAccountDocumentReviewsForAdmin } from '@/domains/account-documents/documentRepository'
-import { refreshAllAccountAdmissionWorkflowForStaff } from '@/pages/account/utils/accountAdmissions'
+import {
+  loadAccountDocumentReviewsForOwnerForAdmin,
+  loadAllAccountDocumentReviewsForAdmin,
+} from '@/domains/account-documents/documentRepository'
+import {
+  refreshAccountAdmissionWorkflowForOwnerForStaff,
+  refreshAllAccountAdmissionWorkflowForStaff,
+} from '@/pages/account/utils/accountAdmissions'
 
 function groupByOwnerAndScope(documents = []) {
   return documents.reduce((acc, document) => {
@@ -61,14 +74,13 @@ function createAthleteCrmRow({ athlete, owner, documents }) {
   }
 }
 
-export async function loadAllAccountUsersForAdmin() {
-  const [crmUsers, profiles, athletes, documents] = await Promise.all([
-    fetchAllCrmUsersForAdmin(),
-    loadAllAccountProfilesForAdmin(),
-    loadAllAccountAthletesForAdmin(),
-    loadAllAccountDocumentReviewsForAdmin(),
-    refreshAllAccountAdmissionWorkflowForStaff(),
-  ])
+function buildAccountUserRows({
+  crmUsers = [],
+  profiles = [],
+  athletes = [],
+  documents = [],
+  includeAthleteRows = true,
+} = {}) {
   const profilesByOwner = new Map(profiles.map((profile) => [profile.ownerUserId, profile]))
   const documentsByScope = groupByOwnerAndScope(documents)
 
@@ -96,16 +108,133 @@ export async function loadAllAccountUsersForAdmin() {
       athletes: userAthletes,
     }
 
-    const athleteRows = userAthletes.map((athlete) =>
-      createAthleteCrmRow({
-        athlete,
-        owner: mergedUser,
-        documents: athlete.documents,
-      }),
-    )
+    const athleteRows = includeAthleteRows
+      ? userAthletes.map((athlete) =>
+          createAthleteCrmRow({
+            athlete,
+            owner: mergedUser,
+            documents: athlete.documents,
+          }),
+        )
+      : []
 
     return [userRow, ...athleteRows]
   })
+}
+
+export async function loadAllAccountUsersForAdmin() {
+  const [crmUsers, profiles, athletes, documents] = await Promise.all([
+    fetchAllCrmUsersForAdmin(),
+    loadAllAccountProfilesForAdmin(),
+    loadAllAccountAthletesForAdmin(),
+    loadAllAccountDocumentReviewsForAdmin(),
+    refreshAllAccountAdmissionWorkflowForStaff(),
+  ])
+
+  return buildAccountUserRows({ crmUsers, profiles, athletes, documents })
+}
+
+export async function loadAccountUsersListForAdmin() {
+  const [crmUsers, profiles, athletes] = await Promise.all([
+    fetchAllCrmUsersForAdmin(),
+    loadAllAccountProfilesForAdmin(),
+    loadAllAccountAthletesForAdmin(),
+  ])
+
+  return buildAccountUserRows({ crmUsers, profiles, athletes, documents: [] })
+}
+
+export async function loadAccountUsersPageForAdmin({
+  page = 1,
+  pageSize = 20,
+  roleFilter = 'all',
+} = {}) {
+  const { items: crmUsers, total } = await fetchCrmUsersPageForAdmin({
+    page,
+    pageSize,
+    role: roleFilter,
+  })
+  const ownerUserIds = crmUsers.map((user) => user.id).filter(Boolean)
+  const [profiles, athletes] = await Promise.all([
+    loadAccountProfilesForOwnersForAdmin(ownerUserIds),
+    loadAccountAthletesForOwnersForAdmin(ownerUserIds),
+  ])
+
+  return {
+    users: buildAccountUserRows({
+      crmUsers,
+      profiles,
+      athletes,
+      documents: [],
+      includeAthleteRows: false,
+    }),
+    total,
+  }
+}
+
+export async function searchAccountUsersListPageForAdmin({
+  page = 1,
+  pageSize = 20,
+  search = '',
+  roleFilter = 'all',
+} = {}) {
+  const { items, total } = await searchAccountUsersPageForAdmin({
+    page,
+    pageSize,
+    search,
+    role: roleFilter,
+  })
+
+  return {
+    users: items,
+    total,
+  }
+}
+
+export async function loadAccountUserDetailsForAdmin(userId) {
+  const [crmUser, profile, athletes, documents] = await Promise.all([
+    fetchCrmUserForAdmin(userId),
+    loadAccountProfileForOwnerForAdmin(userId),
+    loadAccountAthletesForOwnerForAdmin(userId),
+    loadAccountDocumentReviewsForOwnerForAdmin(userId, { includeFile: true }),
+    refreshAccountAdmissionWorkflowForOwnerForStaff(userId),
+  ])
+
+  return buildAccountUserRows({
+    crmUsers: [crmUser],
+    profiles: profile ? [profile] : [],
+    athletes,
+    documents,
+  })
+}
+
+export async function loadAccountEmailRecipientsForAdmin() {
+  const crmUsers = await fetchAllCrmUsersForAdmin()
+
+  return crmUsers
+    .filter((user) => user.email)
+    .map((user) => ({
+      id: user.id,
+      email: user.email,
+      name: user.name || user.email,
+    }))
+}
+
+export async function loadAccountUsersDashboardSummaryForAdmin() {
+  const crmUsers = await fetchAllCrmUsersForAdmin()
+
+  return crmUsers.reduce(
+    (summary, user) => ({
+      usersCount: summary.usersCount + 1,
+      trainersCount: summary.trainersCount + (user.role === CRM_ROLE.TRAINER ? 1 : 0),
+      unpaidUsersCount: summary.unpaidUsersCount + (user.status === 'unpaid' ? 1 : 0),
+    }),
+    {
+      usersCount: 0,
+      trainersCount: 0,
+      unpaidUsersCount: 0,
+    },
+  )
 }
 
 export async function saveAccountUserForAdmin(userId, patch = {}) {

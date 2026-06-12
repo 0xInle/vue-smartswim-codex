@@ -88,12 +88,14 @@ export function createAccountDocumentRemovalPatch() {
 export function createAccountDocumentUploadPatch({
   fileName = '',
   fileSize = 0,
+  file = null,
   fileDataUrl = '',
   fileType = '',
   expiresAt = '',
 } = {}) {
   return {
     status: ACCOUNT_DOCUMENT_STATUS.UPLOADED,
+    file,
     fileName,
     fileSize,
     fileType,

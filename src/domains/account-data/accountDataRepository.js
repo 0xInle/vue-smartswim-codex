@@ -2,7 +2,11 @@ import {
   deleteAccountAthleteForCurrentUser,
   fetchAllAccountAthletesForAdmin,
   fetchAllAccountProfilesForAdmin,
+  fetchAccountAthletesForOwnerForAdmin,
+  fetchAccountAthletesForOwnersForAdmin,
   fetchAccountAthletesForCurrentUser,
+  fetchAccountProfileForOwnerForAdmin,
+  fetchAccountProfilesForOwnersForAdmin,
   fetchAccountProfileForCurrentUser,
   subscribeToAccountDataChanges,
   upsertAccountAthleteForCurrentUser,
@@ -25,8 +29,24 @@ export async function loadAllAccountProfilesForAdmin() {
   return fetchAllAccountProfilesForAdmin()
 }
 
+export async function loadAccountProfilesForOwnersForAdmin(ownerUserIds = []) {
+  return fetchAccountProfilesForOwnersForAdmin(ownerUserIds)
+}
+
+export async function loadAccountProfileForOwnerForAdmin(ownerUserId) {
+  return fetchAccountProfileForOwnerForAdmin(ownerUserId)
+}
+
 export async function loadAllAccountAthletesForAdmin() {
   return fetchAllAccountAthletesForAdmin()
+}
+
+export async function loadAccountAthletesForOwnersForAdmin(ownerUserIds = []) {
+  return fetchAccountAthletesForOwnersForAdmin(ownerUserIds)
+}
+
+export async function loadAccountAthletesForOwnerForAdmin(ownerUserId) {
+  return fetchAccountAthletesForOwnerForAdmin(ownerUserId)
 }
 
 export async function saveAccountAthleteForCurrentUser(params = {}) {

@@ -6,7 +6,9 @@ import {
   createCompetitionApplicationRecord,
   deleteCompetitionApplication,
   getCompetitionApplicationStageNumber,
+  loadCompetitionApplicationStageRefsForAdmin,
   loadAllCompetitionApplicationsForAdmin,
+  loadLatestCompetitionApplicationsForAdmin,
   loadCompetitionApplicationsForCurrentUser,
   patchCompetitionApplication,
   patchCompetitionApplicationByUserKey,
@@ -34,6 +36,10 @@ export const updateCompetitionRegistrationsByStageIdFromSource =
 export const loadCompetitionRegistrationsForCurrentUser =
   loadCompetitionApplicationsForCurrentUser
 export const loadAllCompetitionRegistrationsForAdmin = loadAllCompetitionApplicationsForAdmin
+export const loadCompetitionRegistrationStageRefsForAdmin =
+  loadCompetitionApplicationStageRefsForAdmin
+export const loadLatestCompetitionRegistrationsForAdmin =
+  loadLatestCompetitionApplicationsForAdmin
 export const createCompetitionRegistration = createCompetitionApplication
 export const patchCompetitionRegistration = patchCompetitionApplication
 export const patchCompetitionRegistrationByUserKey = patchCompetitionApplicationByUserKey

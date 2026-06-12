@@ -9,6 +9,7 @@ import { formatPhone, isRussianPhone } from '@/utils/phone'
 import { showToast } from '@/utils/toast'
 
 const TRAINER_BOOKING_TOAST_DURATION = 6500
+const BOOKING_IDENTITY_CACHE_TTL_MS = 60_000
 
 export function useTrainerBooking() {
   const activeBookingTrainer = ref(null)
@@ -16,6 +17,8 @@ export function useTrainerBooking() {
   const isTrainerBookingSubmitting = ref(false)
   const isBookingIdentityLoading = ref(false)
   const bookingSession = ref(null)
+  let lastBookingIdentitySyncAt = 0
+  let cachedBookingProfile = null
   const trainerBookingFeedback = ref({
     type: 'idle',
     message: '',
@@ -156,11 +159,22 @@ export function useTrainerBooking() {
   }
 
   async function syncBookingIdentity() {
+    const now = Date.now()
+
+    if (
+      now - lastBookingIdentitySyncAt < BOOKING_IDENTITY_CACHE_TTL_MS &&
+      (!bookingSession.value?.user || cachedBookingProfile)
+    ) {
+      applyBookingUserData(cachedBookingProfile)
+      return
+    }
+
     isBookingIdentityLoading.value = true
 
     try {
       const session = await getCurrentSession()
       bookingSession.value = session
+      lastBookingIdentitySyncAt = Date.now()
 
       if (!session) {
         return
@@ -168,12 +182,14 @@ export function useTrainerBooking() {
 
       try {
         const profile = await fetchCurrentCrmUser()
+        cachedBookingProfile = profile
         applyBookingUserData(profile)
       } catch {
-        applyBookingUserData({
+        cachedBookingProfile = {
           name: session.user?.user_metadata?.name || '',
           email: session.user?.email || '',
-        })
+        }
+        applyBookingUserData(cachedBookingProfile)
       }
     } finally {
       isBookingIdentityLoading.value = false
@@ -360,6 +376,8 @@ export function useTrainerBooking() {
     activeBookingTrainer.value = null
     isTrainerBookingSubmitting.value = false
     isBookingIdentityLoading.value = false
+    lastBookingIdentitySyncAt = 0
+    cachedBookingProfile = null
     resetTrainerBookingForm()
   }
 

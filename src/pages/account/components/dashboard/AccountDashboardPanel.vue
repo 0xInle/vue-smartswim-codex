@@ -195,6 +195,18 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  dashboardSummary: {
+    type: Object,
+    default: () => ({
+      usersCount: 0,
+      trainersCount: 0,
+      unpaidUsersCount: 0,
+    }),
+  },
+  latestDocuments: {
+    type: Array,
+    default: () => [],
+  },
   openCompetitionRegistrationsCount: {
     type: Number,
     required: true,
@@ -245,20 +257,17 @@ async function loadCompetitionRegistrations() {
 }
 
 const latestDocumentRows = computed(() => {
-  const items = props.users
-    .flatMap((user) =>
-      (user.documents || [])
-        .filter((document) => document && document.status && document.status !== 'missing')
-        .map((document) => ({
-          id: `${user.id || user.email || user.name || 'unknown-user'}-${document.id || document.label || getRecordTimestamp(document)}`,
-          ownerName: user.name || 'Без имени',
-          documentLabel: document.label || 'Документ',
-          tagType: 'info',
-          tagLabel: 'На проверке',
-          timeLabel: formatRelativeShortDate(document),
-          at: getRecordTimestamp(document),
-        })),
-    )
+  const items = (props.latestDocuments || [])
+    .filter((document) => document && document.status && document.status !== 'missing')
+    .map((document) => ({
+      id: document.id || `${document.ownerUserId || document.ownerEmail || 'unknown-user'}-${document.documentType || document.documentLabel || getRecordTimestamp(document)}`,
+      ownerName: document.ownerName || 'Без имени',
+      documentLabel: document.documentLabel || 'Документ',
+      tagType: 'info',
+      tagLabel: 'На проверке',
+      timeLabel: formatRelativeShortDate(document),
+      at: getRecordTimestamp(document),
+    }))
     .filter((item) => item.at > 0)
 
   return items.sort((left, right) => right.at - left.at).slice(0, DASHBOARD_DOCUMENT_ROWS_COUNT)
@@ -275,12 +284,12 @@ const newTrainerBookingsCount = computed(
   () =>
     props.trainerBookings.filter((booking) => booking.status === TRAINER_BOOKING_STATUS.NEW).length,
 )
-const usersCount = computed(() => props.users.length)
+const usersCount = computed(() => props.dashboardSummary?.usersCount ?? props.users.length)
 const trainersCount = computed(
-  () => props.users.filter((user) => user.role === CRM_ROLE.TRAINER).length,
+  () => props.dashboardSummary?.trainersCount ?? props.users.filter((user) => user.role === CRM_ROLE.TRAINER).length,
 )
 const unpaidUsersCount = computed(
-  () => props.users.filter((user) => user.status === 'unpaid').length,
+  () => props.dashboardSummary?.unpaidUsersCount ?? props.users.filter((user) => user.status === 'unpaid').length,
 )
 const attentionCount = computed(
   () => newConsultationsCount.value + newTrainerBookingsCount.value + unpaidUsersCount.value,

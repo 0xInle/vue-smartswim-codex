@@ -41,6 +41,12 @@ const COMPETITION_APPLICATION_SELECT = [
   'created_at',
   'updated_at',
 ].join(',')
+const COMPETITION_APPLICATION_STAGE_REF_SELECT = [
+  'stage_id',
+  'competition_name',
+  'stage_label',
+  'status',
+].join(',')
 
 function toMissingCompetitionApplicationsTableError() {
   return `CRM недоступна: таблица ${COMPETITION_APPLICATIONS_TABLE} не найдена. Выполните SQL из файла ${COMPETITION_APPLICATIONS_SQL_PATH} в Supabase SQL Editor.`
@@ -81,11 +87,12 @@ async function requireCurrentSession(message) {
 }
 
 export async function fetchCompetitionApplicationsForCurrentUser() {
-  await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
+  const session = await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
 
   const { data, error } = await getSupabaseClient()
     .from(COMPETITION_APPLICATIONS_TABLE)
     .select(COMPETITION_APPLICATION_SELECT)
+    .eq('owner_user_id', session.user.id)
     .order('updated_at', { ascending: false })
 
   if (error) {
@@ -108,6 +115,41 @@ export async function fetchAllCompetitionApplicationsForAdmin() {
   }
 
   return (data ?? []).map(mapSupabaseCompetitionApplicationRow)
+}
+
+export async function fetchLatestCompetitionApplicationsForAdmin({ limit = 4 } = {}) {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+
+  const { data, error } = await getSupabaseClient()
+    .from(COMPETITION_APPLICATIONS_TABLE)
+    .select(COMPETITION_APPLICATION_SELECT)
+    .order('updated_at', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    throwCompetitionApplicationError(error, 'Не удалось загрузить последние заявки на соревнования.')
+  }
+
+  return (data ?? []).map(mapSupabaseCompetitionApplicationRow)
+}
+
+export async function fetchCompetitionApplicationStageRefsForAdmin() {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+
+  const { data, error } = await getSupabaseClient()
+    .from(COMPETITION_APPLICATIONS_TABLE)
+    .select(COMPETITION_APPLICATION_STAGE_REF_SELECT)
+
+  if (error) {
+    throwCompetitionApplicationError(error, 'Не удалось загрузить счетчики заявок на соревнования.')
+  }
+
+  return (data ?? []).map((row) => ({
+    stageId: row.stage_id || '',
+    competitionName: row.competition_name || '',
+    stageLabel: row.stage_label || '',
+    status: row.status || '',
+  }))
 }
 
 export async function countActiveCompetitionApplicationsByStageId(stageId) {

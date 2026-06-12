@@ -111,15 +111,29 @@
             <button
               type="button"
               class="account__table-action account__table-action--success btn-reset"
-              @click="handleResolveRefund(item.refund.id, refundSucceededStatus)"
+              :disabled="isRefundActionLoading(item.refund.id)"
+              :aria-busy="isRefundActionLoading(item.refund.id, refundSucceededStatus)"
+              @click="handleResolveRefundWithLoading(item.refund.id, refundSucceededStatus)"
             >
+              <span
+                v-if="isRefundActionLoading(item.refund.id, refundSucceededStatus)"
+                class="account__button-spinner"
+                aria-hidden="true"
+              ></span>
               Выполнен
             </button>
             <button
               type="button"
               class="account__table-action account__table-action--delete btn-reset"
-              @click="handleResolveRefund(item.refund.id, refundRejectedStatus)"
+              :disabled="isRefundActionLoading(item.refund.id)"
+              :aria-busy="isRefundActionLoading(item.refund.id, refundRejectedStatus)"
+              @click="handleResolveRefundWithLoading(item.refund.id, refundRejectedStatus)"
             >
+              <span
+                v-if="isRefundActionLoading(item.refund.id, refundRejectedStatus)"
+                class="account__button-spinner"
+                aria-hidden="true"
+              ></span>
               Отклонить
             </button>
           </div>
@@ -475,6 +489,26 @@ async function runDetailsAction(action, callback) {
   } finally {
     detailsActionLoading.value = ''
   }
+}
+
+function getRefundActionKey(refundId, status) {
+  return `refund:${refundId}:${status}`
+}
+
+function isRefundActionLoading(refundId, status = '') {
+  const prefix = `refund:${refundId}:`
+
+  if (!detailsActionLoading.value.startsWith(prefix)) {
+    return false
+  }
+
+  return status ? detailsActionLoading.value === getRefundActionKey(refundId, status) : true
+}
+
+async function handleResolveRefundWithLoading(refundId, status) {
+  await runDetailsAction(getRefundActionKey(refundId, status), () =>
+    handleResolveRefund(refundId, status),
+  )
 }
 
 async function handleDetailsSave(payload) {

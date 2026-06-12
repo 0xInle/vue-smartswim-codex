@@ -146,6 +146,7 @@ const props = defineProps({
 })
 
 const currentUserRef = toRef(props, 'currentUser')
+const PROFILE_REFRESH_DEBOUNCE_MS = 300
 
 const profile = reactive({
   fullName: '',
@@ -175,6 +176,8 @@ const isDocumentUploadSubmitting = ref(false)
 const isProfileSaving = ref(false)
 let unsubscribeFromSupabaseDocuments = null
 let unsubscribeFromSupabaseAccountData = null
+let profileDocumentsRefreshTimer = null
+let profileRefreshTimer = null
 
 function resetErrors() {
   errors.fullName = ''
@@ -182,6 +185,54 @@ function resetErrors() {
   errors.club = ''
   errors.phone = ''
   errors.email = ''
+}
+
+function getCurrentOwnerId() {
+  return currentUserRef.value?.id || ''
+}
+
+function getRealtimePayloadOwnerId(payload) {
+  return payload?.new?.owner_user_id || payload?.old?.owner_user_id || ''
+}
+
+function shouldHandleCurrentOwnerPayload(payload) {
+  const ownerId = getRealtimePayloadOwnerId(payload)
+
+  return !ownerId || ownerId === getCurrentOwnerId()
+}
+
+function scheduleProfileDocumentsSync() {
+  if (profileDocumentsRefreshTimer) {
+    return
+  }
+
+  profileDocumentsRefreshTimer = window.setTimeout(() => {
+    profileDocumentsRefreshTimer = null
+    void syncProfileDocumentsFromSource()
+  }, PROFILE_REFRESH_DEBOUNCE_MS)
+}
+
+function scheduleProfileSync() {
+  if (profileRefreshTimer) {
+    return
+  }
+
+  profileRefreshTimer = window.setTimeout(() => {
+    profileRefreshTimer = null
+    void syncProfileFromSource()
+  }, PROFILE_REFRESH_DEBOUNCE_MS)
+}
+
+function cancelProfileRefreshTimers() {
+  if (profileDocumentsRefreshTimer) {
+    clearTimeout(profileDocumentsRefreshTimer)
+    profileDocumentsRefreshTimer = null
+  }
+
+  if (profileRefreshTimer) {
+    clearTimeout(profileRefreshTimer)
+    profileRefreshTimer = null
+  }
 }
 
 async function syncProfileDocumentsFromSource() {
@@ -338,6 +389,7 @@ async function handleUploadSubmit(payload) {
     createAccountDocumentUploadPatch({
       fileName: payload.file.name,
       fileSize: payload.file.size,
+      file: payload.file,
       fileDataUrl: payload.fileDataUrl || '',
       fileType: payload.fileType || '',
       expiresAt: payload.expiresAt || '',
@@ -467,19 +519,29 @@ watch(
 )
 
 onMounted(() => {
-  unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges(() => {
+  unsubscribeFromSupabaseDocuments = subscribeToAccountDocumentChanges((payload) => {
     if (isDocumentUploadSubmitting.value) {
       return
     }
 
-    void syncProfileDocumentsFromSource()
+    if (!shouldHandleCurrentOwnerPayload(payload)) {
+      return
+    }
+
+    scheduleProfileDocumentsSync()
   })
-  unsubscribeFromSupabaseAccountData = subscribeToAccountProfileAthleteChanges(() => {
-    void syncProfileFromSource()
+  unsubscribeFromSupabaseAccountData = subscribeToAccountProfileAthleteChanges((payload) => {
+    if (!shouldHandleCurrentOwnerPayload(payload)) {
+      return
+    }
+
+    scheduleProfileSync()
   })
 })
 
 onBeforeUnmount(() => {
+  cancelProfileRefreshTimers()
+
   if (unsubscribeFromSupabaseDocuments) {
     unsubscribeFromSupabaseDocuments()
     unsubscribeFromSupabaseDocuments = null

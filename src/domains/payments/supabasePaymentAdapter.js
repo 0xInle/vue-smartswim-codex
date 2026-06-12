@@ -96,11 +96,12 @@ async function requireCurrentSession(message) {
 }
 
 export async function fetchCompetitionPaymentsForCurrentUser() {
-  await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
+  const session = await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
 
   const { data, error } = await getSupabaseClient()
     .from(COMPETITION_PAYMENTS_TABLE)
     .select(COMPETITION_PAYMENT_SELECT)
+    .eq('owner_user_id', session.user.id)
     .order('updated_at', { ascending: false })
 
   if (error) {
@@ -126,11 +127,12 @@ export async function fetchAllCompetitionPaymentsForAdmin() {
 }
 
 export async function fetchCompetitionRefundsForCurrentUser() {
-  await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
+  const session = await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
 
   const { data, error } = await getSupabaseClient()
     .from(COMPETITION_REFUNDS_TABLE)
     .select(COMPETITION_REFUND_SELECT)
+    .eq('owner_user_id', session.user.id)
     .order('updated_at', { ascending: false })
 
   if (error) {

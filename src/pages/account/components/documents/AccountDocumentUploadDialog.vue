@@ -43,7 +43,7 @@
           <span class="account-documents-upload__file-size">{{ selectedFileSizeLabel }}</span>
         </div>
         <span class="account__field-hint">
-          Поддерживаются `PDF`, `JPG` и `PNG`.
+          Поддерживаемые форматы: PDF, JPG, PNG. Максимальный размер файла: 10 МБ.
         </span>
         <span v-if="fileError" class="account__field-error">{{ fileError }}</span>
       </label>
@@ -126,7 +126,6 @@ const emit = defineEmits(['close', 'submit'])
 
 const fileInputRef = ref(null)
 const selectedFile = ref(null)
-const selectedFileDataUrl = ref('')
 const selectedFileType = ref('')
 const expiresAt = ref('')
 const fileError = ref('')
@@ -191,23 +190,11 @@ function handleFileChange(event) {
   fileError.value = ''
 
   if (!nextFile) {
-    selectedFileDataUrl.value = ''
     selectedFileType.value = ''
     return
   }
 
   selectedFileType.value = nextFile.type || ''
-  selectedFileDataUrl.value = ''
-
-  void readFileAsDataUrl(nextFile)
-    .then((result) => {
-      selectedFileDataUrl.value = result
-    })
-    .catch(() => {
-      selectedFileDataUrl.value = ''
-      selectedFileType.value = ''
-      fileError.value = 'Не удалось прочитать файл.'
-    })
 }
 
 function formatDocumentExpiryInput(value) {
@@ -290,22 +277,6 @@ function handleModelValueUpdate(value) {
   emit('close')
 }
 
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-
-    reader.onload = () => {
-      resolve(typeof reader.result === 'string' ? reader.result : '')
-    }
-
-    reader.onerror = () => {
-      reject(new Error('Не удалось прочитать файл.'))
-    }
-
-    reader.readAsDataURL(file)
-  })
-}
-
 async function handleSubmit() {
   if (!selectedFile.value) {
     fileError.value = 'Выберите файл документа.'
@@ -326,18 +297,9 @@ async function handleSubmit() {
     return
   }
 
-  if (!selectedFileDataUrl.value) {
-    try {
-      selectedFileDataUrl.value = await readFileAsDataUrl(selectedFile.value)
-    } catch (error) {
-      fileError.value = error instanceof Error ? error.message : 'Не удалось прочитать файл.'
-      return
-    }
-  }
-
   emit('submit', {
     file: selectedFile.value,
-    fileDataUrl: selectedFileDataUrl.value,
+    fileDataUrl: '',
     fileType: selectedFileType.value,
     expiresAt: normalizedExpiresAt,
   })
@@ -345,7 +307,6 @@ async function handleSubmit() {
 
 function resetDialog() {
   selectedFile.value = null
-  selectedFileDataUrl.value = ''
   selectedFileType.value = ''
   expiresAt.value = ''
   fileError.value = ''

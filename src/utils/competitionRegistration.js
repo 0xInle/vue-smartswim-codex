@@ -56,7 +56,8 @@ function normalizeCompetitionTimestamp(value) {
     return timestamp
   }
 
-  const match = value
+  const normalizedValue = value.trim().replace(/\s*г\.?$/i, '')
+  const match = normalizedValue
     .trim()
     .toLowerCase()
     .match(/^(\d{1,2})\s+([а-яё]+)\s+(\d{4})$/i)
@@ -79,13 +80,6 @@ function normalizeCompetitionTimestamp(value) {
   )
 
   return Number.isNaN(normalizedTimestamp) ? null : normalizedTimestamp
-}
-
-function isRussianLongDateString(value) {
-  return (
-    typeof value === 'string' &&
-    /^(\d{1,2})\s+([а-яё]+)\s+(\d{4})$/i.test(value.trim().toLowerCase())
-  )
 }
 
 function formatDateParts(formatter, value) {
@@ -112,13 +106,9 @@ function formatDateParts(formatter, value) {
 }
 
 export function formatCompetitionDateLabel(value) {
-  if (isRussianLongDateString(value)) {
-    return value.trim()
-  }
-
   const formattedDate = formatDateParts(LONG_DATE_FORMATTER, value)
 
-  return formattedDate || '—'
+  return formattedDate ? formattedDate.replace(/\s*г\.?$/i, '') : '—'
 }
 
 export function formatCompetitionDateShortLabel(value) {

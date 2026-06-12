@@ -144,7 +144,7 @@ alter table public.competition_stages
 
 alter table public.competition_stages
   add constraint competition_stages_registration_limit_check
-  check (registration_limit is null or registration_limit > 0);
+  check (registration_limit is null or registration_limit >= 0);
 
 drop policy if exists "Allow public read competitions" on public.competitions;
 drop policy if exists "Allow admin write competitions" on public.competitions;

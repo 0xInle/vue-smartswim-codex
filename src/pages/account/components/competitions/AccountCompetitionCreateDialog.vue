@@ -64,94 +64,18 @@
         </label>
       </div>
 
-      <div class="account__field-grid">
-        <div class="account__field">
-          <span class="account__field-label">Протокол</span>
-          <button
-            type="button"
-            class="account__table-action account__table-action--protocol account__dialog-link-toggle btn-reset"
-            @click="form.showProtocolUrl = true"
-          >
-            <ElIcon>
-              <Link v-if="form.protocolUrl" />
-              <Upload v-else />
-            </ElIcon>
-            {{ form.protocolUrl ? 'Ссылка добавлена' : 'Добавить ссылку' }}
-          </button>
+      <div class="account-competition-create__links">
+        <div
+          v-for="link in linkEditors"
+          :key="link.key"
+          class="account-competition-create__link-row"
+        >
+          <span class="account-competition-create__link-label">{{ link.label }}:</span>
           <input
-            v-if="form.showProtocolUrl"
-            v-model.trim="form.protocolUrl"
-            class="account__input"
+            v-model.trim="form[link.modelKey]"
+            class="account__input account-competition-create__link-input"
             type="url"
-            placeholder="Ссылка на протокол"
-          />
-        </div>
-
-        <div class="account__field">
-          <span class="account__field-label">Фото</span>
-          <button
-            type="button"
-            class="account__table-action account__table-action--photo account__dialog-link-toggle btn-reset"
-            @click="form.showPhotoUrl = true"
-          >
-            <ElIcon>
-              <Link v-if="form.photoUrl" />
-              <Upload v-else />
-            </ElIcon>
-            {{ form.photoUrl ? 'Ссылка добавлена' : 'Добавить ссылку' }}
-          </button>
-          <input
-            v-if="form.showPhotoUrl"
-            v-model.trim="form.photoUrl"
-            class="account__input"
-            type="url"
-            placeholder="Ссылка на фото"
-          />
-        </div>
-      </div>
-
-      <div class="account__field-grid">
-        <div class="account__field">
-          <span class="account__field-label">Сертификаты</span>
-          <button
-            type="button"
-            class="account__table-action account__table-action--protocol account__dialog-link-toggle btn-reset"
-            @click="form.showCertificateUrl = true"
-          >
-            <ElIcon>
-              <Link v-if="form.certificateUrl" />
-              <Upload v-else />
-            </ElIcon>
-            {{ form.certificateUrl ? 'Ссылка добавлена' : 'Добавить ссылку' }}
-          </button>
-          <input
-            v-if="form.showCertificateUrl"
-            v-model.trim="form.certificateUrl"
-            class="account__input"
-            type="url"
-            placeholder="Ссылка на архив сертификатов"
-          />
-        </div>
-
-        <div class="account__field">
-          <span class="account__field-label">Памятка</span>
-          <button
-            type="button"
-            class="account__table-action account__table-action--photo account__dialog-link-toggle btn-reset"
-            @click="form.showMemoUrl = true"
-          >
-            <ElIcon>
-              <Link v-if="form.memoUrl" />
-              <Upload v-else />
-            </ElIcon>
-            {{ form.memoUrl ? 'Ссылка добавлена' : 'Добавить ссылку' }}
-          </button>
-          <input
-            v-if="form.showMemoUrl"
-            v-model.trim="form.memoUrl"
-            class="account__input"
-            type="url"
-            placeholder="Ссылка на памятку"
+            :placeholder="link.placeholder"
           />
         </div>
       </div>
@@ -164,22 +88,34 @@
         >
           Отмена
         </button>
-        <button type="submit" class="account__submit btn-reset">Создать</button>
+        <button
+          type="submit"
+          class="account__table-action account__table-action--edit btn-reset"
+          :disabled="isSubmitting"
+          :aria-busy="isSubmitting"
+        >
+          <span v-if="isSubmitting" class="account__button-spinner" aria-hidden="true"></span>
+          Создать
+        </button>
       </div>
     </form>
   </ElDialog>
 </template>
 
 <script setup>
-import { Close, Link, Upload } from '@element-plus/icons-vue'
+import { Close } from '@element-plus/icons-vue'
 import { reactive, watch } from 'vue'
-import { ElDialog, ElIcon } from 'element-plus'
+import { ElDialog } from 'element-plus'
 import AccountDatePicker from '@/pages/account/components/shared/AccountDatePicker.vue'
 
 const props = defineProps({
   modelValue: {
     type: Boolean,
     required: true,
+  },
+  isSubmitting: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -195,22 +131,34 @@ const form = reactive({
   photoUrl: '',
   certificateUrl: '',
   memoUrl: '',
-  showProtocolUrl: false,
-  showPhotoUrl: false,
-  showCertificateUrl: false,
-  showMemoUrl: false,
 })
+
+const linkEditors = [
+  { key: 'protocol', label: 'Протокол', modelKey: 'protocolUrl', placeholder: 'Ссылка на протокол' },
+  { key: 'photo', label: 'Фото', modelKey: 'photoUrl', placeholder: 'Ссылка на фото' },
+  {
+    key: 'certificate',
+    label: 'Сертификаты',
+    modelKey: 'certificateUrl',
+    placeholder: 'Ссылка на архив сертификатов',
+  },
+  { key: 'memo', label: 'Памятка', modelKey: 'memoUrl', placeholder: 'Ссылка на памятку' },
+]
 
 watch(
   () => props.modelValue,
   (isOpen) => {
-    if (!isOpen) {
+    if (!isOpen && !props.isSubmitting) {
       resetForm()
     }
   },
 )
 
 function submitForm() {
+  if (props.isSubmitting) {
+    return
+  }
+
   emit('submit', {
     competitionName: form.competitionName.trim(),
     stage: form.stage,
@@ -234,9 +182,36 @@ function resetForm() {
   form.photoUrl = ''
   form.certificateUrl = ''
   form.memoUrl = ''
-  form.showProtocolUrl = false
-  form.showPhotoUrl = false
-  form.showCertificateUrl = false
-  form.showMemoUrl = false
 }
 </script>
+
+<style scoped>
+.account-competition-create__links {
+  display: grid;
+  gap: 12px;
+}
+
+.account-competition-create__link-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.account-competition-create__link-label {
+  font-size: 14px;
+  font-weight: 900;
+  color: #1f2937;
+}
+
+.account-competition-create__link-input {
+  width: 100%;
+}
+
+@media (max-width: 700px) {
+  .account-competition-create__link-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+</style>

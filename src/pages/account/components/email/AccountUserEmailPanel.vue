@@ -75,6 +75,9 @@ const messages = ref([])
 const isLoading = ref(false)
 const loadError = ref('')
 let unsubscribeFromEmail = null
+let messagesRefreshTimer = null
+
+const EMAIL_REFRESH_DEBOUNCE_MS = 300
 
 async function loadMessages() {
   isLoading.value = true
@@ -89,15 +92,35 @@ async function loadMessages() {
   }
 }
 
+function scheduleMessagesRefresh() {
+  if (messagesRefreshTimer) {
+    return
+  }
+
+  messagesRefreshTimer = window.setTimeout(() => {
+    messagesRefreshTimer = null
+    void loadMessages()
+  }, EMAIL_REFRESH_DEBOUNCE_MS)
+}
+
+function cancelMessagesRefresh() {
+  if (messagesRefreshTimer) {
+    clearTimeout(messagesRefreshTimer)
+    messagesRefreshTimer = null
+  }
+}
+
 onMounted(() => {
   void loadMessages()
 
   unsubscribeFromEmail = subscribeToAccountEmailChanges(() => {
-    void loadMessages()
+    scheduleMessagesRefresh()
   })
 })
 
 onBeforeUnmount(() => {
+  cancelMessagesRefresh()
+
   if (unsubscribeFromEmail) {
     unsubscribeFromEmail()
     unsubscribeFromEmail = null

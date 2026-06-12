@@ -6,8 +6,8 @@
 
 <script setup>
 import HomeFooterSection from '@/pages/home/components/HomeFooterSection.vue'
-import { ref } from 'vue'
-import { competitionDirections } from './competitionData'
+import { onMounted, ref } from 'vue'
+import { competitionDirections, ensureCompetitionDirectionsLoaded } from './competitionData'
 import CompetitionsHeroSection from './components/CompetitionsHeroSection.vue'
 import CompetitionsListSection from './components/CompetitionsListSection.vue'
 const seriesSectionRef = ref(null)
@@ -18,4 +18,8 @@ function scrollToSeries() {
     block: 'start',
   })
 }
+
+onMounted(() => {
+  void ensureCompetitionDirectionsLoaded()
+})
 </script>

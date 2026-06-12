@@ -8,12 +8,9 @@ import {
   subscribeToCompetitionRegistrationChanges,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 import {
-  loadAllAccountUsersForAdmin,
-  subscribeToAccountUsersChanges,
-} from '@/domains/account-users/accountUsersRepository'
-import { subscribeToAccountProfileAthleteChanges } from '@/domains/account-data/accountDataRepository'
-import { subscribeToAccountDocumentChanges } from '@/domains/account-documents/documentRepository'
-import { subscribeToAccountAdmissionWorkflowChanges } from '@/domains/account-admissions/accountAdmissionRepository'
+  loadAccountDocumentReviewsForOwnersForAdmin,
+  subscribeToAccountDocumentChanges,
+} from '@/domains/account-documents/documentRepository'
 import {
   COMPETITION_REGISTRATION_RECORD_STATUS,
   isCompetitionRegistrationActiveStatus,
@@ -46,6 +43,8 @@ import {
   hasActiveRefund,
 } from '@/domains/payments/paymentLifecycle'
 import { createQueuedEmailMessageForAdmin } from '@/domains/account-email/emailRepository'
+
+const ADMIN_REGISTRATIONS_REFRESH_DEBOUNCE_MS = 300
 
 function normalizeSearchValue(value) {
   return String(value || '')
@@ -91,6 +90,56 @@ function buildStagePatch(stage) {
   }
 }
 
+function createScheduledRefresh(refresh) {
+  let refreshTimer = null
+  let isRefreshRunning = false
+  let hasPendingRefresh = false
+
+  function schedule() {
+    hasPendingRefresh = true
+
+    if (refreshTimer) {
+      return
+    }
+
+    refreshTimer = window.setTimeout(flush, ADMIN_REGISTRATIONS_REFRESH_DEBOUNCE_MS)
+  }
+
+  function flush() {
+    refreshTimer = null
+
+    if (isRefreshRunning) {
+      hasPendingRefresh = true
+      return
+    }
+
+    hasPendingRefresh = false
+    isRefreshRunning = true
+
+    void refresh().finally(() => {
+      isRefreshRunning = false
+
+      if (hasPendingRefresh) {
+        schedule()
+      }
+    })
+  }
+
+  function cancel() {
+    if (refreshTimer) {
+      clearTimeout(refreshTimer)
+      refreshTimer = null
+    }
+
+    hasPendingRefresh = false
+  }
+
+  return {
+    cancel,
+    schedule,
+  }
+}
+
 export function useAccountCompetitionRegistrationsAdmin() {
   const registrations = ref([])
   const payments = ref([])
@@ -103,13 +152,10 @@ export function useAccountCompetitionRegistrationsAdmin() {
   const isDetailsDialogOpen = ref(false)
   const isRegistrationsLoading = ref(false)
   const registrationsError = ref('')
-  const accountUsers = ref([])
+  const accountDocuments = ref([])
   let loadRequestId = 0
   let unsubscribeFromCompetitionApplications = null
-  let unsubscribeFromUsers = null
-  let unsubscribeFromAccountData = null
   let unsubscribeFromDocuments = null
-  let unsubscribeFromAdmissions = null
   let unsubscribeFromPayments = null
   let unsubscribeFromRefunds = null
 
@@ -124,6 +170,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
 
       if (requestId === loadRequestId) {
         registrations.value = nextRegistrations
+        void loadAccountDocumentsLookup(nextRegistrations)
       }
     } catch (error) {
       if (requestId === loadRequestId) {
@@ -137,11 +184,18 @@ export function useAccountCompetitionRegistrationsAdmin() {
     }
   }
 
-  async function loadAccountUsersLookup() {
+  async function loadAccountDocumentsLookup(sourceRegistrations = registrations.value) {
     try {
-      accountUsers.value = await loadAllAccountUsersForAdmin()
+      const ownerUserIds = Array.from(
+        new Set(
+          (Array.isArray(sourceRegistrations) ? sourceRegistrations : [])
+            .map((registration) => registration.ownerUserId)
+            .filter(Boolean),
+        ),
+      )
+      accountDocuments.value = await loadAccountDocumentReviewsForOwnersForAdmin(ownerUserIds)
     } catch {
-      accountUsers.value = []
+      accountDocuments.value = []
     }
   }
 
@@ -159,6 +213,10 @@ export function useAccountCompetitionRegistrationsAdmin() {
         error instanceof Error ? error.message : 'Не удалось загрузить оплаты.'
     }
   }
+
+  const scheduledRegistrationsRefresh = createScheduledRefresh(loadRegistrations)
+  const scheduledDocumentsLookupRefresh = createScheduledRefresh(loadAccountDocumentsLookup)
+  const scheduledPaymentRecordsRefresh = createScheduledRefresh(loadPaymentRecords)
 
   const stageOptions = computed(() =>
     buildAccountCompetitionStages()
@@ -192,37 +250,25 @@ export function useAccountCompetitionRegistrationsAdmin() {
       return null
     }
 
-    const sourceUser = accountUsers.value.find(
-      (item) => item.id === registration.sourceUserKey || item.email === registration.sourceUserKey,
-    )
+    const sourceUserKey = String(registration.sourceUserKey || '').trim()
+    const scope = registration.participantKind === 'athlete' ? 'athlete' : 'profile'
+    const scopeId = scope === 'athlete' ? registration.participantId || '' : 'profile'
+    const documents = accountDocuments.value.filter((document) => {
+      const matchesOwner =
+        document.ownerUserId === sourceUserKey ||
+        document.ownerUserKey === sourceUserKey ||
+        document.ownerEmail === sourceUserKey
 
-    if (!sourceUser) {
-      return {
-        status: 'unknown',
-        label: 'Нет данных',
-        description: 'Проверьте документы в карточке пользователя.',
-        tagType: 'info',
-      }
-    }
-
-    if (registration.participantKind === 'athlete') {
-      const athlete = (sourceUser.athletes || []).find(
-        (item) => item.id === registration.participantId,
-      )
-
-      if (athlete) {
-        return getAccountDocumentsAdmissionStatus(athlete.documents || [])
+      if (!matchesOwner) {
+        return false
       }
 
-      return {
-        status: 'unknown',
-        label: 'Нет данных',
-        description: 'Проверьте документы в карточке пользователя.',
-        tagType: 'info',
+      if (scope === 'athlete') {
+        return document.scope === 'athlete' && document.scopeId === scopeId
       }
-    }
 
-    const documents = sourceUser.documents || []
+      return (document.scope || 'profile') === 'profile'
+    })
 
     if (!documents.length) {
       return {
@@ -325,6 +371,42 @@ export function useAccountCompetitionRegistrationsAdmin() {
     isDetailsDialogOpen.value = false
   }
 
+  function replaceRegistration(updatedRegistration) {
+    if (!updatedRegistration?.id) {
+      return
+    }
+
+    registrations.value = registrations.value.map((registration) =>
+      registration.id === updatedRegistration.id ? updatedRegistration : registration,
+    )
+  }
+
+  function removeRegistration(registrationId) {
+    registrations.value = registrations.value.filter(
+      (registration) => registration.id !== registrationId,
+    )
+  }
+
+  function replacePayment(updatedPayment) {
+    if (!updatedPayment?.id) {
+      return
+    }
+
+    payments.value = payments.value.map((payment) =>
+      payment.id === updatedPayment.id ? updatedPayment : payment,
+    )
+  }
+
+  function replaceRefund(updatedRefund) {
+    if (!updatedRefund?.id) {
+      return
+    }
+
+    refunds.value = refunds.value.map((refund) =>
+      refund.id === updatedRefund.id ? updatedRefund : refund,
+    )
+  }
+
   async function updateSelectedRegistration(
     patch = {},
     { closeDialog = false, toastMessage = 'Заявка обновлена' } = {},
@@ -355,7 +437,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
       return null
     }
 
-    await loadRegistrations()
+    replaceRegistration(updatedRegistration)
 
     if (closeDialog) {
       closeDetailsDialog()
@@ -528,7 +610,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
 
     try {
       const updatedPayment = await markCompetitionPaymentSucceeded(payment.id, 'admin')
-      await Promise.all([loadPaymentRecords(), loadRegistrations()])
+      replacePayment(updatedPayment)
       showToast('Оплата отмечена как успешная')
       await queuePaymentEmail(registration, 'succeeded')
       return updatedPayment
@@ -551,7 +633,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
 
     try {
       const updatedPayment = await markCompetitionPaymentFailed(payment.id, 'admin')
-      await Promise.all([loadPaymentRecords(), loadRegistrations()])
+      replacePayment(updatedPayment)
       showToast('Оплата отмечена как ошибка')
       await queuePaymentEmail(registration, 'failed')
       return updatedPayment
@@ -576,7 +658,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
             ? 'Возврат отмечен вручную в MVP'
             : 'Запрос возврата отклонен вручную в MVP',
       })
-      await Promise.all([loadPaymentRecords(), loadRegistrations()])
+      replaceRefund(updatedRefund)
       showToast(
         status === COMPETITION_REFUND_STATUS.SUCCEEDED
           ? 'Возврат отмечен как выполненный'
@@ -822,7 +904,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
 
     try {
       await deleteCompetitionRegistration(null, targetId)
-      await Promise.all([loadPaymentRecords(), loadRegistrations()])
+      removeRegistration(targetId)
       closeDetailsDialog()
 
       return true
@@ -837,58 +919,37 @@ export function useAccountCompetitionRegistrationsAdmin() {
 
   onMounted(() => {
     void loadRegistrations()
-    void loadAccountUsersLookup()
     void loadPaymentRecords()
 
     unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
-      void loadRegistrations()
-    })
-    unsubscribeFromUsers = subscribeToAccountUsersChanges(() => {
-      void loadAccountUsersLookup()
-    })
-    unsubscribeFromAccountData = subscribeToAccountProfileAthleteChanges(() => {
-      void loadAccountUsersLookup()
+      scheduledRegistrationsRefresh.schedule()
     })
     unsubscribeFromDocuments = subscribeToAccountDocumentChanges(() => {
-      void loadAccountUsersLookup()
-    })
-    unsubscribeFromAdmissions = subscribeToAccountAdmissionWorkflowChanges(() => {
-      void loadAccountUsersLookup()
+      scheduledDocumentsLookupRefresh.schedule()
     })
     unsubscribeFromPayments = subscribeToCompetitionPaymentChanges(() => {
-      void loadPaymentRecords()
-      void loadRegistrations()
+      scheduledPaymentRecordsRefresh.schedule()
+      scheduledRegistrationsRefresh.schedule()
     })
     unsubscribeFromRefunds = subscribeToCompetitionRefundChanges(() => {
-      void loadPaymentRecords()
-      void loadRegistrations()
+      scheduledPaymentRecordsRefresh.schedule()
+      scheduledRegistrationsRefresh.schedule()
     })
   })
 
   onBeforeUnmount(() => {
+    scheduledRegistrationsRefresh.cancel()
+    scheduledDocumentsLookupRefresh.cancel()
+    scheduledPaymentRecordsRefresh.cancel()
+
     if (unsubscribeFromCompetitionApplications) {
       unsubscribeFromCompetitionApplications()
       unsubscribeFromCompetitionApplications = null
     }
 
-    if (unsubscribeFromUsers) {
-      unsubscribeFromUsers()
-      unsubscribeFromUsers = null
-    }
-
-    if (unsubscribeFromAccountData) {
-      unsubscribeFromAccountData()
-      unsubscribeFromAccountData = null
-    }
-
     if (unsubscribeFromDocuments) {
       unsubscribeFromDocuments()
       unsubscribeFromDocuments = null
-    }
-
-    if (unsubscribeFromAdmissions) {
-      unsubscribeFromAdmissions()
-      unsubscribeFromAdmissions = null
     }
 
     if (unsubscribeFromPayments) {

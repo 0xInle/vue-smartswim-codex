@@ -13,6 +13,10 @@ import {
 export const competitionDirections = reactive([])
 
 let catalogLoadRequestId = 0
+let catalogLoadPromise = null
+let catalogSubscriptionStop = null
+let ignoreCatalogRealtimeUntil = 0
+const LOCAL_CATALOG_REALTIME_ECHO_SUPPRESSION_MS = 5000
 
 function replaceCompetitionDirectionsState(nextState = []) {
   competitionDirections.splice(0, competitionDirections.length, ...nextState)
@@ -35,6 +39,45 @@ export async function refreshCompetitionDirectionsFromSource() {
   }
 }
 
+export function ensureCompetitionDirectionsLoaded() {
+  if (competitionDirections.length) {
+    return Promise.resolve(competitionDirections)
+  }
+
+  if (!catalogLoadPromise) {
+    catalogLoadPromise = refreshCompetitionDirectionsFromSource().finally(() => {
+      catalogLoadPromise = null
+    })
+  }
+
+  return catalogLoadPromise
+}
+
+export function startCompetitionDirectionsRealtime() {
+  if (catalogSubscriptionStop) {
+    return catalogSubscriptionStop
+  }
+
+  catalogSubscriptionStop = subscribeToCompetitionCatalogChanges(() => {
+    if (Date.now() < ignoreCatalogRealtimeUntil) {
+      return
+    }
+
+    void refreshCompetitionDirectionsFromSource()
+  })
+
+  return catalogSubscriptionStop
+}
+
+export function stopCompetitionDirectionsRealtime() {
+  if (!catalogSubscriptionStop) {
+    return
+  }
+
+  catalogSubscriptionStop()
+  catalogSubscriptionStop = null
+}
+
 export async function saveCompetitionDirectionToSource(competition) {
   await saveCompetitionCatalogCompetition(competition)
   await refreshCompetitionDirectionsFromSource()
@@ -50,9 +93,16 @@ export async function saveCompetitionStageToSource(stage) {
   await refreshCompetitionDirectionsFromSource()
 }
 
-export async function patchCompetitionStageInSource(stageId, patch) {
+export async function patchCompetitionStageInSource(stageId, patch, { refresh = true } = {}) {
+  if (!refresh) {
+    ignoreCatalogRealtimeUntil = Date.now() + LOCAL_CATALOG_REALTIME_ECHO_SUPPRESSION_MS
+  }
+
   await updateCompetitionCatalogStage(stageId, patch)
-  await refreshCompetitionDirectionsFromSource()
+
+  if (refresh) {
+    await refreshCompetitionDirectionsFromSource()
+  }
 }
 
 export async function saveCompetitionStageDistancesToSource(stageId, description) {
@@ -63,16 +113,6 @@ export async function saveCompetitionStageDistancesToSource(stageId, description
 export async function deleteCompetitionStageFromSource(stageId) {
   await removeCompetitionCatalogStage(stageId)
   await refreshCompetitionDirectionsFromSource()
-}
-
-try {
-  void refreshCompetitionDirectionsFromSource()
-
-  subscribeToCompetitionCatalogChanges(() => {
-    void refreshCompetitionDirectionsFromSource()
-  })
-} catch {
-  replaceCompetitionDirectionsState([])
 }
 
 export function getCompetitionBySlug(slug) {

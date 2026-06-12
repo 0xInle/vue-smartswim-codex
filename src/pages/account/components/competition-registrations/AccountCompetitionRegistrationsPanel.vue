@@ -313,7 +313,6 @@ import { ElCard, ElCheckbox, ElDialog, ElEmpty, ElOption, ElSelect, ElTag } from
 import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDetailsDialog.vue'
 import AccountCompetitionRegistrationDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDialog.vue'
 import { useAccountCompetitionRegistrations } from '@/pages/account/composables/useAccountCompetitionRegistrations'
-import { deleteCompetitionRegistration } from '@/pages/account/utils/accountCompetitionRegistrations'
 import { COMPETITION_REGISTRATION_RECORD_STATUS } from '@/pages/account/utils/accountConstants'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import {
@@ -361,13 +360,13 @@ const {
   closeRegistrationDialog,
   handleRegistrationSubmit,
   handleWithdrawRegistration,
+  handleDeleteRegistration,
   updateSelectedRegistration,
   handleCreatePayment,
   handleRequestRefund,
   getRegistrationPaymentSummary,
   canCreatePayment,
   canRequestRefund,
-  loadRegistrations,
   getRegistrationStatusLabel,
   getRegistrationStatusTagType,
   getRegistrationDocumentsStatus,
@@ -541,8 +540,11 @@ async function confirmDeleteHistoryRegistration() {
   isDeletingHistoryRegistration.value = true
 
   try {
-    await deleteCompetitionRegistration(null, registration.id)
-    await loadRegistrations()
+    const isDeleted = await handleDeleteRegistration(registration.id)
+
+    if (!isDeleted) {
+      return
+    }
 
     closeHistoryDetails()
     closeDeleteHistoryDialog()

@@ -9,6 +9,8 @@ import {
   deleteSupabaseCompetitionApplication,
   countActiveCompetitionApplicationsByStageId,
   fetchAllCompetitionApplicationsForAdmin,
+  fetchCompetitionApplicationStageRefsForAdmin,
+  fetchLatestCompetitionApplicationsForAdmin,
   fetchCompetitionApplicationsForCurrentUser,
   subscribeToCompetitionApplications,
   updateSupabaseCompetitionApplication,
@@ -123,6 +125,14 @@ export async function loadCompetitionApplicationsForCurrentUser(currentUser) {
 
 export async function loadAllCompetitionApplicationsForAdmin() {
   return fetchAllCompetitionApplicationsForAdmin()
+}
+
+export async function loadCompetitionApplicationStageRefsForAdmin() {
+  return fetchCompetitionApplicationStageRefsForAdmin()
+}
+
+export async function loadLatestCompetitionApplicationsForAdmin(params = {}) {
+  return fetchLatestCompetitionApplicationsForAdmin(params)
 }
 
 export async function createCompetitionApplication(currentUser, application) {

@@ -1,8 +1,8 @@
-import { computed, ref } from 'vue'
+import { computed, ref, unref } from 'vue'
 import { fetchOwnTrainerBookings, updateTrainerBookingStatus } from '@/utils/supabaseDatabase'
 import { getErrorMessage } from '@/pages/account/utils/accountFormatters'
 
-export function useOwnTrainerBookings() {
+export function useOwnTrainerBookings({ currentUser = null } = {}) {
   const ownTrainerBookings = ref([])
   const ownTrainerBookingsLoading = ref(false)
   const ownTrainerBookingsError = ref('')
@@ -17,7 +17,9 @@ export function useOwnTrainerBookings() {
 
     ownTrainerBookingsSyncPromise = (async () => {
       try {
-        ownTrainerBookings.value = await fetchOwnTrainerBookings()
+        ownTrainerBookings.value = await fetchOwnTrainerBookings({
+          currentUser: unref(currentUser),
+        })
         ownTrainerBookingsError.value = ''
       } catch (error) {
         ownTrainerBookings.value = []

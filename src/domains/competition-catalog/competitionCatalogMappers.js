@@ -1,4 +1,8 @@
 import { publicAsset } from '@/utils/publicAsset'
+import {
+  formatCompetitionDateInputValue,
+  formatCompetitionDateLabel,
+} from '@/utils/competitionRegistration'
 
 const DEFAULT_DOCUMENTS_ROUTE = '/documents'
 const DEFAULT_REGISTRATION_NOTE =
@@ -18,6 +22,12 @@ function normalizeSortNumber(value, fallback = 0) {
   const numericValue = Number(value)
 
   return Number.isFinite(numericValue) ? numericValue : fallback
+}
+
+function normalizeDateLabel(value) {
+  const formattedDate = formatCompetitionDateLabel(value)
+
+  return formattedDate === '—' ? '' : formattedDate
 }
 
 function mapRegistrationOption(row = {}) {
@@ -44,8 +54,15 @@ function mapFaqSection(row = {}, items = []) {
 }
 
 function mapStageRegistration(row = {}) {
+  const competitionDateLabel =
+    normalizeDateLabel(row.stage_date) ||
+    normalizeDateLabel(row.registration_competition_date_label) ||
+    normalizeDateLabel(row.date_label) ||
+    row.registration_competition_date_label ||
+    row.date_label ||
+    ''
   const registration = {
-    competitionDateLabel: row.registration_competition_date_label || row.date_label || '',
+    competitionDateLabel,
     closeNote: row.registration_close_note || DEFAULT_REGISTRATION_NOTE,
   }
 
@@ -77,7 +94,7 @@ function mapStageRegistration(row = {}) {
     registration.closedText = row.registration_closed_text
   }
 
-  if (row.registration_limit) {
+  if (row.registration_limit !== null && row.registration_limit !== undefined) {
     registration.participantLimit = normalizeSortNumber(row.registration_limit)
   }
 
@@ -205,8 +222,10 @@ export function mapNormalizedCompetitionCatalog({
           .sort((left, right) => normalizeSortNumber(left.sort_order) - normalizeSortNumber(right.sort_order))
           .map((stage) => ({
             id: stage.id || '',
+            stage: normalizeSortNumber(stage.stage_number),
+            sortOrder: normalizeSortNumber(stage.sort_order, normalizeSortNumber(stage.stage_number)),
             title: stage.title || String(stage.stage_number || ''),
-            date: stage.date_label || stage.stage_date || '',
+            date: stage.stage_date || stage.date_label || '',
             place: stage.place || '',
             meta: stage.meta || '',
             description: mapStageDescription(stage, distancesByStage.get(stage.id) || []),
@@ -250,14 +269,16 @@ export function mapCompetitionUpsertPayload(competition = {}) {
 
 export function mapStageUpsertPayload(stage = {}) {
   const registration = stage.registration || {}
+  const stageDate = formatCompetitionDateInputValue(stage.date)
+  const dateLabel = normalizeDateLabel(stage.date) || stage.date || ''
 
   return {
     id: stage.id || '',
     competition_id: stage.competitionSlug || stage.competitionId || '',
     stage_number: normalizeSortNumber(stage.stage),
     title: stage.title || String(stage.stage || ''),
-    date_label: stage.date || '',
-    stage_date: /^\d{4}-\d{2}-\d{2}$/.test(String(stage.date || '')) ? stage.date : null,
+    date_label: dateLabel,
+    stage_date: stageDate || null,
     place: stage.place || '',
     meta: stage.meta || '',
     description: stage.distanceSummary || stage.description || '',
@@ -271,11 +292,11 @@ export function mapStageUpsertPayload(stage = {}) {
     registration_close_at: registration.closeAt || null,
     registration_open_date_label: registration.openDateLabel || null,
     registration_close_date_label: registration.closeDateLabel || null,
-    registration_competition_date_label: registration.competitionDateLabel || null,
+    registration_competition_date_label: dateLabel || registration.competitionDateLabel || null,
     registration_close_note: registration.closeNote || DEFAULT_REGISTRATION_NOTE,
     registration_closed_title: registration.closedTitle || null,
     registration_closed_text: registration.closedText || null,
-    registration_limit: normalizeSortNumber(stage.registrationLimit || registration.participantLimit, 0) || null,
+    registration_limit: normalizeSortNumber(stage.registrationLimit ?? registration.participantLimit ?? 0, 0),
     is_public: stage.isPublic !== false,
     sort_order: normalizeSortNumber(stage.sortOrder, normalizeSortNumber(stage.stage)),
   }

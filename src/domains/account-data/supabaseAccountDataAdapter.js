@@ -155,12 +155,111 @@ export async function fetchAllAccountProfilesForAdmin() {
   }))
 }
 
+export async function fetchAccountProfilesForOwnersForAdmin(ownerUserIds = []) {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+  const normalizedOwnerIds = Array.from(
+    new Set(
+      (Array.isArray(ownerUserIds) ? ownerUserIds : [])
+        .map((value) => String(value || '').trim())
+        .filter(Boolean),
+    ),
+  )
+
+  if (!normalizedOwnerIds.length) {
+    return []
+  }
+
+  const { data, error } = await getSupabaseClient()
+    .from(ACCOUNT_PROFILES_TABLE)
+    .select(ACCOUNT_PROFILE_SELECT)
+    .in('owner_user_id', normalizedOwnerIds)
+
+  if (error) {
+    throwAccountDataError(error, ACCOUNT_PROFILES_TABLE, 'Не удалось загрузить профили.')
+  }
+
+  return (data ?? []).map((row) => ({
+    ownerUserId: row.owner_user_id || '',
+    ...mapSupabaseAccountProfileRow(row),
+  }))
+}
+
+export async function fetchAccountProfileForOwnerForAdmin(ownerUserId) {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+
+  const { data, error } = await getSupabaseClient()
+    .from(ACCOUNT_PROFILES_TABLE)
+    .select(ACCOUNT_PROFILE_SELECT)
+    .eq('owner_user_id', ownerUserId)
+    .maybeSingle()
+
+  if (error) {
+    throwAccountDataError(error, ACCOUNT_PROFILES_TABLE, 'Не удалось загрузить профиль.')
+  }
+
+  return data
+    ? {
+        ownerUserId: data.owner_user_id || '',
+        ...mapSupabaseAccountProfileRow(data),
+      }
+    : null
+}
+
 export async function fetchAllAccountAthletesForAdmin() {
   await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
 
   const { data, error } = await getSupabaseClient()
     .from(ACCOUNT_ATHLETES_TABLE)
     .select(ACCOUNT_ATHLETE_SELECT)
+
+  if (error) {
+    throwAccountDataError(error, ACCOUNT_ATHLETES_TABLE, 'Не удалось загрузить спортсменов.')
+  }
+
+  return (data ?? []).map((row) => ({
+    ownerUserId: row.owner_user_id || '',
+    ownerUserKey: row.owner_user_id || '',
+    ...mapSupabaseAccountAthleteRow(row),
+  }))
+}
+
+export async function fetchAccountAthletesForOwnersForAdmin(ownerUserIds = []) {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+  const normalizedOwnerIds = Array.from(
+    new Set(
+      (Array.isArray(ownerUserIds) ? ownerUserIds : [])
+        .map((value) => String(value || '').trim())
+        .filter(Boolean),
+    ),
+  )
+
+  if (!normalizedOwnerIds.length) {
+    return []
+  }
+
+  const { data, error } = await getSupabaseClient()
+    .from(ACCOUNT_ATHLETES_TABLE)
+    .select(ACCOUNT_ATHLETE_SELECT)
+    .in('owner_user_id', normalizedOwnerIds)
+
+  if (error) {
+    throwAccountDataError(error, ACCOUNT_ATHLETES_TABLE, 'Не удалось загрузить спортсменов.')
+  }
+
+  return (data ?? []).map((row) => ({
+    ownerUserId: row.owner_user_id || '',
+    ownerUserKey: row.owner_user_id || '',
+    ...mapSupabaseAccountAthleteRow(row),
+  }))
+}
+
+export async function fetchAccountAthletesForOwnerForAdmin(ownerUserId) {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+
+  const { data, error } = await getSupabaseClient()
+    .from(ACCOUNT_ATHLETES_TABLE)
+    .select(ACCOUNT_ATHLETE_SELECT)
+    .eq('owner_user_id', ownerUserId)
 
   if (error) {
     throwAccountDataError(error, ACCOUNT_ATHLETES_TABLE, 'Не удалось загрузить спортсменов.')

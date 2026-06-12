@@ -1,18 +1,7 @@
 <template>
   <ElCard class="account__panel account-competitions" shadow="never">
-    <template #header>
-      <div class="account__panel-head account-competitions__header">
-        <div class="account__panel-actions account-competitions__summary">
-          <ElTag type="primary" effect="light" round>{{ total }} этапов</ElTag>
-          <ElTag type="success" effect="light" round>{{ activeCount }} активных</ElTag>
-          <ElTag type="danger" effect="light" round>{{ archivedCount }} в архиве</ElTag>
-        </div>
-      </div>
-    </template>
-
     <div class="account__competitions-toolbar">
       <label class="account__field account__field--filter">
-        <span class="account__field-label">Соревнование</span>
         <ElSelect
           :model-value="competitionFilter"
           class="account__select"
@@ -59,7 +48,7 @@
 
       <button
         type="button"
-        class="account__table-action account__table-action--success account__competition-add btn-reset"
+        class="account__table-action account__table-action--edit account__competition-add btn-reset"
         @click="openCreateCompetitionDialog"
       >
         Добавить
@@ -71,339 +60,87 @@
     </div>
 
     <div v-else-if="rows.length" class="account__native-table-wrap">
-      <table
-        class="account__native-table account__native-table--competitions"
-        :class="{
-          'account__native-table--competitions-archive': competitionViewFilter === 'archived',
-        }"
-      >
+      <table class="account__native-table account__native-table--competitions">
         <thead class="account__native-table-head">
-          <tr v-if="competitionViewFilter === 'archived'">
-            <th>Название соревнования</th>
-            <th>Этап</th>
-            <th>Дата начала</th>
-            <th>Дата окончания</th>
-          </tr>
-          <tr v-else>
+          <tr>
             <th>Название соревнования</th>
             <th>Этап</th>
             <th>Дата</th>
-            <th>Протокол</th>
-            <th>Фото</th>
-            <th>Сертификаты</th>
-            <th>Памятка</th>
             <th>Регистрация</th>
             <th>Места</th>
           </tr>
         </thead>
 
         <tbody>
-          <template v-for="row in competitionRows" :key="row.id">
-            <tr
-              class="account__native-table-row"
-              :class="{ 'account__native-table-row--archived': row.isArchived }"
-            >
-              <td class="account__native-table-cell account__native-table-cell--primary">
-                <div class="account__competition-name">
-                  <div class="account__competition-name-copy">
-                    <span class="account__table-primary">
-                      {{ formatCompetitionName(row.competitionName) }}
-                    </span>
-                  </div>
-
-                </div>
-              </td>
-              <td class="account__native-table-cell account__native-table-cell--center">
-                <span class="account__competition-stage">
-                  {{ formatCompetitionStageLabel(row.stage) }}
-                </span>
-              </td>
-              <template v-if="competitionViewFilter === 'archived'">
-                <td class="account__native-table-cell account__native-table-cell--center">
-                  {{ formatCompetitionCalendarDateShort(row.date) }}
-                </td>
-                <td class="account__native-table-cell account__native-table-cell--center">
-                  {{ formatCompetitionCalendarDateShort(row.date) }}
-                </td>
-              </template>
-              <template v-else>
-                <td class="account__native-table-cell account__native-table-cell--center">
-                  {{ formatCompetitionCalendarDateShort(row.date) }}
-                </td>
-                <td class="account__native-table-cell account__native-table-cell--center">
-                  <div
-                    ref="linkEditorRefs"
-                    class="account__competition-file"
-                    :data-link-editor-id="getLinkEditorId(row, 'protocol')"
-                  >
-                    <button
-                      type="button"
-                      class="account__table-action account__table-action--icon account__table-action--protocol btn-reset"
-                      :title="row.protocolUrl ? 'Протокол загружен' : 'Добавить ссылку на протокол'"
-                      :aria-label="
-                        row.protocolUrl ? 'Протокол загружен' : 'Добавить ссылку на протокол'
-                      "
-                      @click="toggleLinkEditor(row, 'protocol')"
-                    >
-                      <ElIcon>
-                        <Link v-if="row.protocolUrl" />
-                        <Upload v-else />
-                      </ElIcon>
-                    </button>
-
-                    <form
-                      v-if="isLinkEditorOpen(row, 'protocol')"
-                      class="account__competition-link-form"
-                      @submit.prevent="saveLinkEditor(row, 'protocol')"
-                    >
-                      <input
-                        v-model.trim="linkForm.url"
-                        class="account__input account__input--compact"
-                        type="url"
-                        placeholder="Ссылка на протокол"
-                      />
-                      <button
-                        type="submit"
-                        class="account__table-action account__table-action--icon account__table-action--success btn-reset"
-                        aria-label="Сохранить ссылку на протокол"
-                        title="Сохранить"
-                      >
-                        <ElIcon>
-                          <Check />
-                        </ElIcon>
-                      </button>
-                    </form>
-                  </div>
-                </td>
-                <td class="account__native-table-cell account__native-table-cell--center">
-                  <div
-                    ref="linkEditorRefs"
-                    class="account__competition-file"
-                    :data-link-editor-id="getLinkEditorId(row, 'photo')"
-                  >
-                    <button
-                      type="button"
-                      class="account__table-action account__table-action--icon account__table-action--photo btn-reset"
-                      :title="row.photoUrl ? 'Фото загружено' : 'Добавить ссылку на фото'"
-                      :aria-label="row.photoUrl ? 'Фото загружено' : 'Добавить ссылку на фото'"
-                      @click="toggleLinkEditor(row, 'photo')"
-                    >
-                      <ElIcon>
-                        <Link v-if="row.photoUrl" />
-                        <Upload v-else />
-                      </ElIcon>
-                    </button>
-
-                    <form
-                      v-if="isLinkEditorOpen(row, 'photo')"
-                      class="account__competition-link-form"
-                      @submit.prevent="saveLinkEditor(row, 'photo')"
-                    >
-                      <input
-                        v-model.trim="linkForm.url"
-                        class="account__input account__input--compact"
-                        type="url"
-                        placeholder="Ссылка на фото"
-                      />
-                      <button
-                        type="submit"
-                        class="account__table-action account__table-action--icon account__table-action--success btn-reset"
-                        aria-label="Сохранить ссылку на фото"
-                        title="Сохранить"
-                      >
-                        <ElIcon>
-                          <Check />
-                        </ElIcon>
-                      </button>
-                    </form>
-                  </div>
-                </td>
-                <td class="account__native-table-cell account__native-table-cell--center">
-                  <div
-                    ref="linkEditorRefs"
-                    class="account__competition-file"
-                    :data-link-editor-id="getLinkEditorId(row, 'certificate')"
-                  >
-                    <button
-                      type="button"
-                      class="account__table-action account__table-action--icon account__table-action--protocol btn-reset"
-                      :title="
-                        row.certificateUrl
-                          ? 'Архив сертификатов добавлен'
-                          : 'Добавить ссылку на сертификаты'
-                      "
-                      :aria-label="
-                        row.certificateUrl
-                          ? 'Архив сертификатов добавлен'
-                          : 'Добавить ссылку на сертификаты'
-                      "
-                      @click="toggleLinkEditor(row, 'certificate')"
-                    >
-                      <ElIcon>
-                        <Link v-if="row.certificateUrl" />
-                        <Upload v-else />
-                      </ElIcon>
-                    </button>
-
-                    <form
-                      v-if="isLinkEditorOpen(row, 'certificate')"
-                      class="account__competition-link-form"
-                      @submit.prevent="saveLinkEditor(row, 'certificate')"
-                    >
-                      <input
-                        v-model.trim="linkForm.url"
-                        class="account__input account__input--compact"
-                        type="url"
-                        placeholder="Ссылка на архив сертификатов"
-                      />
-                      <button
-                        type="submit"
-                        class="account__table-action account__table-action--icon account__table-action--success btn-reset"
-                        aria-label="Сохранить ссылку на сертификаты"
-                        title="Сохранить"
-                      >
-                        <ElIcon>
-                          <Check />
-                        </ElIcon>
-                      </button>
-                    </form>
-                  </div>
-                </td>
-                <td class="account__native-table-cell account__native-table-cell--center">
-                  <div
-                    ref="linkEditorRefs"
-                    class="account__competition-file"
-                    :data-link-editor-id="getLinkEditorId(row, 'memo')"
-                  >
-                    <button
-                      type="button"
-                      class="account__table-action account__table-action--icon account__table-action--photo btn-reset"
-                      :title="row.memoUrl ? 'Памятка добавлена' : 'Добавить ссылку на памятку'"
-                      :aria-label="row.memoUrl ? 'Памятка добавлена' : 'Добавить ссылку на памятку'"
-                      @click="toggleLinkEditor(row, 'memo')"
-                    >
-                      <ElIcon>
-                        <Link v-if="row.memoUrl" />
-                        <Upload v-else />
-                      </ElIcon>
-                    </button>
-
-                    <form
-                      v-if="isLinkEditorOpen(row, 'memo')"
-                      class="account__competition-link-form"
-                      @submit.prevent="saveLinkEditor(row, 'memo')"
-                    >
-                      <input
-                        v-model.trim="linkForm.url"
-                        class="account__input account__input--compact"
-                        type="url"
-                        placeholder="Ссылка на памятку"
-                      />
-                      <button
-                        type="submit"
-                        class="account__table-action account__table-action--icon account__table-action--success btn-reset"
-                        aria-label="Сохранить ссылку на памятку"
-                        title="Сохранить"
-                      >
-                        <ElIcon>
-                          <Check />
-                        </ElIcon>
-                      </button>
-                    </form>
-                  </div>
-                </td>
-                <td class="account__native-table-cell account__native-table-cell--center">
-                  <div class="account__competition-registration">
-                    <span
-                      class="account__competition-registration-dot"
-                      :class="`account__competition-registration-dot--${competitionRegistrationState(row.registration)}`"
-                      aria-hidden="true"
-                    />
-                    <span
-                      v-if="formatCompetitionRegistrationWindow(row.registration)"
-                      class="account__competition-registration-window"
-                    >
-                      {{ formatCompetitionRegistrationWindow(row.registration) }}
-                    </span>
-                    <span
-                      v-if="formatRegistrationCountdown(row.registration)"
-                      class="account__competition-registration-window"
-                    >
-                      {{ formatRegistrationCountdown(row.registration) }}
-                    </span>
-                  </div>
-                </td>
-                <td class="account__native-table-cell account__native-table-cell--center">
-                  <span class="account__competition-registration-window">
-                    {{ formatStageCapacity(row) }}
+          <tr
+            v-for="row in competitionRows"
+            :key="row.id"
+            class="account__native-table-row account-competitions__table-row"
+            tabindex="0"
+            role="button"
+            :class="{ 'account__native-table-row--archived': row.isArchived }"
+            @click="openCompetitionDetailsDialog(row)"
+            @keydown.enter.prevent="openCompetitionDetailsDialog(row)"
+            @keydown.space.prevent="openCompetitionDetailsDialog(row)"
+          >
+            <td class="account__native-table-cell account__native-table-cell--primary">
+              <div class="account__competition-name">
+                <div class="account__competition-name-copy">
+                  <span class="account__table-primary">
+                    {{ formatCompetitionName(row.competitionName) }}
                   </span>
-                </td>
-              </template>
-            </tr>
-
-            <tr
-              v-if="competitionViewFilter === 'active'"
-              class="account__native-table-row account__native-table-row--actions"
-            >
-              <td class="account__native-table-cell" colspan="9">
-                <div class="account__competition-actions-row">
-                  <button
-                    type="button"
-                    class="account__table-action account__table-action--edit btn-reset"
-                    @click="openCompetitionDialog(row)"
-                  >
-                    Редактирование
-                  </button>
-                  <button
-                    type="button"
-                    class="account__table-action account__table-action--delete btn-reset"
-                    @click="openDeleteCompetitionDialog(row)"
-                  >
-                    Удаление
-                  </button>
-                  <button
-                    type="button"
-                    class="account__table-action account__table-action--distance btn-reset"
-                    @click="openDistanceDialog(row)"
-                  >
-                    Настройка дистанции
-                  </button>
                 </div>
-              </td>
-            </tr>
-          </template>
+              </div>
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <span class="account__competition-stage">
+                {{ formatCompetitionStageLabel(row.stage) }}
+              </span>
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              {{ formatCompetitionCalendarDateShort(row.date) }}
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <span class="account__competition-registration-window">
+                {{ formatCompetitionRegistrationWindow(row.registration) }}
+              </span>
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <span class="account__competition-registration-window">
+                {{ formatStageCapacity(row) }}
+              </span>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
 
     <ElEmpty v-else :description="emptyStateDescription" />
 
-    <AccountCompetitionEditDialog
-      :model-value="isCompetitionDialogOpen"
-      :stage="competitionDialogStage"
-      :competition-options="competitionOptions"
-      @close="closeCompetitionDialog"
-      @submit="saveCompetitionDialog"
-    />
-
     <AccountCompetitionCreateDialog
       :model-value="isCreateCompetitionDialogOpen"
+      :is-submitting="actionLoading === 'create-stage'"
       @close="closeCreateCompetitionDialog"
       @submit="saveCreateCompetitionDialog"
     />
 
-    <AccountCompetitionDistanceDialog
-      :model-value="isDistanceDialogOpen"
-      :stage="distanceDialogStage"
-      :description="distanceDialogDescription"
-      @close="closeDistanceDialog"
-      @submit="saveDistanceDialog"
+    <AccountCompetitionDetailsDialog
+      :model-value="isCompetitionDialogOpen"
+      :stage="competitionDialogStage"
+      :action-loading="actionLoading"
+      @close="closeCompetitionDialog"
+      @save-stage="saveCompetitionDialog"
+      @delete-stage="openDeleteCompetitionDialog"
+      @update-links="saveCompetitionLinks"
+      @update-distances="saveCompetitionDistances"
+      @closed="resetCompetitionDialog"
     />
 
     <AccountCompetitionDeleteDialog
       :model-value="isDeleteCompetitionDialogOpen"
       :stage="deleteCompetitionStage"
       :active-registrations-count="deleteCompetitionActiveRegistrationsCount"
+      :is-submitting="actionLoading === 'delete-stage'"
       @close="closeDeleteCompetitionDialog"
       @confirm="confirmDeleteCompetition"
     />
@@ -411,9 +148,8 @@
 </template>
 
 <script setup>
-import { Check, Link, Upload } from '@element-plus/icons-vue'
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { ElCard, ElEmpty, ElIcon, ElOption, ElSelect, ElTag } from 'element-plus'
+import { computed, ref } from 'vue'
+import { ElCard, ElEmpty, ElOption, ElSelect } from 'element-plus'
 import {
   formatCompetitionCalendarDateShort,
   formatCompetitionName,
@@ -421,14 +157,9 @@ import {
   formatCompetitionStageLabel,
 } from '@/pages/account/utils/accountFormatters'
 import AccountCompetitionCreateDialog from '@/pages/account/components/competitions/AccountCompetitionCreateDialog.vue'
+import AccountCompetitionDetailsDialog from '@/pages/account/components/competitions/AccountCompetitionDetailsDialog.vue'
 import AccountCompetitionDeleteDialog from '@/pages/account/components/competitions/AccountCompetitionDeleteDialog.vue'
-import AccountCompetitionDistanceDialog from '@/pages/account/components/competitions/AccountCompetitionDistanceDialog.vue'
-import AccountCompetitionEditDialog from '@/pages/account/components/competitions/AccountCompetitionEditDialog.vue'
-import {
-  resolveCompetitionRegistrationState,
-  formatCompetitionCountdown,
-  toCompetitionDateTime,
-} from '@/utils/competitionRegistration'
+import { toCompetitionDateTime } from '@/utils/competitionRegistration'
 
 const props = defineProps({
   rows: {
@@ -467,6 +198,10 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  actionLoading: {
+    type: String,
+    default: '',
+  },
   getStageDistances: {
     type: Function,
     required: true,
@@ -490,18 +225,8 @@ const emit = defineEmits([
 const isCompetitionDialogOpen = ref(false)
 const isCreateCompetitionDialogOpen = ref(false)
 const isDeleteCompetitionDialogOpen = ref(false)
-const isDistanceDialogOpen = ref(false)
 const competitionDialogStage = ref(null)
 const deleteCompetitionStage = ref(null)
-const distanceDialogStage = ref(null)
-const linkEditor = reactive({
-  stageId: '',
-  type: '',
-})
-const linkForm = reactive({
-  url: '',
-})
-const linkEditorRefs = ref([])
 
 const competitionRows = computed(() =>
   props.rows.map((row) => ({
@@ -515,14 +240,6 @@ const emptyStateDescription = computed(() =>
     ? 'Архив соревнований пока пуст.'
     : 'Активные соревнования не найдены.',
 )
-
-const distanceDialogDescription = computed(() => {
-  if (!distanceDialogStage.value) {
-    return ''
-  }
-
-  return props.getStageDistances(distanceDialogStage.value.id)
-})
 
 const deleteCompetitionActiveRegistrationsCount = computed(() => {
   if (!deleteCompetitionStage.value) {
@@ -538,50 +255,39 @@ function isCompetitionArchived(row, now = Date.now()) {
   return Number.isFinite(archiveTimestamp) ? now >= archiveTimestamp : false
 }
 
-function competitionRegistrationState(registration) {
-  return resolveCompetitionRegistrationState(registration).mode === 'open' ? 'open' : 'closed'
-}
-
 function formatStageCapacity(row) {
   const activeCount = props.getStageActiveRegistrationsCount(row.id)
-  const limit = Number(row.registrationLimit || row.registration?.participantLimit || 0)
+  const limit = Number(row.registrationLimit ?? row.registration?.participantLimit ?? 0)
 
   if (!limit) {
-    return `${activeCount} / без лимита`
+    return `${activeCount}/0`
   }
 
-  return `${activeCount} / ${limit}`
+  return `${activeCount}/${limit}`
 }
 
-function formatRegistrationCountdown(registration) {
-  const state = resolveCompetitionRegistrationState(registration)
-
-  if (state.mode === 'upcoming') {
-    const countdown = formatCompetitionCountdown(state.openAt)
-    return countdown ? `Откроется через ${countdown}` : ''
-  }
-
-  if (state.mode === 'open') {
-    const countdown = formatCompetitionCountdown(state.closeAt)
-    return countdown ? `Закроется через ${countdown}` : ''
-  }
-
-  return ''
-}
-
-function openCompetitionDialog(row) {
+function openCompetitionDetailsDialog(row) {
   competitionDialogStage.value = row
   isCompetitionDialogOpen.value = true
 }
 
 function closeCompetitionDialog() {
   isCompetitionDialogOpen.value = false
+}
+
+function resetCompetitionDialog() {
   competitionDialogStage.value = null
 }
 
 function saveCompetitionDialog(payload) {
-  emit('update-stage', payload)
-  closeCompetitionDialog()
+  emit('update-stage', {
+    ...payload,
+    done: (isSuccess) => {
+      if (isSuccess) {
+        closeCompetitionDialog()
+      }
+    },
+  })
 }
 
 function openCreateCompetitionDialog() {
@@ -589,12 +295,22 @@ function openCreateCompetitionDialog() {
 }
 
 function closeCreateCompetitionDialog() {
+  if (props.actionLoading === 'create-stage') {
+    return
+  }
+
   isCreateCompetitionDialogOpen.value = false
 }
 
 function saveCreateCompetitionDialog(payload) {
-  emit('create-stage', payload)
-  closeCreateCompetitionDialog()
+  emit('create-stage', {
+    ...payload,
+    done: (isSuccess) => {
+      if (isSuccess) {
+        closeCreateCompetitionDialog()
+      }
+    },
+  })
 }
 
 function openDeleteCompetitionDialog(row) {
@@ -603,162 +319,40 @@ function openDeleteCompetitionDialog(row) {
 }
 
 function closeDeleteCompetitionDialog() {
+  if (props.actionLoading === 'delete-stage') {
+    return
+  }
+
   isDeleteCompetitionDialogOpen.value = false
   deleteCompetitionStage.value = null
 }
 
 function confirmDeleteCompetition(stageId) {
-  emit('delete-stage', stageId)
-  closeDeleteCompetitionDialog()
-}
-
-function openDistanceDialog(row) {
-  distanceDialogStage.value = row
-  isDistanceDialogOpen.value = true
-}
-
-function closeDistanceDialog() {
-  isDistanceDialogOpen.value = false
-  distanceDialogStage.value = null
-}
-
-function saveDistanceDialog(payload) {
-  emit('update-stage-distances', payload)
-  closeDistanceDialog()
-}
-
-function isLinkEditorOpen(row, type) {
-  return linkEditor.stageId === row.id && linkEditor.type === type
-}
-
-function getLinkEditorId(row, type) {
-  return `${row.id}-${type}`
-}
-
-function toggleLinkEditor(row, type) {
-  if (isLinkEditorOpen(row, type)) {
-    closeLinkEditor()
-    return
-  }
-
-  linkEditor.stageId = row.id
-  linkEditor.type = type
-  linkForm.url = getStageLinkValue(row, type)
-}
-
-function getStageLinkValue(row, type) {
-  if (type === 'protocol') {
-    return row.protocolUrl || ''
-  }
-
-  if (type === 'photo') {
-    return row.photoUrl || ''
-  }
-
-  if (type === 'certificate') {
-    return row.certificateUrl || ''
-  }
-
-  if (type === 'memo') {
-    return row.memoUrl || ''
-  }
-
-  return ''
-}
-
-function closeLinkEditor() {
-  linkEditor.stageId = ''
-  linkEditor.type = ''
-  linkForm.url = ''
-}
-
-function saveLinkEditor(row, type) {
-  const normalizedUrl = linkForm.url.trim()
-
-  emit('update-stage-links', {
-    stageId: row.id,
-    protocolUrl: type === 'protocol' ? normalizedUrl : undefined,
-    photoUrl: type === 'photo' ? normalizedUrl : undefined,
-    certificateUrl: type === 'certificate' ? normalizedUrl : undefined,
-    memoUrl: type === 'memo' ? normalizedUrl : undefined,
+  emit('delete-stage', {
+    stageId,
+    done: (isSuccess) => {
+      if (isSuccess) {
+        closeDeleteCompetitionDialog()
+      }
+    },
   })
-
-  closeLinkEditor()
 }
 
-function handleLinkEditorOutsideClick(event) {
-  if (!linkEditor.stageId || !linkEditor.type) {
-    return
-  }
-
-  const activeEditorId = `${linkEditor.stageId}-${linkEditor.type}`
-  const activeEditorElement = linkEditorRefs.value.find(
-    (element) => element?.dataset?.linkEditorId === activeEditorId,
-  )
-
-  if (!activeEditorElement || activeEditorElement.contains(event.target)) {
-    return
-  }
-
-  closeLinkEditor()
+function saveCompetitionLinks(payload) {
+  emit('update-stage-links', {
+    ...payload,
+    actionKey: `save-link:${payload.linkKey || 'all'}`,
+  })
 }
 
-onMounted(() => {
-  document.addEventListener('pointerdown', handleLinkEditorOutsideClick)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', handleLinkEditorOutsideClick)
-})
+function saveCompetitionDistances(payload) {
+  emit('update-stage-distances', payload)
+}
 </script>
 
 <style scoped>
-.account-competitions :deep(.el-card__header) {
-  padding: 18px 20px 12px;
-}
-
 .account-competitions :deep(.el-card__body) {
   padding-top: 18px;
-}
-
-.account-competitions__header {
-  min-height: 0;
-  justify-content: flex-end;
-}
-
-.account-competitions__summary {
-  width: 100%;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.account-competitions__summary :deep(.el-tag) {
-  padding: 4px 12px;
-  border-width: 1px;
-  border-style: solid;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 900;
-  box-shadow: 0 12px 26px rgb(15 23 42 / 0.08);
-}
-
-.account-competitions__summary :deep(.el-tag--primary) {
-  background: #f5f7fb;
-  border-color: #dce4ee;
-  color: #526072;
-}
-
-.account-competitions__summary :deep(.el-tag--success) {
-  background: #edf9f0;
-  border-color: #cfe9d5;
-  color: #2f8f5b;
-}
-
-.account-competitions__summary :deep(.el-tag--danger) {
-  background: #fff3f1;
-  border-color: #ffd8d1;
-  color: #d76034;
 }
 
 .account__competitions-toolbar {
@@ -906,6 +500,21 @@ onBeforeUnmount(() => {
 
 .account__native-table-row--archived .el-tag {
   border-color: color-mix(in srgb, var(--cyan) 18%, white);
+}
+
+.account-competitions__table-row {
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.account-competitions__table-row:hover,
+.account-competitions__table-row:focus-visible,
+.account-competitions__table-row:hover .account__native-table-cell,
+.account-competitions__table-row:focus-visible .account__native-table-cell {
+  background: #f2f5f8;
+  outline: none;
 }
 
 .account__native-table-wrap {

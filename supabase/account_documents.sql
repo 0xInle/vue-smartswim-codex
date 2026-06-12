@@ -46,6 +46,130 @@ alter table public.account_documents
 alter table public.account_documents
   add column if not exists storage_path text;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'account-documents',
+  'account-documents',
+  false,
+  10485760,
+  array['application/pdf', 'image/png', 'image/jpeg']
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Allow users read own account document files" on storage.objects;
+drop policy if exists "Allow users insert own account document files" on storage.objects;
+drop policy if exists "Allow users update own account document files" on storage.objects;
+drop policy if exists "Allow users delete own account document files" on storage.objects;
+drop policy if exists "Allow admins read account document files" on storage.objects;
+drop policy if exists "Allow admins delete account document files" on storage.objects;
+
+create policy "Allow users read own account document files"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'account-documents'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "Allow users insert own account document files"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'account-documents'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "Allow users update own account document files"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'account-documents'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and (
+    not exists (
+      select 1
+      from public.account_documents as account_documents
+      where account_documents.storage_path = storage.objects.name
+        and account_documents.owner_user_id = auth.uid()
+    )
+    or exists (
+      select 1
+      from public.account_documents as account_documents
+      where account_documents.storage_path = storage.objects.name
+        and account_documents.owner_user_id = auth.uid()
+        and account_documents.status <> 'verified'
+    )
+  )
+)
+with check (
+  bucket_id = 'account-documents'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and (
+    not exists (
+      select 1
+      from public.account_documents as account_documents
+      where account_documents.storage_path = storage.objects.name
+        and account_documents.owner_user_id = auth.uid()
+    )
+    or exists (
+      select 1
+      from public.account_documents as account_documents
+      where account_documents.storage_path = storage.objects.name
+        and account_documents.owner_user_id = auth.uid()
+        and account_documents.status <> 'verified'
+    )
+  )
+);
+
+create policy "Allow users delete own account document files"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'account-documents'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and (
+    not exists (
+      select 1
+      from public.account_documents as account_documents
+      where account_documents.storage_path = storage.objects.name
+        and account_documents.owner_user_id = auth.uid()
+    )
+    or exists (
+      select 1
+      from public.account_documents as account_documents
+      where account_documents.storage_path = storage.objects.name
+        and account_documents.owner_user_id = auth.uid()
+        and account_documents.status <> 'verified'
+    )
+  )
+);
+
+create policy "Allow admins read account document files"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'account-documents'
+  and public.current_crm_role() = 'admin'
+);
+
+create policy "Allow admins delete account document files"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'account-documents'
+  and public.current_crm_role() = 'admin'
+);
+
 alter table public.account_documents
   drop constraint if exists account_documents_owner_email_check;
 
@@ -218,6 +342,10 @@ create index if not exists account_documents_document_type_idx
 
 create index if not exists account_documents_updated_at_idx
   on public.account_documents (updated_at desc);
+
+create index if not exists account_documents_storage_path_idx
+  on public.account_documents (storage_path)
+  where storage_path is not null;
 
 create index if not exists account_documents_created_at_idx
   on public.account_documents (created_at desc);

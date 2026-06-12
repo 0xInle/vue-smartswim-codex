@@ -746,7 +746,10 @@ onBeforeUnmount(() => {
 }
 
 .account-trainer-request__select :deep(.el-select__wrapper) {
-  min-height: 48px;
+  box-sizing: border-box;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
   border-radius: 10px;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--cyan) 24%, white) inset;
 }
@@ -764,11 +767,14 @@ onBeforeUnmount(() => {
 .account-trainer-request__time-trigger {
   position: relative;
   display: flex;
+  box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  min-height: 48px;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
   padding: 0 44px 0 16px;
   border: 1px solid color-mix(in srgb, var(--cyan) 24%, white);
   border-radius: 10px;
