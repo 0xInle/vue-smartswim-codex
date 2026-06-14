@@ -30,7 +30,13 @@
                 :value="option.value"
               />
             </ElSelect>
-            <ElTag v-else :type="statusTagType" effect="light" round>
+            <ElTag
+              v-else
+              :type="statusTagType"
+              effect="light"
+              round
+              class="account-competition-registration-details__tag"
+            >
               {{ statusLabel }}
             </ElTag>
           </div>
@@ -133,7 +139,12 @@
           <div class="account-competition-registration-details__card account-competition-registration-details__card--wide account-competition-registration-details__card--payment">
             <div class="account-competition-registration-details__card-head">
               <span class="account-competition-registration-details__label">Оплата</span>
-              <ElTag :type="paymentStatusTagType" effect="light" round>
+              <ElTag
+                :type="paymentStatusTagType"
+                effect="light"
+                round
+                class="account-competition-registration-details__tag"
+              >
                 {{ paymentStatusLabel }}
               </ElTag>
             </div>
@@ -203,9 +214,6 @@
             <strong class="account-competition-registration-details__value">
               {{ registration.ownerName || 'Не указан' }}
             </strong>
-            <span class="account-competition-registration-details__meta">
-              Account ID: {{ registration.sourceUserKey || 'Не указан' }}
-            </span>
             <span class="account-competition-registration-details__meta">
               Email: {{ registration.ownerEmail || 'Не указан' }}
             </span>
@@ -386,7 +394,10 @@
 import { Close } from '@element-plus/icons-vue'
 import { computed, reactive, watch } from 'vue'
 import { ElDialog, ElOption, ElSelect, ElTag } from 'element-plus'
-import { formatCompactDateTime } from '@/pages/account/utils/accountFormatters'
+import {
+  formatCompactDateTime,
+  formatCompetitionRegistrationRecordStatus,
+} from '@/pages/account/utils/accountFormatters'
 import {
   COMPETITION_REGISTRATION_RECORD_STATUS,
   COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS,
@@ -535,7 +546,11 @@ const props = defineProps({
   },
   statusOptions: {
     type: Array,
-    default: () => COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS,
+    default: () =>
+      COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS.map((option) => ({
+        value: option.value,
+        label: formatCompetitionRegistrationRecordStatus(option.value),
+      })),
   },
 })
 
@@ -795,9 +810,18 @@ watch(
   border-radius: 5px;
 }
 
+.account-competition-registration-details :deep(.el-tag.is-round) {
+  border-radius: 5px;
+}
+
+.account-competition-registration-details__tag {
+  --el-tag-border-radius-rounded: 5px;
+}
+
 .account-competition-registration-details__status-tag {
   flex: 0 0 auto;
   margin-left: auto;
+  border-radius: 5px;
 }
 
 .account-competition-registration-details__account-link {

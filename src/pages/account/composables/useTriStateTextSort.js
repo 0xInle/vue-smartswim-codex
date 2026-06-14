@@ -5,24 +5,24 @@ const accountSortCollator = new Intl.Collator('ru', {
   numeric: true,
 })
 
-export function useTriStateTextSort(initialKey = '') {
+export function useTriStateTextSort(initialKey = '', { initialDirection = 'asc' } = {}) {
   const sortKey = ref(initialKey)
-  const sortDirection = ref('asc')
+  const sortDirection = ref(initialDirection)
 
   function toggleSort(nextKey) {
     if (sortKey.value !== nextKey) {
       sortKey.value = nextKey
-      sortDirection.value = 'asc'
+      sortDirection.value = initialDirection
       return
     }
 
-    if (sortDirection.value === 'asc') {
-      sortDirection.value = 'desc'
+    if (sortDirection.value === initialDirection) {
+      sortDirection.value = initialDirection === 'asc' ? 'desc' : 'asc'
       return
     }
 
     sortKey.value = ''
-    sortDirection.value = 'asc'
+    sortDirection.value = initialDirection
   }
 
   function getSortState(key) {

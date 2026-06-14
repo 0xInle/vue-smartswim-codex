@@ -32,6 +32,9 @@ coverage
 /cypress/videos/
 /cypress/screenshots/
 
+# Browser automation artifacts
+.playwright-mcp/
+
 # Vitest
 __screenshots__/
 

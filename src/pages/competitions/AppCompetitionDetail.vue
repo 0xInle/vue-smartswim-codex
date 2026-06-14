@@ -167,6 +167,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+:deep(.el-tag.el-tag--info.el-tag--light.is-round) {
+  border-radius: 5px;
+}
+
 .competition-detail__calendar {
   position: relative;
   z-index: 0;

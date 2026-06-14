@@ -15,9 +15,19 @@
 
         <div
           v-else-if="isRegistrationsLoading && !registrationHistory.length"
-          class="account-competition-registrations__notice"
+          class="account-competition-registrations__history-skeleton"
+          aria-busy="true"
         >
-          Заявки загружаются...
+          <article
+            v-for="index in 4"
+            :key="`competition-registration-history-skeleton-${index}`"
+            class="account-competition-registrations__skeleton-card"
+          >
+            <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--wide"></span>
+            <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--meta"></span>
+            <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--meta"></span>
+            <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--button"></span>
+          </article>
         </div>
 
         <div v-else-if="registrationHistory.length" class="account__native-table-wrap">
@@ -167,7 +177,54 @@
           </ElCheckbox>
         </div>
 
-        <div v-if="filteredRows.length" class="account__native-table-wrap">
+        <div
+          v-if="isRegistrationsLoading && !filteredRows.length"
+          class="account-competition-registrations__stage-skeleton"
+          aria-busy="true"
+        >
+          <div class="account-competition-registrations__stage-skeleton-controls">
+            <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--filter"></span>
+            <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--filter"></span>
+            <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--stat"></span>
+            <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--stat"></span>
+          </div>
+
+          <div class="account__native-table-wrap">
+            <table class="account__native-table account__native-table--competition-registrations">
+              <thead class="account__native-table-head">
+                <tr>
+                  <th>Соревнование</th>
+                  <th>Этап</th>
+                  <th>Дата</th>
+                  <th>Регистрация</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr
+                  v-for="index in 4"
+                  :key="`competition-stage-skeleton-${index}`"
+                  class="account__native-table-row account-competition-registrations__table-row--skeleton"
+                >
+                  <td class="account__native-table-cell account__native-table-cell--primary">
+                    <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--table-wide"></span>
+                  </td>
+                  <td class="account__native-table-cell account__native-table-cell--center">
+                    <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--table-mid"></span>
+                  </td>
+                  <td class="account__native-table-cell account__native-table-cell--center">
+                    <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--table-mid"></span>
+                  </td>
+                  <td class="account__native-table-cell account__native-table-cell--center">
+                    <span class="account-competition-registrations__skeleton-line account-competition-registrations__skeleton-line--table-button"></span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div v-else-if="filteredRows.length" class="account__native-table-wrap">
           <table class="account__native-table account__native-table--competition-registrations">
             <thead class="account__native-table-head">
               <tr>
@@ -670,6 +727,94 @@ watch(
 </script>
 
 <style scoped>
+.account-competition-registrations__history-skeleton {
+  display: grid;
+  gap: 8px;
+}
+
+.account-competition-registrations__skeleton-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr) minmax(0, 0.8fr) auto;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgb(246 251 255 / 0.94) 0%, rgb(255 255 255 / 0.86) 100%);
+}
+
+.account-competition-registrations__stage-skeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.account-competition-registrations__stage-skeleton-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.account-competition-registrations__skeleton-line {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cyan) 12%, white);
+}
+
+.account-competition-registrations__skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.74), transparent);
+  animation: account-competition-registrations-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.account-competition-registrations__skeleton-line--wide {
+  width: min(220px, 78%);
+  height: 16px;
+}
+
+.account-competition-registrations__skeleton-line--meta {
+  width: min(140px, 58%);
+  height: 12px;
+}
+
+.account-competition-registrations__skeleton-line--button {
+  width: 104px;
+  height: 32px;
+}
+
+.account-competition-registrations__skeleton-line--filter {
+  width: 100%;
+  height: 38px;
+  border-radius: 10px;
+}
+
+.account-competition-registrations__skeleton-line--stat {
+  width: 100%;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.account-competition-registrations__skeleton-line--table-wide {
+  width: min(260px, 90%);
+  height: 16px;
+}
+
+.account-competition-registrations__skeleton-line--table-mid {
+  width: min(120px, 70%);
+  height: 14px;
+  margin-inline: auto;
+}
+
+.account-competition-registrations__skeleton-line--table-button {
+  width: 112px;
+  height: 32px;
+  margin-inline: auto;
+  border-radius: 10px;
+}
+
 .account-competition-registrations__header-top {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -972,6 +1117,11 @@ watch(
     flex-wrap: wrap;
     white-space: normal;
   }
+
+  .account-competition-registrations__stage-skeleton-controls,
+  .account-competition-registrations__skeleton-card {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -997,6 +1147,16 @@ watch(
   .account__native-table--competition-history th:nth-child(4),
   .account__native-table--competition-history td:nth-child(4) {
     width: 18%;
+  }
+
+  .account-competition-registrations__stage-skeleton-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes account-competition-registrations-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
   }
 }
 </style>

@@ -11,18 +11,18 @@
       </div>
 
       <div class="account-competition-registrations-admin__filters">
-        <label class="account__field account__field--search">
-          <span class="account__field-label">Поиск</span>
-          <input
-            v-model.trim="search"
-            class="account__input account__input--toolbar"
-            type="search"
-            name="competition-registrations-search"
-            placeholder="ФИО, соревнование, владелец"
-          />
-        </label>
-
         <div class="account-competition-registrations-admin__filter-row">
+          <label class="account__field account__field--search account-competition-registrations-admin__search-field">
+            <span class="account__field-label">Поиск</span>
+            <input
+              v-model.trim="search"
+              class="account__input account__input--toolbar"
+              type="search"
+              name="competition-registrations-search"
+              placeholder="ФИО, соревнование, владелец"
+            />
+          </label>
+
           <label class="account__field account__field--filter">
             <span class="account__field-label">Статус</span>
             <ElSelect
@@ -51,23 +51,6 @@
             >
               <ElOption
                 v-for="option in paymentStatusOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ElSelect>
-          </label>
-
-          <label class="account__field account__field--filter">
-            <span class="account__field-label">Документы</span>
-            <ElSelect
-              v-model="documentsStatusFilter"
-              class="account__select"
-              popper-class="account__select-popper"
-              placeholder="Все документы"
-            >
-              <ElOption
-                v-for="option in documentsStatusOptions"
                 :key="option.value"
                 :label="option.label"
                 :value="option.value"
@@ -149,13 +132,46 @@
     </div>
 
     <div
-      v-else-if="isRegistrationsLoading && !filteredRegistrations.length"
-      class="account-competition-registrations-admin__notice"
+      v-else-if="showSkeleton"
+      class="account-competition-registrations-admin__skeleton"
+      aria-busy="true"
     >
-      Заявки загружаются...
+      <div class="account__native-table-wrap account-competition-registrations-admin__table-wrap">
+        <table class="account__native-table account__native-table--competition-admin-registrations">
+          <thead class="account__native-table-head">
+            <tr>
+              <th>ФИО</th>
+              <th>Соревнование</th>
+              <th>Статус</th>
+              <th>Оплата</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr
+              v-for="index in 4"
+              :key="`competition-admin-registration-skeleton-${index}`"
+              class="account__native-table-row account-competition-registrations-admin__table-row--skeleton"
+            >
+              <td class="account__native-table-cell">
+                <span class="account-competition-registrations-admin__skeleton-line account-competition-registrations-admin__skeleton-line--title"></span>
+              </td>
+              <td class="account__native-table-cell">
+                <span class="account-competition-registrations-admin__skeleton-line account-competition-registrations-admin__skeleton-line--wide"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-competition-registrations-admin__skeleton-line account-competition-registrations-admin__skeleton-line--status"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-competition-registrations-admin__skeleton-line account-competition-registrations-admin__skeleton-line--status"></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <div v-else-if="filteredRegistrations.length" class="account__native-table-wrap">
+    <div v-else-if="filteredRegistrations.length" class="account__native-table-wrap account-competition-registrations-admin__table-wrap">
       <table class="account__native-table account__native-table--competition-admin-registrations">
         <thead class="account__native-table-head">
           <tr>
@@ -192,39 +208,7 @@
               </button>
             </th>
             <th>Статус</th>
-            <th class="account__native-table-head-cell--sortable">
-              <button
-                type="button"
-                class="account__table-sort-button account__table-sort-button--left btn-reset"
-                :class="{ 'account__table-sort-button--active': sortKey === 'documentsStatus' }"
-                :aria-label="getSortAriaLabel('статусу документов', 'documentsStatus')"
-                @click="toggleSort('documentsStatus')"
-              >
-                <span>Документы</span>
-                <span
-                  class="account__table-sort-indicator"
-                  :data-direction="getSortDirection('documentsStatus')"
-                  aria-hidden="true"
-                ></span>
-              </button>
-            </th>
-            <th class="account__native-table-head-cell--sortable">
-              <button
-                type="button"
-                class="account__table-sort-button account__table-sort-button--left btn-reset"
-                :class="{ 'account__table-sort-button--active': sortKey === 'paymentStatus' }"
-                :aria-label="getSortAriaLabel('статусу оплаты', 'paymentStatus')"
-                @click="toggleSort('paymentStatus')"
-              >
-                <span>Оплата</span>
-                <span
-                  class="account__table-sort-indicator"
-                  :data-direction="getSortDirection('paymentStatus')"
-                  aria-hidden="true"
-                ></span>
-              </button>
-            </th>
-            <th>Действие</th>
+            <th>Оплата</th>
           </tr>
         </thead>
 
@@ -232,8 +216,13 @@
           <tr
             v-for="registration in sortedRegistrations"
             :key="registration.id"
-            class="account__native-table-row"
+            class="account__native-table-row account-competition-registrations-admin__table-row"
             :class="`account-competition-registrations-admin__row--${registration.status}`"
+            tabindex="0"
+            role="button"
+            @click="openDetailsDialog(registration)"
+            @keydown.enter.prevent="openDetailsDialog(registration)"
+            @keydown.space.prevent="openDetailsDialog(registration)"
           >
             <td class="account__native-table-cell">
               <span class="account__table-primary account-competition-registrations-admin__nowrap">
@@ -246,55 +235,24 @@
               </span>
             </td>
             <td class="account__native-table-cell account__native-table-cell--center">
-              <div class="account-competition-registrations-admin__status-cell">
-                <ElTag
-                  :type="competitionRegistrationRecordStatusType(registration.status)"
-                  effect="light"
-                  round
-                >
-                  {{ formatCompetitionRegistrationRecordStatus(registration.status) }}
-                </ElTag>
-                <span class="account-competition-registrations-admin__status-hint">
-                  {{ getRegistrationLifecycleSummary(registration).responsibleLabel }}
-                </span>
-              </div>
-            </td>
-            <td class="account__native-table-cell account__native-table-cell--center">
-              <div class="account-competition-registrations-admin__status-cell">
-                <ElTag
-                  :type="getRegistrationDocumentsStatus(registration)?.tagType || 'info'"
-                  effect="light"
-                  round
-                >
-                  {{ getRegistrationDocumentsStatus(registration)?.label || 'Нет данных' }}
-                </ElTag>
-                <span class="account-competition-registrations-admin__status-hint">
-                  {{ getRegistrationDocumentsStatus(registration)?.description || 'Откройте карточку пользователя.' }}
-                </span>
-              </div>
-            </td>
-            <td class="account__native-table-cell account__native-table-cell--center">
-              <div class="account-competition-registrations-admin__status-cell">
-                <ElTag
-                  :type="getRegistrationPaymentSummary(registration).tagType"
-                  effect="light"
-                  round
-                >
-                  {{ getRegistrationPaymentSummary(registration).label }}
-                </ElTag>
-                <span class="account-competition-registrations-admin__status-hint">
-                  {{ getRegistrationPaymentSummary(registration).description }}
-                </span>
-              </div>
-            </td>
-            <td class="account__native-table-cell account__native-table-cell--center">
-              <button
-                type="button"
-                class="account__table-action account__table-action--edit btn-reset"
-                @click="openDetailsDialog(registration)"
+              <ElTag
+                class="account-competition-registrations-admin__status-tag"
+                :type="competitionRegistrationRecordStatusType(registration.status)"
+                effect="light"
+                round
               >
-                Подробнее
-              </button>
+                {{ formatCompetitionRegistrationRecordStatus(registration.status) }}
+              </ElTag>
+            </td>
+            <td class="account__native-table-cell account__native-table-cell--center">
+              <ElTag
+                class="account-competition-registrations-admin__status-tag"
+                :type="getRegistrationPaymentSummary(registration).tagType"
+                effect="light"
+                round
+              >
+                {{ getRegistrationPaymentSummary(registration).label }}
+              </ElTag>
             </td>
           </tr>
         </tbody>
@@ -357,7 +315,7 @@
 
 <script setup>
 import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS } from '@/pages/account/utils/accountConstants'
 import { useAccountCompetitionRegistrationsAdmin } from '@/pages/account/composables/useAccountCompetitionRegistrationsAdmin'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
@@ -375,7 +333,6 @@ const {
   search,
   statusFilter,
   paymentStatusFilter,
-  documentsStatusFilter,
   filteredRegistrations,
   summary,
   activeRefundRequests,
@@ -387,11 +344,8 @@ const {
   openDetailsDialog,
   closeDetailsDialog,
   selectedRegistrationDocumentsStatus,
-  selectedRegistrationLifecycleSummary,
   selectedRegistrationStatusOptions,
-  getRegistrationLifecycleSummary,
   getRegistrationDocumentsStatus,
-  getRegistrationDocumentsSortValue,
   getRegistrationPayment,
   getRegistrationRefund,
   getRegistrationPaymentSummary,
@@ -407,19 +361,15 @@ const {
 
 const registrationStatusOptions = COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS
 const paymentStatusOptions = COMPETITION_PAYMENT_STATUS_OPTIONS
-const documentsStatusOptions = [
-  { value: 'all', label: 'Все документы' },
-  { value: 'admitted', label: 'Одобрены' },
-  { value: 'pending', label: 'На проверке' },
-  { value: 'attention', label: 'Требуют внимания' },
-  { value: 'missing', label: 'Не загружены' },
-  { value: 'unknown', label: 'Нет данных' },
-]
 const refundSucceededStatus = COMPETITION_REFUND_STATUS.SUCCEEDED
 const refundRejectedStatus = COMPETITION_REFUND_STATUS.REJECTED
 const detailsActionLoading = ref('')
+const hasLoadedRegistrations = ref(false)
 const { sortKey, toggleSort, getSortState, sortItems } =
   useTriStateTextSort('participantName')
+const showSkeleton = computed(
+  () => isRegistrationsLoading.value && !hasLoadedRegistrations.value,
+)
 
 const selectedRegistrationPaymentSummary = computed(() =>
   selectedRegistration.value ? getRegistrationPaymentSummary(selectedRegistration.value) : null,
@@ -461,11 +411,6 @@ const sortedRegistrations = computed(() =>
 
       return `${getPaymentSortRank(summary.applicationStatus)} ${summary.label}`
     },
-    documentsStatus: (registration) =>
-      [
-        getRegistrationDocumentsSortValue(registration),
-        registration.participantName || '',
-      ].join(' '),
   }),
 )
 
@@ -553,7 +498,6 @@ async function handleAdmitSelectedRegistrationWithLoading() {
 }
 
 function handleOpenSelectedAccount(accountKey) {
-  closeDetailsDialog()
   emit('open-account', accountKey)
 }
 
@@ -584,13 +528,22 @@ function getSortAriaLabel(label, columnKey) {
 
   return `Сбросить сортировку по ${label}`
 }
+
+watch(
+  () => isRegistrationsLoading.value,
+  (loading) => {
+    if (!loading) {
+      hasLoadedRegistrations.value = true
+    }
+  },
+)
 </script>
 
 <style scoped>
 .account-competition-registrations-admin__header {
   display: grid;
   gap: 18px;
-  padding: 18px 0;
+  padding: 0 0 18px;
   border-bottom: 1px solid color-mix(in srgb, var(--aqua) 14%, transparent);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 250, 255, 0.72));
 }
@@ -611,9 +564,13 @@ function getSortAriaLabel(label, columnKey) {
 
 .account-competition-registrations-admin__filter-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
   gap: 12px;
   align-items: end;
+}
+
+.account-competition-registrations-admin__search-field {
+  min-width: 0;
 }
 
 .account-competition-registrations-admin__row--withdrawn {
@@ -641,6 +598,63 @@ function getSortAriaLabel(label, columnKey) {
 .account-competition-registrations-admin__notice--error {
   border-color: color-mix(in srgb, #d7502f 24%, white);
   color: #9f341f;
+}
+
+.account-competition-registrations-admin__skeleton {
+  margin-top: 18px;
+}
+
+.account-competition-registrations-admin__table-row--skeleton {
+  background: transparent;
+}
+
+.account-competition-registrations-admin__table-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.account-competition-registrations-admin__table-row:hover,
+.account-competition-registrations-admin__table-row:focus-visible,
+.account-competition-registrations-admin__table-row:hover .account__native-table-cell,
+.account-competition-registrations-admin__table-row:focus-visible .account__native-table-cell {
+  background: #f2f5f8;
+  outline: none;
+}
+
+.account-competition-registrations-admin__skeleton-line {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  height: 14px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--light-blue) 36%, white);
+}
+
+.account-competition-registrations-admin__skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.72), transparent);
+  animation: account-competition-registrations-admin-skeleton 1.2s ease-in-out infinite;
+}
+
+.account-competition-registrations-admin__skeleton-line--title {
+  width: min(180px, 82%);
+  height: 16px;
+  margin-left: 0;
+}
+
+.account-competition-registrations-admin__skeleton-line--wide {
+  width: min(240px, 88%);
+  height: 16px;
+  margin-left: 0;
+}
+
+.account-competition-registrations-admin__skeleton-line--status {
+  width: 90px;
+  height: 24px;
 }
 
 .account-competition-registrations-admin__refunds {
@@ -713,18 +727,8 @@ function getSortAriaLabel(label, columnKey) {
   gap: 8px;
 }
 
-.account-competition-registrations-admin__status-cell {
-  display: grid;
-  justify-items: center;
-  gap: 5px;
-  min-width: 0;
-}
-
-.account-competition-registrations-admin__status-hint {
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.25;
-  color: #64748b;
+.account-competition-registrations-admin__status-tag {
+  min-height: 24px;
 }
 
 .account__native-table--competition-admin-registrations {
@@ -740,8 +744,18 @@ function getSortAriaLabel(label, columnKey) {
   background: transparent;
 }
 
-.account-competition-registrations-admin .account__native-table-row:nth-child(even) {
-  background: transparent;
+.account-competition-registrations-admin__table-wrap .account__native-table-row,
+.account-competition-registrations-admin__table-wrap .account__native-table-row:nth-child(even),
+.account-competition-registrations-admin__table-wrap .account__native-table-row:nth-child(odd) {
+  background: #fff;
+}
+
+.account-competition-registrations-admin__table-wrap .account__native-table-cell {
+  background: #fff;
+}
+
+.account-competition-registrations-admin :deep(.el-tag.is-round) {
+  border-radius: 5px;
 }
 
 @media (max-width: 1180px) {
@@ -765,6 +779,12 @@ function getSortAriaLabel(label, columnKey) {
 
   .account-competition-registrations-admin__refund-actions {
     justify-content: flex-start;
+  }
+}
+
+@keyframes account-competition-registrations-admin-skeleton {
+  100% {
+    transform: translateX(100%);
   }
 }
 </style>

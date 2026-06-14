@@ -51,6 +51,7 @@ export function useAccountAthletes({ currentUser }) {
   const athletes = ref([])
   const editingAthleteId = ref('')
   const isSubmitting = ref(false)
+  const isInitialAthletesLoading = ref(true)
   let unsubscribeFromSupabaseDocuments = null
   let unsubscribeFromSupabaseAccountData = null
   let unsubscribeFromSupabaseAdmissionWorkflow = null
@@ -204,7 +205,11 @@ export function useAccountAthletes({ currentUser }) {
     }
   }
 
-  async function syncAthletesFromSource() {
+  async function syncAthletesFromSource({ showLoading = false } = {}) {
+    if (showLoading) {
+      isInitialAthletesLoading.value = true
+    }
+
     try {
       const [sourceAthletes] = await Promise.all([
         loadAccountAthletesForCurrentUser(),
@@ -231,6 +236,10 @@ export function useAccountAthletes({ currentUser }) {
       showToast(error instanceof Error ? error.message : 'Не удалось загрузить спортсменов', {
         type: 'error',
       })
+    } finally {
+      if (showLoading) {
+        isInitialAthletesLoading.value = false
+      }
     }
   }
 
@@ -662,7 +671,7 @@ export function useAccountAthletes({ currentUser }) {
   watch(
     currentUser,
     () => {
-      void syncAthletesFromSource()
+      void syncAthletesFromSource({ showLoading: true })
       resetForm()
     },
     { immediate: true },
@@ -745,5 +754,6 @@ export function useAccountAthletes({ currentUser }) {
     closeDocumentUploadDialog,
     handleDocumentUploadSubmit,
     handleDocumentRemove,
+    isInitialAthletesLoading,
   }
 }

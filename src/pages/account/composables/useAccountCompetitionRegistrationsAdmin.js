@@ -147,7 +147,6 @@ export function useAccountCompetitionRegistrationsAdmin() {
   const search = ref('')
   const statusFilter = ref('all')
   const paymentStatusFilter = ref('all')
-  const documentsStatusFilter = ref('all')
   const selectedRegistrationId = ref('')
   const isDetailsDialogOpen = ref(false)
   const isRegistrationsLoading = ref(false)
@@ -287,7 +286,10 @@ export function useAccountCompetitionRegistrationsAdmin() {
   )
 
   const selectedRegistrationStatusOptions = computed(() =>
-    getApplicationTransitionOptions(selectedRegistration.value?.status, { includeCurrent: true }),
+    getApplicationTransitionOptions(selectedRegistration.value?.status, { includeCurrent: true }).map((option) => ({
+      value: option.value,
+      label: formatCompetitionRegistrationRecordStatus(option.value),
+    })),
   )
 
   const filteredRegistrations = computed(() => {
@@ -302,13 +304,6 @@ export function useAccountCompetitionRegistrationsAdmin() {
         if (
           paymentStatusFilter.value !== 'all' &&
           getRegistrationPaymentSummary(registration).applicationStatus !== paymentStatusFilter.value
-        ) {
-          return false
-        }
-
-        if (
-          documentsStatusFilter.value !== 'all' &&
-          getRegistrationDocumentsStatus(registration)?.status !== documentsStatusFilter.value
         ) {
           return false
         }
@@ -968,7 +963,6 @@ export function useAccountCompetitionRegistrationsAdmin() {
     search,
     statusFilter,
     paymentStatusFilter,
-    documentsStatusFilter,
     filteredRegistrations,
     summary,
     activeRefundRequests,
@@ -984,7 +978,6 @@ export function useAccountCompetitionRegistrationsAdmin() {
     selectedRegistrationStatusOptions,
     getRegistrationLifecycleSummary,
     getRegistrationDocumentsStatus,
-    getRegistrationDocumentsSortValue,
     getRegistrationPayment,
     getRegistrationRefund,
     getRegistrationPaymentSummary,

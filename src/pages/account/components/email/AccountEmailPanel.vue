@@ -175,7 +175,27 @@
           </ElSelect>
         </label>
 
-        <div v-if="filteredMessages.length" class="account-email__message-list">
+        <div
+          v-if="props.showInitialSkeleton || (isLoading && !hasLoadedMessages)"
+          class="account-email__message-list account-email__message-list--skeleton"
+          aria-busy="true"
+        >
+          <article
+            v-for="index in 3"
+            :key="`email-message-skeleton-${index}`"
+            class="account-email__message account-email__message--skeleton"
+          >
+            <div class="account-email__message-main account-email__message-main--skeleton">
+              <span class="account-email__skeleton-line account-email__skeleton-line--subject"></span>
+              <span class="account-email__skeleton-line account-email__skeleton-line--meta"></span>
+              <span class="account-email__skeleton-line account-email__skeleton-line--meta"></span>
+              <span class="account-email__skeleton-line account-email__skeleton-line--meta"></span>
+            </div>
+            <span class="account-email__skeleton-pill"></span>
+          </article>
+        </div>
+
+        <div v-else-if="filteredMessages.length" class="account-email__message-list">
           <article
             v-for="message in filteredMessages"
             :key="message.id"
@@ -245,6 +265,7 @@ const messages = ref([])
 const registrations = ref([])
 const users = ref([])
 const isLoading = ref(false)
+const hasLoadedMessages = ref(false)
 const isSaving = ref(false)
 const isRegistrationsLoaded = ref(false)
 const isRegistrationsLoading = ref(false)
@@ -268,6 +289,13 @@ const emailContextLabels = emailContextOptions.reduce((acc, option) => {
   acc[option.value] = option.label
   return acc
 }, {})
+
+const props = defineProps({
+  showInitialSkeleton: {
+    type: Boolean,
+    default: false,
+  },
+})
 
 function getUuidOrEmpty(value) {
   const normalizedValue = String(value || '').trim()
@@ -351,7 +379,7 @@ const filteredMessages = computed(() => {
 
 const emailEmptyDescription = computed(() => {
   if (isLoading.value) {
-    return 'Загружаем письма...'
+    return ' '
   }
 
   if (messages.value.length && !filteredMessages.value.length) {
@@ -384,6 +412,15 @@ async function loadMessages() {
     isLoading.value = false
   }
 }
+
+watch(
+  () => isLoading.value,
+  (loading, previousLoading) => {
+    if (previousLoading && !loading) {
+      hasLoadedMessages.value = true
+    }
+  },
+)
 
 async function loadRegistrations() {
   isRegistrationsLoading.value = true
@@ -686,6 +723,14 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 
+.account-email__message-list--skeleton {
+  pointer-events: none;
+}
+
+.account-email__message--skeleton {
+  align-items: center;
+}
+
 .account-email__message {
   display: flex;
   align-items: flex-start;
@@ -702,6 +747,10 @@ onBeforeUnmount(() => {
   gap: 4px;
 }
 
+.account-email__message-main--skeleton {
+  gap: 8px;
+}
+
 .account-email__message-subject {
   overflow: hidden;
   color: var(--black);
@@ -712,6 +761,50 @@ onBeforeUnmount(() => {
 .account-email__message-meta {
   font-size: 13px;
   color: color-mix(in srgb, var(--black) 56%, transparent);
+}
+
+.account-email__skeleton-line,
+.account-email__skeleton-pill {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--light-blue) 22%, white);
+}
+
+.account-email__skeleton-line::after,
+.account-email__skeleton-pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.74), transparent);
+  animation: account-email-skeleton 1.2s ease-in-out infinite;
+}
+
+.account-email__skeleton-line--subject {
+  width: min(260px, 60%);
+  height: 16px;
+}
+
+.account-email__skeleton-line--meta {
+  width: min(360px, 88%);
+  height: 12px;
+}
+
+.account-email__skeleton-pill {
+  width: 84px;
+  height: 28px;
+  margin-top: 2px;
+}
+
+@keyframes account-email-skeleton {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @media (max-width: 980px) {

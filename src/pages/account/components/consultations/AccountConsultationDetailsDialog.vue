@@ -15,15 +15,19 @@
       <div v-if="request" class="account-consultation-details__grid">
         <div class="account-consultation-details__card account-consultation-details__card--wide">
           <div class="account-consultation-details__card-head">
-            <span class="account-consultation-details__label">Заявка</span>
-            <ElTag :type="statusTagType" effect="light" round>
+            <strong class="account-consultation-details__value">
+              {{ fullName }}
+            </strong>
+            <ElTag
+              :type="statusTagType"
+              effect="light"
+              round
+              class="account-consultation-details__status-tag"
+            >
               {{ statusLabel }}
             </ElTag>
           </div>
 
-          <strong class="account-consultation-details__value">
-            {{ fullName }}
-          </strong>
           <div class="account-consultation-details__facts">
             <span class="account-consultation-details__fact">
               Телефон: {{ request.phone || 'Не указан' }}
@@ -127,7 +131,7 @@
         </button>
         <button
           type="submit"
-          class="account__submit btn-reset"
+          class="account__table-action account__table-action--edit btn-reset"
           :disabled="isSaving || !request"
           :aria-busy="isSaving"
         >
@@ -293,15 +297,6 @@ function buildCallbackTimeOptions() {
   gap: 12px;
 }
 
-.account-consultation-details__label {
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1.2;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
 .account-consultation-details__value {
   font-size: 16px;
   font-weight: 800;
@@ -319,6 +314,10 @@ function buildCallbackTimeOptions() {
   font-weight: 700;
   line-height: 1.4;
   color: #64748b;
+}
+
+:deep(.account-consultation-details__status-tag.el-tag.is-round) {
+  border-radius: 5px;
 }
 
 .account-consultation-details__comments {

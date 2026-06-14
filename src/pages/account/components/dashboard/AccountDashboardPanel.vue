@@ -159,7 +159,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElCard, ElTag } from 'element-plus'
 import { CRM_ROLE } from '@/utils/crmRoles'
 import {
@@ -180,6 +180,10 @@ import {
 
 const props = defineProps({
   isLoading: {
+    type: Boolean,
+    default: false,
+  },
+  showInitialSkeleton: {
     type: Boolean,
     default: false,
   },
@@ -215,7 +219,10 @@ const props = defineProps({
 
 defineEmits(['select-section'])
 
-const showSkeleton = computed(() => props.isLoading)
+const hasLoadedDashboardData = ref(false)
+const showSkeleton = computed(
+  () => props.showInitialSkeleton || (props.isLoading && !hasLoadedDashboardData.value),
+)
 
 const DASHBOARD_ACTIVITY_ROWS_COUNT = 4
 const DASHBOARD_DOCUMENT_ROWS_COUNT = 4
@@ -238,6 +245,37 @@ function formatRelativeShortDate(record) {
 const competitionRegistrations = ref([])
 let competitionRegistrationsLoadRequestId = 0
 let unsubscribeFromCompetitionApplications = null
+
+watch(
+  () => [
+    props.isLoading,
+    props.consultationRequests.length,
+    props.trainerBookings.length,
+    props.users.length,
+    props.latestDocuments.length,
+    competitionRegistrations.value.length,
+  ],
+  ([
+    isLoading,
+    consultationRequestsCount,
+    trainerBookingsCount,
+    usersCount,
+    latestDocumentsCount,
+    competitionRegistrationsCount,
+  ]) => {
+    if (
+      !isLoading ||
+      consultationRequestsCount > 0 ||
+      trainerBookingsCount > 0 ||
+      usersCount > 0 ||
+      latestDocumentsCount > 0 ||
+      competitionRegistrationsCount > 0
+    ) {
+      hasLoadedDashboardData.value = true
+    }
+  },
+  { immediate: true },
+)
 
 async function loadCompetitionRegistrations() {
   const requestId = competitionRegistrationsLoadRequestId + 1

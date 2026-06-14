@@ -1,6 +1,22 @@
 <template>
   <ElCard class="account__panel account-trainer-profile" shadow="never">
-    <form class="account-trainer-profile__form" @submit.prevent="handleSubmit">
+    <div v-if="showSkeleton" class="account-trainer-profile__skeleton" aria-busy="true">
+      <div v-for="index in 6" :key="`trainer-profile-skeleton-${index}`" class="account__field-grid">
+        <div class="account__field">
+          <span class="account-trainer-profile__skeleton-line account-trainer-profile__skeleton-line--label"></span>
+          <span class="account-trainer-profile__skeleton-line account-trainer-profile__skeleton-line--input"></span>
+        </div>
+
+        <div class="account__field">
+          <span class="account-trainer-profile__skeleton-line account-trainer-profile__skeleton-line--label"></span>
+          <span class="account-trainer-profile__skeleton-line account-trainer-profile__skeleton-line--input"></span>
+        </div>
+      </div>
+
+      <span class="account-trainer-profile__skeleton-line account-trainer-profile__skeleton-line--button"></span>
+    </div>
+
+    <form v-else class="account-trainer-profile__form" @submit.prevent="handleSubmit">
       <div class="account__field-grid">
         <label class="account__field account-trainer-profile__field--wide">
           <span class="account__field-label">ФИО</span>
@@ -201,7 +217,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, toRef, watch } from 'vue'
+import { computed, reactive, ref, toRef, watch } from 'vue'
 import { ElCard } from 'element-plus'
 import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
 import { normalizeDateInput } from '@/utils/dateInput'
@@ -244,6 +260,10 @@ const errors = reactive({
 })
 
 const isSaving = ref(false)
+const isProfileLoading = ref(false)
+const hasLoadedProfile = ref(false)
+let profileLoadRequestId = 0
+const showSkeleton = computed(() => isProfileLoading.value && !hasLoadedProfile.value)
 
 function resetErrors() {
   errors.fullName = ''
@@ -253,8 +273,16 @@ function resetErrors() {
 }
 
 async function syncFromSource() {
+  const requestId = profileLoadRequestId + 1
+  profileLoadRequestId = requestId
+  isProfileLoading.value = true
+
   try {
     const snapshot = await loadAccountProfileForCurrentUser({ currentUser: currentUserRef })
+
+    if (requestId !== profileLoadRequestId) {
+      return
+    }
 
     profile.fullName = snapshot.fullName || props.currentUser?.name || ''
     profile.birthDate = snapshot.birthDate || ''
@@ -270,6 +298,10 @@ async function syncFromSource() {
     profile.preparationLevel = snapshot.preparationLevel || ''
     profile.metro = snapshot.metro || ''
   } catch (error) {
+    if (requestId !== profileLoadRequestId) {
+      return
+    }
+
     showToast(error instanceof Error ? error.message : 'Не удалось загрузить профиль тренера.', {
       type: 'error',
     })
@@ -287,6 +319,11 @@ async function syncFromSource() {
     profile.minAge = ''
     profile.preparationLevel = ''
     profile.metro = ''
+  } finally {
+    if (requestId === profileLoadRequestId) {
+      isProfileLoading.value = false
+      hasLoadedProfile.value = true
+    }
   }
 }
 
@@ -382,6 +419,44 @@ watch(
   gap: 16px;
 }
 
+.account-trainer-profile__skeleton {
+  display: grid;
+  gap: 16px;
+}
+
+.account-trainer-profile__skeleton-line {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--light-blue) 36%, white);
+}
+
+.account-trainer-profile__skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.72), transparent);
+  animation: account-trainer-profile-skeleton 1.2s ease-in-out infinite;
+}
+
+.account-trainer-profile__skeleton-line--label {
+  width: 96px;
+  height: 13px;
+  margin-bottom: 8px;
+}
+
+.account-trainer-profile__skeleton-line--input {
+  width: 100%;
+  height: 42px;
+}
+
+.account-trainer-profile__skeleton-line--button {
+  width: 160px;
+  height: 40px;
+}
+
 .account-trainer-profile__field--wide {
   grid-column: 1 / -1;
 }
@@ -408,6 +483,12 @@ watch(
 
   .account-trainer-profile__submit {
     width: 100%;
+  }
+}
+
+@keyframes account-trainer-profile-skeleton {
+  100% {
+    transform: translateX(100%);
   }
 }
 </style>

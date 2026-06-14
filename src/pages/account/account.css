@@ -725,10 +725,15 @@ textarea.account__input {
 }
 
 .account__refresh-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   box-sizing: border-box;
   height: 38px;
   min-height: 38px;
   max-height: 38px;
+  min-width: 116px;
   padding-inline: 16px;
   border: 1px solid var(--account-button-info-border) !important;
   border-radius: 10px !important;

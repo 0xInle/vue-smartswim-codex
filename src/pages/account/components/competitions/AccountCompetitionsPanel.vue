@@ -55,8 +55,48 @@
       </button>
     </div>
 
-    <div v-if="isLoading && !rows.length" class="account__loading-state">
-      Загружаем соревнования...
+    <div
+      v-if="props.showInitialSkeleton || (isLoading && !hasLoadedCompetitions)"
+      class="account-competitions__table-skeleton"
+      aria-busy="true"
+    >
+      <div class="account__native-table-wrap">
+        <table class="account__native-table account__native-table--competitions">
+          <thead class="account__native-table-head">
+            <tr>
+              <th>Название соревнования</th>
+              <th>Этап</th>
+              <th>Дата</th>
+              <th>Регистрация</th>
+              <th>Места</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr
+              v-for="index in 4"
+              :key="`competition-skeleton-${index}`"
+              class="account__native-table-row account-competitions__table-row account-competitions__table-row--skeleton"
+            >
+              <td class="account__native-table-cell account__native-table-cell--primary">
+                <span class="account-competitions__skeleton-line account-competitions__skeleton-line--title"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-competitions__skeleton-line account-competitions__skeleton-line--text"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-competitions__skeleton-line account-competitions__skeleton-line--text"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-competitions__skeleton-line account-competitions__skeleton-line--text"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-competitions__skeleton-line account-competitions__skeleton-line--button"></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div v-else-if="rows.length" class="account__native-table-wrap">
@@ -148,7 +188,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElCard, ElEmpty, ElOption, ElSelect } from 'element-plus'
 import {
   formatCompetitionCalendarDateShort,
@@ -169,6 +209,10 @@ const props = defineProps({
   isLoading: {
     type: Boolean,
     required: true,
+  },
+  showInitialSkeleton: {
+    type: Boolean,
+    default: false,
   },
   competitionFilter: {
     type: String,
@@ -212,6 +256,8 @@ const props = defineProps({
   },
 })
 
+const hasLoadedCompetitions = ref(false)
+
 const emit = defineEmits([
   'update:competition-filter',
   'update:competition-view-filter',
@@ -227,6 +273,16 @@ const isCreateCompetitionDialogOpen = ref(false)
 const isDeleteCompetitionDialogOpen = ref(false)
 const competitionDialogStage = ref(null)
 const deleteCompetitionStage = ref(null)
+
+watch(
+  () => [props.isLoading, props.rows.length],
+  ([isLoading, rowsCount]) => {
+    if (!isLoading || rowsCount > 0) {
+      hasLoadedCompetitions.value = true
+    }
+  },
+  { immediate: true },
+)
 
 const competitionRows = computed(() =>
   props.rows.map((row) => ({
@@ -351,6 +407,50 @@ function saveCompetitionDistances(payload) {
 </script>
 
 <style scoped>
+.account-competitions__table-skeleton {
+  display: grid;
+  gap: 12px;
+}
+
+.account-competitions__table-row--skeleton {
+  cursor: progress;
+}
+
+.account-competitions__skeleton-line {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cyan) 12%, white);
+}
+
+.account-competitions__skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.74), transparent);
+  animation: account-competitions-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.account-competitions__skeleton-line--title {
+  width: min(280px, 86%);
+  height: 16px;
+}
+
+.account-competitions__skeleton-line--text {
+  width: min(128px, 72%);
+  height: 14px;
+  margin-inline: auto;
+}
+
+.account-competitions__skeleton-line--button {
+  width: 104px;
+  height: 32px;
+  margin-inline: auto;
+  border-radius: 10px;
+}
+
 .account-competitions :deep(.el-card__body) {
   padding-top: 18px;
 }
@@ -591,6 +691,12 @@ function saveCompetitionDistances(payload) {
   .account__competition-view-button {
     justify-content: space-between;
     width: 100%;
+  }
+}
+
+@keyframes account-competitions-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
   }
 }
 </style>

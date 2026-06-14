@@ -56,6 +56,7 @@ export function useAccountUsers({
   const usersError = ref('')
   const userEditSubmitting = ref(false)
   const userDeleteSubmitting = ref(false)
+  const isUserEditDetailsLoading = ref(false)
   const userDocumentActionId = ref('')
   const userAdmissionActionId = ref('')
   let usersLoadRequestId = 0
@@ -155,12 +156,55 @@ export function useAccountUsers({
     return true
   }
 
+  function buildUserEditForm(user = {}) {
+    return {
+      id: user.id || '',
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      isAthleteRecord: Boolean(user.isAthleteRecord),
+      athleteId: user.athleteId || '',
+      ownerUserId: user.ownerUserId || '',
+      ownerName: user.ownerName || '',
+      ownerEmail: user.ownerEmail || '',
+      gender: user.gender || '',
+      rank: user.rank || '',
+      coach: user.coach || '',
+      birthDate: user.birthDate || '',
+      club: user.club || '',
+      role: user.role,
+      status: user.status,
+      registeredAt: user.registeredAt || null,
+      experience: user.experience || '',
+      mainProfile: user.mainProfile || '',
+      availableSeats: user.availableSeats || '',
+      education: user.education || '',
+      sportAchievements: user.sportAchievements || '',
+      worksWith: user.worksWith || '',
+      minAge: user.minAge || '',
+      preparationLevel: user.preparationLevel || '',
+      metro: user.metro || '',
+      documents: normalizeAccountDocumentsState(user.documents || createAccountDocumentsState()),
+      athletes: Array.isArray(user.athletes) ? user.athletes : [],
+    }
+  }
+
   function handleUsersDataChanged() {
     isUsersLoaded.value = false
 
     if (shouldRefreshUsersImmediately()) {
       scheduleUsersRefresh()
     }
+  }
+
+  function clearUsersState() {
+    users.value = []
+    usersTotal.value = 0
+    usersError.value = ''
+    isUsersLoaded.value = false
+    isUsersLoading.value = false
+    cancelScheduledUsersRefresh()
+    cancelScheduledUserDetailsRefresh()
   }
 
   function cancelScheduledUsersRefresh() {
@@ -527,88 +571,61 @@ export function useAccountUsers({
     }
   }
 
-  async function loadUserDetailsForEdit(user) {
-    const ownerUserId = getUserDetailsOwnerId(user)
-
-    if (!ownerUserId) {
-      return user
+  async function handleOpenUserEdit(user) {
+    if (!user) {
+      return
     }
 
     const requestId = userDetailsRequestId + 1
     userDetailsRequestId = requestId
+    isUserEditDetailsLoading.value = true
+    Object.assign(userEditForm, buildUserEditForm(user))
+    isUserEditDialogOpen.value = true
+
+    const ownerUserId = getUserDetailsOwnerId(user)
+
+    if (!ownerUserId) {
+      isUserEditDetailsLoading.value = false
+      return
+    }
 
     try {
       const detailRows = await loadAccountUserDetailsForAdmin(ownerUserId)
 
       if (requestId !== userDetailsRequestId) {
-        return null
+        return
       }
 
       replaceLoadedUserDetailsInUsers(ownerUserId, detailRows)
 
-      if (user.isAthleteRecord) {
-        return (
-          detailRows.find((row) => row.id === user.id || row.athleteId === user.athleteId) ||
-          user
+      const detailedUser = user.isAthleteRecord
+        ? detailRows.find((row) => row.id === user.id || row.athleteId === user.athleteId)
+        : detailRows.find((row) => row.id === ownerUserId)
+
+      Object.assign(userEditForm, buildUserEditForm(detailedUser || user))
+    } catch (error) {
+      if (requestId === userDetailsRequestId) {
+        showToast(
+          error instanceof Error ? error.message : 'Не удалось загрузить карточку пользователя.',
+          { type: 'error' },
         )
       }
-
-      return detailRows.find((row) => row.id === ownerUserId) || user
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Не удалось загрузить карточку пользователя.', {
-        type: 'error',
-      })
-      return user
+    } finally {
+      if (requestId === userDetailsRequestId) {
+        isUserEditDetailsLoading.value = false
+      }
     }
-  }
-
-  async function handleOpenUserEdit(user) {
-    const detailedUser = await loadUserDetailsForEdit(user)
-
-    if (!detailedUser) {
-      return
-    }
-
-    Object.assign(userEditForm, {
-      id: detailedUser.id,
-      name: detailedUser.name,
-      email: detailedUser.email,
-      phone: detailedUser.phone,
-      isAthleteRecord: Boolean(detailedUser.isAthleteRecord),
-      athleteId: detailedUser.athleteId || '',
-      ownerUserId: detailedUser.ownerUserId || '',
-      ownerName: detailedUser.ownerName || '',
-      ownerEmail: detailedUser.ownerEmail || '',
-      gender: detailedUser.gender || '',
-      rank: detailedUser.rank || '',
-      coach: detailedUser.coach || '',
-      birthDate: detailedUser.birthDate || '',
-      club: detailedUser.club || '',
-      role: detailedUser.role,
-      status: detailedUser.status,
-      registeredAt: detailedUser.registeredAt || null,
-      experience: detailedUser.experience || '',
-      mainProfile: detailedUser.mainProfile || '',
-      availableSeats: detailedUser.availableSeats || '',
-      education: detailedUser.education || '',
-      sportAchievements: detailedUser.sportAchievements || '',
-      worksWith: detailedUser.worksWith || '',
-      minAge: detailedUser.minAge || '',
-      preparationLevel: detailedUser.preparationLevel || '',
-      metro: detailedUser.metro || '',
-      documents: normalizeAccountDocumentsState(detailedUser.documents || createAccountDocumentsState()),
-      athletes: Array.isArray(detailedUser.athletes) ? detailedUser.athletes : [],
-    })
-
-    isUserEditDialogOpen.value = true
   }
 
   function handleCloseUserEdit() {
+    userDetailsRequestId += 1
+    isUserEditDetailsLoading.value = false
     isUserEditDialogOpen.value = false
     documentUploadState.isOpen = false
   }
 
   function handleUserEditDialogClosed() {
+    isUserEditDetailsLoading.value = false
     resetDocumentUploadState()
     resetUserEditForm()
   }
@@ -1041,6 +1058,7 @@ export function useAccountUsers({
     usersError,
     isUsersLoading,
     isUsersLoaded,
+    isUserEditDetailsLoading,
     filteredUsersTotal,
     usersPageCount,
     paginatedUsers,
@@ -1059,6 +1077,7 @@ export function useAccountUsers({
     handleUsersPageChange,
     ensureUsersLoaded,
     loadUsers,
+    clearUsersState,
     resetUsersPage,
     handleOpenUserEdit,
     handleCloseUserEdit,

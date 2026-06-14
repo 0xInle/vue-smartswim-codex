@@ -1,6 +1,62 @@
 <template>
   <ElCard class="account__panel account-profile" shadow="never">
-    <form class="account-profile__form" @submit.prevent="handleSubmit">
+    <div v-if="showSkeleton" class="account-profile__skeleton" aria-busy="true">
+      <div class="account__field-grid">
+        <article class="account-profile__skeleton-field account-profile__skeleton-field--wide">
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--label"></span>
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--input"></span>
+        </article>
+
+        <article class="account-profile__skeleton-field">
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--label"></span>
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--input"></span>
+        </article>
+      </div>
+
+      <div class="account__field-grid">
+        <article class="account-profile__skeleton-field">
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--label"></span>
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--input"></span>
+        </article>
+
+        <article class="account-profile__skeleton-field">
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--label"></span>
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--input"></span>
+        </article>
+      </div>
+
+      <div class="account__field-grid">
+        <article class="account-profile__skeleton-field account-profile__skeleton-field--wide">
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--label"></span>
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--input"></span>
+        </article>
+      </div>
+
+      <section class="account-profile__skeleton-documents" aria-label="Документы">
+        <div class="account-profile__skeleton-documents-head">
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--eyebrow"></span>
+          <span class="account-profile__skeleton-line account-profile__skeleton-line--title"></span>
+        </div>
+
+        <div class="account-profile__skeleton-documents-list">
+          <article
+            v-for="index in 4"
+            :key="`profile-document-skeleton-${index}`"
+            class="account-profile__skeleton-document"
+          >
+            <span class="account-profile__skeleton-line account-profile__skeleton-line--document"></span>
+            <span class="account-profile__skeleton-line account-profile__skeleton-line--meta"></span>
+            <span class="account-profile__skeleton-line account-profile__skeleton-line--meta"></span>
+          </article>
+        </div>
+      </section>
+
+      <div class="account-profile__skeleton-actions">
+        <span class="account-profile__skeleton-line account-profile__skeleton-line--button"></span>
+      </div>
+    </div>
+
+    <form v-else class="account-profile__form" @submit.prevent="handleSubmit">
       <div class="account__field-grid">
         <label class="account__field account-profile__field--wide">
           <span class="account__field-label">ФИО</span>
@@ -112,7 +168,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref, toRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { ElCard } from 'element-plus'
 import { formatPhoneInput, isValidPhone } from '@/utils/phone'
@@ -174,10 +230,13 @@ const uploadDialogState = reactive({
 })
 const isDocumentUploadSubmitting = ref(false)
 const isProfileSaving = ref(false)
+const isInitialProfileLoading = ref(true)
 let unsubscribeFromSupabaseDocuments = null
 let unsubscribeFromSupabaseAccountData = null
 let profileDocumentsRefreshTimer = null
 let profileRefreshTimer = null
+
+const showSkeleton = computed(() => isInitialProfileLoading.value)
 
 function resetErrors() {
   errors.fullName = ''
@@ -252,7 +311,11 @@ async function syncProfileDocumentsFromSource() {
   }
 }
 
-async function syncProfileFromSource() {
+async function syncProfileFromSource({ showLoading = false } = {}) {
+  if (showLoading) {
+    isInitialProfileLoading.value = true
+  }
+
   try {
     const snapshot = await loadAccountProfileForCurrentUser({ currentUser: currentUserRef })
 
@@ -273,6 +336,10 @@ async function syncProfileFromSource() {
     profile.phone = props.currentUser?.phone || ''
     profile.email = props.currentUser?.email || ''
     profile.documents = createAccountDocumentsState()
+  } finally {
+    if (showLoading) {
+      isInitialProfileLoading.value = false
+    }
   }
 }
 
@@ -498,7 +565,7 @@ async function handleSubmit() {
 watch(
   () => props.currentUser,
   () => {
-    void syncProfileFromSource()
+    void syncProfileFromSource({ showLoading: true })
   },
   { immediate: true },
 )
@@ -555,6 +622,105 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.account-profile__skeleton {
+  display: grid;
+  gap: 16px;
+}
+
+.account-profile__skeleton-field {
+  display: grid;
+  gap: 8px;
+}
+
+.account-profile__skeleton-field--wide {
+  grid-column: 1 / -1;
+}
+
+.account-profile__skeleton-documents {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgb(246 251 255 / 0.94) 0%, rgb(255 255 255 / 0.82) 100%);
+}
+
+.account-profile__skeleton-documents-head {
+  display: grid;
+  gap: 8px;
+}
+
+.account-profile__skeleton-documents-list {
+  display: grid;
+  gap: 12px;
+}
+
+.account-profile__skeleton-document {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 16%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.88);
+}
+
+.account-profile__skeleton-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.account-profile__skeleton-line {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cyan) 12%, white);
+}
+
+.account-profile__skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.74), transparent);
+  animation: account-profile-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.account-profile__skeleton-line--label {
+  width: 110px;
+  height: 12px;
+}
+
+.account-profile__skeleton-line--input {
+  width: 100%;
+  height: 38px;
+}
+
+.account-profile__skeleton-line--eyebrow {
+  width: 78px;
+  height: 10px;
+}
+
+.account-profile__skeleton-line--title {
+  width: min(260px, 78%);
+  height: 18px;
+}
+
+.account-profile__skeleton-line--document {
+  width: min(220px, 82%);
+  height: 16px;
+}
+
+.account-profile__skeleton-line--meta {
+  width: min(160px, 70%);
+  height: 10px;
+}
+
+.account-profile__skeleton-line--button {
+  width: 176px;
+  height: 38px;
+}
+
 .account-profile__form {
   display: grid;
   gap: 16px;
@@ -583,6 +749,12 @@ onBeforeUnmount(() => {
   .account-profile__actions {
     flex-direction: column-reverse;
     align-items: stretch;
+  }
+}
+
+@keyframes account-profile-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
   }
 }
 </style>

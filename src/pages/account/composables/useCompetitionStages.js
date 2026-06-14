@@ -228,6 +228,7 @@ export function useCompetitionStages({ isEnabled = true } = {}) {
   const competitionFilter = ref('all')
   const competitionViewFilter = ref('active')
   const stageActiveRegistrationCounts = ref({})
+  const isCompetitionStagesLoading = ref(Boolean(unref(isEnabled)))
   let unsubscribeFromCompetitionApplications = null
   let stageRegistrationCountsRefreshTimer = null
   let stageRegistrationCountsRefreshPromise = null
@@ -373,8 +374,10 @@ export function useCompetitionStages({ isEnabled = true } = {}) {
     }
 
     isInitialCompetitionDirectionsLoading = true
+    isCompetitionStagesLoading.value = true
     void ensureCompetitionDirectionsLoaded().finally(() => {
       isInitialCompetitionDirectionsLoading = false
+      isCompetitionStagesLoading.value = false
       void refreshStageRegistrationCounts()
     })
     startCompetitionDirectionsRealtime()
@@ -885,6 +888,7 @@ export function useCompetitionStages({ isEnabled = true } = {}) {
       }
 
       stageActiveRegistrationCounts.value = {}
+      isCompetitionStagesLoading.value = false
       stopCompetitionApplicationSubscription()
     },
     { immediate: true },
@@ -923,5 +927,6 @@ export function useCompetitionStages({ isEnabled = true } = {}) {
     deleteCompetitionStage,
     getStageActiveRegistrationsCount,
     createCompetitionStage,
+    isCompetitionStagesLoading,
   }
 }

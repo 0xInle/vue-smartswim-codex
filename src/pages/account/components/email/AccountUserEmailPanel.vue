@@ -22,8 +22,25 @@
       {{ loadError }}
     </div>
 
-    <div v-else-if="isLoading && !messages.length" class="account-user-email__notice">
-      Загружаем письма...
+    <div v-else-if="isLoading && !hasLoadedMessages" class="account-user-email__skeleton" aria-busy="true">
+      <article
+        v-for="index in 3"
+        :key="`user-email-skeleton-${index}`"
+        class="account-user-email__message account-user-email__message--skeleton"
+      >
+        <div class="account-user-email__message-head">
+          <div class="account-user-email__message-title-group account-user-email__message-title-group--skeleton">
+            <span class="account-user-email__skeleton-line account-user-email__skeleton-line--title"></span>
+            <span class="account-user-email__skeleton-line account-user-email__skeleton-line--subtitle"></span>
+          </div>
+          <div class="account-user-email__message-meta">
+            <span class="account-user-email__skeleton-pill"></span>
+          </div>
+        </div>
+
+        <span class="account-user-email__skeleton-line account-user-email__skeleton-line--body"></span>
+        <span class="account-user-email__skeleton-line account-user-email__skeleton-line--body-short"></span>
+      </article>
     </div>
 
     <div v-else-if="messages.length" class="account-user-email__list">
@@ -59,7 +76,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElCard, ElEmpty, ElTag } from 'element-plus'
 import {
   formatEmailStatus,
@@ -74,6 +91,7 @@ import { formatCompactDateTime } from '@/pages/account/utils/accountFormatters'
 const messages = ref([])
 const isLoading = ref(false)
 const loadError = ref('')
+const hasLoadedMessages = ref(false)
 let unsubscribeFromEmail = null
 let messagesRefreshTimer = null
 
@@ -91,6 +109,15 @@ async function loadMessages() {
     isLoading.value = false
   }
 }
+
+watch(
+  () => isLoading.value,
+  (loading, previousLoading) => {
+    if (previousLoading && !loading) {
+      hasLoadedMessages.value = true
+    }
+  },
+)
 
 function scheduleMessagesRefresh() {
   if (messagesRefreshTimer) {
@@ -139,6 +166,72 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+}
+
+.account-user-email__skeleton {
+  display: grid;
+  gap: 10px;
+}
+
+.account-user-email__message--skeleton {
+  pointer-events: none;
+}
+
+.account-user-email__message-title-group--skeleton {
+  gap: 8px;
+}
+
+.account-user-email__skeleton-line,
+.account-user-email__skeleton-pill {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cyan) 12%, white);
+}
+
+.account-user-email__skeleton-line::after,
+.account-user-email__skeleton-pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.74), transparent);
+  animation: account-user-email-skeleton 1.2s ease-in-out infinite;
+}
+
+.account-user-email__skeleton-line--title {
+  width: min(240px, 72%);
+  height: 16px;
+}
+
+.account-user-email__skeleton-line--subtitle {
+  width: min(140px, 48%);
+  height: 12px;
+}
+
+.account-user-email__skeleton-pill {
+  width: 70px;
+  height: 24px;
+}
+
+.account-user-email__skeleton-line--body {
+  width: 100%;
+  height: 14px;
+}
+
+.account-user-email__skeleton-line--body-short {
+  width: 78%;
+  height: 14px;
+}
+
+@keyframes account-user-email-skeleton {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .account-user-email__list {

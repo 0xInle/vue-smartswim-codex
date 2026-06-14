@@ -8,7 +8,59 @@
       </div>
     </template>
 
-    <form class="account-trainer-request__form" @submit.prevent="handleSubmit">
+    <div v-if="showSkeleton" class="account-trainer-request__skeleton" aria-busy="true">
+      <section class="account-trainer-request__skeleton-section">
+        <span class="account-trainer-request__skeleton-title"></span>
+        <div class="account-trainer-request__skeleton-grid account-trainer-request__skeleton-grid--single">
+          <article class="account-trainer-request__skeleton-field account-trainer-request__skeleton-field--wide">
+            <span class="account-trainer-request__skeleton-label"></span>
+            <span class="account-trainer-request__skeleton-input"></span>
+          </article>
+        </div>
+      </section>
+
+      <section class="account-trainer-request__skeleton-section">
+        <span class="account-trainer-request__skeleton-title"></span>
+        <div class="account-trainer-request__skeleton-grid">
+          <article
+            v-for="index in 3"
+            :key="`trainer-request-skeleton-contact-${index}`"
+            class="account-trainer-request__skeleton-field"
+          >
+            <span class="account-trainer-request__skeleton-label"></span>
+            <span class="account-trainer-request__skeleton-input"></span>
+          </article>
+        </div>
+      </section>
+
+      <section class="account-trainer-request__skeleton-section">
+        <span class="account-trainer-request__skeleton-title"></span>
+        <div class="account-trainer-request__skeleton-grid">
+          <article
+            v-for="index in 8"
+            :key="`trainer-request-skeleton-profile-${index}`"
+            class="account-trainer-request__skeleton-field"
+          >
+            <span class="account-trainer-request__skeleton-label"></span>
+            <span class="account-trainer-request__skeleton-input"></span>
+          </article>
+        </div>
+      </section>
+
+      <section class="account-trainer-request__skeleton-section">
+        <span class="account-trainer-request__skeleton-title"></span>
+        <article class="account-trainer-request__skeleton-field account-trainer-request__skeleton-field--wide">
+          <span class="account-trainer-request__skeleton-label"></span>
+          <span class="account-trainer-request__skeleton-textarea"></span>
+        </article>
+      </section>
+
+      <div class="account-trainer-request__skeleton-actions">
+        <span class="account-trainer-request__skeleton-button"></span>
+      </div>
+    </div>
+
+    <form v-else class="account-trainer-request__form" @submit.prevent="handleSubmit">
       <section class="account-trainer-request__section">
         <div class="account-trainer-request__field-row">
           <label class="account__field">
@@ -349,6 +401,7 @@ const submitStatus = reactive({
   message: '',
 })
 const initializedForUserKey = ref('')
+const isInitialLoading = ref(true)
 const profileSnapshot = ref(null)
 const athleteSnapshots = ref([])
 const isSubmitting = ref(false)
@@ -357,6 +410,7 @@ const timeDropdownRef = ref(null)
 const todayIsoDate = computed(() => new Date().toISOString().slice(0, 10))
 
 const currentUserKey = computed(() => props.currentUser?.id || props.currentUser?.email || '')
+const showSkeleton = computed(() => isInitialLoading.value)
 const timeOptions = computed(() => {
   const times = []
 
@@ -516,6 +570,7 @@ function fillFromCurrentUser() {
 
 async function fillFromProfile() {
   fillFromCurrentUser()
+  isInitialLoading.value = true
 
   try {
     const [profile, athletes] = await Promise.all([
@@ -529,6 +584,8 @@ async function fillFromProfile() {
   } catch {
     fillFromCurrentUser()
     athleteSnapshots.value = []
+  } finally {
+    isInitialLoading.value = false
   }
 }
 
@@ -731,6 +788,92 @@ onBeforeUnmount(() => {
   color: var(--black);
 }
 
+.account-trainer-request__skeleton {
+  display: grid;
+  gap: 18px;
+}
+
+.account-trainer-request__skeleton-section {
+  display: grid;
+  gap: 12px;
+}
+
+.account-trainer-request__skeleton-title {
+  width: 176px;
+  height: 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cyan) 12%, white);
+}
+
+.account-trainer-request__skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.account-trainer-request__skeleton-grid--single {
+  grid-template-columns: 1fr;
+}
+
+.account-trainer-request__skeleton-field {
+  display: grid;
+  gap: 8px;
+}
+
+.account-trainer-request__skeleton-field--wide {
+  grid-column: 1 / -1;
+}
+
+.account-trainer-request__skeleton-label,
+.account-trainer-request__skeleton-input,
+.account-trainer-request__skeleton-textarea,
+.account-trainer-request__skeleton-button {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cyan) 12%, white);
+}
+
+.account-trainer-request__skeleton-label::after,
+.account-trainer-request__skeleton-input::after,
+.account-trainer-request__skeleton-textarea::after,
+.account-trainer-request__skeleton-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.74), transparent);
+  animation: account-trainer-request-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.account-trainer-request__skeleton-label {
+  width: 96px;
+  height: 11px;
+}
+
+.account-trainer-request__skeleton-input {
+  width: 100%;
+  height: 38px;
+}
+
+.account-trainer-request__skeleton-textarea {
+  width: 100%;
+  height: 112px;
+  border-radius: 10px;
+}
+
+.account-trainer-request__skeleton-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.account-trainer-request__skeleton-button {
+  width: 188px;
+  height: 38px;
+  border-radius: 10px;
+}
+
 .account-trainer-request__field--wide {
   grid-column: 1 / -1;
 }
@@ -908,6 +1051,20 @@ onBeforeUnmount(() => {
 @media (max-width: 760px) {
   .account-trainer-request__field-row {
     grid-template-columns: 1fr;
+  }
+
+  .account-trainer-request__skeleton-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-trainer-request__skeleton-title {
+    width: 140px;
+  }
+}
+
+@keyframes account-trainer-request-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
   }
 }
 </style>

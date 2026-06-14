@@ -48,7 +48,43 @@
       </div>
     </div>
 
-    <div v-if="filteredGroups.length" class="account__native-table-wrap">
+    <div v-if="showSkeleton" class="account-trainer-athletes__skeleton" aria-busy="true">
+      <div class="account__native-table-wrap">
+        <table class="account__native-table account__native-table--trainer-athletes">
+          <thead class="account__native-table-head">
+            <tr>
+              <th>ФИО</th>
+              <th>Телефон</th>
+              <th>Статус</th>
+              <th>Действие</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr
+              v-for="index in 4"
+              :key="`trainer-athletes-skeleton-${index}`"
+              class="account__native-table-row account-trainer-athletes__table-row--skeleton"
+            >
+              <td class="account__native-table-cell account__native-table-cell--primary">
+                <span class="account-trainer-athletes__skeleton-line account-trainer-athletes__skeleton-line--title"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-trainer-athletes__skeleton-line account-trainer-athletes__skeleton-line--text"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-trainer-athletes__skeleton-line account-trainer-athletes__skeleton-line--status"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-trainer-athletes__skeleton-line account-trainer-athletes__skeleton-line--button"></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div v-else-if="filteredGroups.length" class="account__native-table-wrap">
       <table class="account__native-table account__native-table--trainer-athletes">
         <thead class="account__native-table-head">
           <tr>
@@ -224,9 +260,17 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  isLoading: {
+    type: Boolean,
+    default: false,
+  },
+  showInitialSkeleton: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const { groupedRows, refresh } = useAccountDocumentReviews({
+const { groupedRows, isLoading: isDocumentsLoading, refresh } = useAccountDocumentReviews({
   currentUser: toRef(props, 'currentUser'),
 })
 
@@ -252,6 +296,12 @@ const statusFilterOptions = [
   ...groupStatusOptions,
 ]
 const bookingStatusMap = reactive({})
+const hasLoadedAthleteData = ref(false)
+const showSkeleton = computed(
+  () =>
+    props.showInitialSkeleton ||
+    ((props.isLoading || isDocumentsLoading.value) && !hasLoadedAthleteData.value),
+)
 
 const athleteGroups = computed(() =>
   [
@@ -527,6 +577,16 @@ watch(
   },
   { immediate: true },
 )
+
+watch(
+  () => [props.isLoading, isDocumentsLoading.value],
+  ([bookingsLoading, documentsLoading]) => {
+    if (!bookingsLoading && !documentsLoading) {
+      hasLoadedAthleteData.value = true
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped>
@@ -576,6 +636,54 @@ watch(
   --el-tag-text-color: #c94343;
   --el-tag-bg-color: #fff0f0;
   --el-tag-border-color: #f1d0d0;
+}
+
+.account-trainer-athletes__skeleton {
+  margin-top: 8px;
+}
+
+.account-trainer-athletes__table-row--skeleton {
+  background: transparent;
+}
+
+.account-trainer-athletes__skeleton-line {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  height: 14px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--light-blue) 36%, white);
+}
+
+.account-trainer-athletes__skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.72), transparent);
+  animation: account-trainer-athletes-skeleton 1.2s ease-in-out infinite;
+}
+
+.account-trainer-athletes__skeleton-line--title {
+  width: min(220px, 82%);
+  height: 16px;
+  margin-left: 0;
+}
+
+.account-trainer-athletes__skeleton-line--text {
+  width: 112px;
+}
+
+.account-trainer-athletes__skeleton-line--status {
+  width: 86px;
+  height: 24px;
+}
+
+.account-trainer-athletes__skeleton-line--button {
+  width: 96px;
+  height: 30px;
+  border-radius: 10px;
 }
 
 .account__field--search {
@@ -765,6 +873,12 @@ watch(
 
   .account-trainer-athletes__dialog-summary {
     flex-direction: column;
+  }
+}
+
+@keyframes account-trainer-athletes-skeleton {
+  100% {
+    transform: translateX(100%);
   }
 }
 </style>

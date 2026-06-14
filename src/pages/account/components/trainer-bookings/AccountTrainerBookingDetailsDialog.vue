@@ -9,70 +9,71 @@
     title="Детали заявки"
     :close-icon="Close"
     @closed="handleClosed"
-    @update:model-value="!$event && emit('close')"
+    @update:model-value="handleModelValueUpdate"
   >
     <form v-if="booking" class="account__dialog-form" @submit.prevent="submitForm">
       <div class="account-trainer-booking-details__content">
         <div class="account-trainer-booking-details__grid">
-          <div class="account-trainer-booking-details__section account-trainer-booking-details__section--wide">
-            <div class="account-trainer-booking-details__summary">
-              <div class="account-trainer-booking-details__summary-copy">
-                <strong class="account-trainer-booking-details__value">
-                  {{ fullName }}
-                </strong>
-                <span class="account-trainer-booking-details__meta">
-                  Телефон: {{ booking.phone || 'Не указан' }}
-                </span>
-                <span class="account-trainer-booking-details__meta">
-                  Email: {{ booking.email || 'Не указан' }}
-                </span>
-                <span class="account-trainer-booking-details__meta">
-                  Дата: {{ formatConsultationDate(booking.preferredDate) }}
-                </span>
-                <span class="account-trainer-booking-details__meta">
-                  Время: {{ booking.preferredTime || 'Не указано' }}
-                </span>
-                <span class="account-trainer-booking-details__meta">
-                  Создана: {{ formatCompactDateTime(booking.createdAt) }}
-                </span>
-              </div>
+          <div class="account-trainer-booking-details__section account-trainer-booking-details__section--wide account-trainer-booking-details__section--facts">
+            <div class="account-trainer-booking-details__facts">
+              <article
+                v-for="fact in bookingFacts"
+                :key="fact.label"
+                class="account-trainer-booking-details__fact"
+              >
+                <span class="account-trainer-booking-details__fact-label">{{ fact.label }}:</span>
+                <span class="account-trainer-booking-details__fact-value">{{ fact.value }}</span>
+              </article>
+            </div>
 
-              <div class="account-trainer-booking-details__status-control">
-                <ElSelect
-                  v-if="canUpdateStatus && isEditableStatus"
-                  v-model="form.status"
-                  class="account__select account-trainer-booking-details__select"
-                  popper-class="account__select-popper account__select-popper--full"
-                  placeholder="Выберите статус"
-                >
-                  <ElOption
-                    v-for="option in editableStatusOptions"
-                    :key="option.value"
-                    :label="option.label"
-                    :value="option.value"
-                  />
-                </ElSelect>
-                <ElTag
-                  v-else
-                  :type="statusTagType"
-                  effect="light"
-                  round
-                  class="account-trainer-booking-details__status-badge"
-                >
-                  {{ statusLabel }}
-                </ElTag>
-              </div>
+            <div class="account-trainer-booking-details__status-control">
+              <ElSelect
+                v-if="canUpdateStatus && isEditableStatus"
+                v-model="form.status"
+                class="account__select account-trainer-booking-details__select"
+                popper-class="account__select-popper account__select-popper--full"
+                placeholder="Выберите статус"
+              >
+                <ElOption
+                  v-for="option in editableStatusOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                />
+              </ElSelect>
+              <ElTag
+                v-else
+                :type="statusTagType"
+                effect="light"
+                round
+                class="account-trainer-booking-details__status-badge"
+              >
+                {{ statusLabel }}
+              </ElTag>
             </div>
           </div>
 
           <div class="account-trainer-booking-details__section account-trainer-booking-details__section--wide">
-            <div v-if="bookingDetailsText" class="account-trainer-booking-details__details">
-              <span class="account__field-label">Данные пловца</span>
-              <pre class="account-trainer-booking-details__details-text">{{ bookingDetailsText }}</pre>
+            <div class="account-trainer-booking-details__comments">
+              <span class="account-trainer-booking-details__block-label">Комментарий</span>
+              <template v-if="savedComments.length">
+                <div class="account-trainer-booking-details__comment-list">
+                  <p
+                    v-for="(comment, index) in savedComments"
+                    :key="`${index}-${comment}`"
+                    class="account-trainer-booking-details__comment"
+                  >
+                    {{ comment }}
+                  </p>
+                </div>
+              </template>
+              <p v-else class="account-trainer-booking-details__comment account-trainer-booking-details__comment--empty">
+                Комментариев нет.
+              </p>
             </div>
 
-            <label class="account__field account-trainer-booking-details__field">
-              <span class="account__field-label">Комментарий</span>
+            <label v-if="canUpdateStatus" class="account__field account-trainer-booking-details__field">
+              <span class="account__field-label">Комментарий администратора</span>
               <textarea
                 v-model.trim="form.comment"
                 class="account__input account-trainer-booking-details__textarea"
@@ -80,17 +81,6 @@
                 placeholder="Добавьте комментарий по заявке"
               ></textarea>
             </label>
-
-            <div v-if="savedComments.length" class="account-trainer-booking-details__comments">
-              <span class="account-trainer-booking-details__meta">История комментариев</span>
-              <p
-                v-for="(comment, index) in savedComments"
-                :key="`${index}-${comment}`"
-                class="account-trainer-booking-details__comment"
-              >
-                - {{ comment }}
-              </p>
-            </div>
 
             <ElAlert
               v-if="errorMessage"
@@ -107,7 +97,8 @@
           <button
             type="button"
             class="account__table-action account__table-action--ghost btn-reset"
-            @click="emit('close')"
+            :disabled="isSaving"
+            @click="handleClose"
           >
             Закрыть
           </button>
@@ -177,11 +168,11 @@ const form = reactive({
 })
 
 const isEditableStatus = computed(() => editableStatusValues.has(form.status))
-const fullName = computed(() => formatTrainerBookingClientName(props.booking))
 const statusLabel = computed(() => formatTrainerBookingStatus(form.status))
 const statusTagType = computed(() => trainerBookingStatusType(form.status))
-const savedComments = computed(() => parseSavedComments(props.booking?.comment))
-const bookingDetailsText = computed(() => formatBookingDetailsText(props.booking?.comment))
+const parsedComment = computed(() => parseBookingComment(props.booking?.comment))
+const savedComments = computed(() => parsedComment.value.comments)
+const bookingFacts = computed(() => buildBookingFacts(props.booking, parsedComment.value.details))
 
 watch(
   () => [props.modelValue, props.booking],
@@ -219,7 +210,7 @@ function normalizeEditableStatus(status) {
 }
 
 function submitForm() {
-  if (!props.booking) {
+  if (!props.booking || !props.canUpdateStatus) {
     return
   }
 
@@ -230,32 +221,115 @@ function submitForm() {
   })
 }
 
-function parseSavedComments(value) {
-  return String(value || '')
+function parseBookingComment(value) {
+  const sections = String(value || '')
     .split(/\n{2,}/)
-    .map((comment) => comment.trim())
-    .filter((comment) => Boolean(comment) && !comment.startsWith('Данные пловца:'))
+    .map((section) => section.trim())
+    .filter(Boolean)
+
+  const detailsSection = sections.find((section) => section.startsWith('Данные пловца:')) || ''
+  const details = parseDetailsSection(detailsSection)
+  const comments = sections
+    .filter((section) => section !== detailsSection)
+    .map((section) => normalizeCommentSection(section))
+    .filter(Boolean)
+
+  return {
+    details,
+    comments,
+    detailsSection,
+  }
 }
 
-function formatBookingDetailsText(value) {
-  const normalizedValue = String(value || '').trim()
-
-  if (!normalizedValue.startsWith('Данные пловца:')) {
-    return ''
+function parseDetailsSection(section = '') {
+  if (!section) {
+    return []
   }
 
-  return normalizedValue.split(/\n{2,}/)[0] || ''
+  return section
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(1)
+    .map((line) => {
+      const match = line.match(/^([^:]+):\s*(.*)$/)
+
+      if (!match) {
+        return null
+      }
+
+      return {
+        label: match[1].trim(),
+        value: match[2].trim() || 'Не указано',
+      }
+    })
+    .filter(Boolean)
+}
+
+function buildBookingFacts(booking, detailItems = []) {
+  const facts = [
+    { label: 'ФИО спортсмена', value: formatTrainerBookingClientName(booking) },
+    { label: 'ФИО тренера', value: booking?.trainerName || 'Не указан' },
+    { label: 'Телефон', value: booking?.phone || 'Не указан' },
+    { label: 'Email', value: booking?.email || 'Не указан' },
+    { label: 'Дата', value: formatConsultationDate(booking?.preferredDate) },
+    { label: 'Время', value: booking?.preferredTime || 'Не указано' },
+    { label: 'Создана', value: formatCompactDateTime(booking?.createdAt) },
+  ]
+
+  const existingLabels = new Set(facts.map((fact) => fact.label))
+
+  detailItems.forEach((item) => {
+    if (!item?.label || existingLabels.has(item.label)) {
+      return
+    }
+
+    facts.push({
+      label: item.label,
+      value: item.value || 'Не указано',
+    })
+    existingLabels.add(item.label)
+  })
+
+  return facts
 }
 
 function buildNextCommentValue() {
   const nextComment = form.comment.trim()
-  const currentDetails = bookingDetailsText.value
+  const currentDetails = parsedComment.value.detailsSection
 
   if (!nextComment) {
     return [currentDetails, ...savedComments.value].filter(Boolean).join(COMMENT_SEPARATOR)
   }
 
   return [currentDetails, ...savedComments.value, nextComment].filter(Boolean).join(COMMENT_SEPARATOR)
+}
+
+function normalizeCommentSection(section = '') {
+  const lines = String(section || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  if (!lines.length) {
+    return ''
+  }
+
+  if (lines[0] === 'Комментарий пользователя:' || lines[0] === 'Комментарий:') {
+    return lines.slice(1).join(' ').trim()
+  }
+
+  return lines.join(' ')
+}
+
+function handleClose() {
+  emit('close')
+}
+
+function handleModelValueUpdate(value) {
+  if (!value) {
+    emit('close')
+  }
 }
 
 function handleClosed() {
@@ -282,6 +356,12 @@ function handleClosed() {
   grid-column: 1 / -1;
 }
 
+.account-trainer-booking-details__section--facts {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 16px;
+}
+
 .account-trainer-booking-details__pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -297,22 +377,42 @@ function handleClosed() {
   background: rgb(255 255 255 / 0.9);
 }
 
-.account-trainer-booking-details__summary {
+.account-trainer-booking-details__facts {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 50%);
-  align-items: start;
-  gap: 18px;
+  gap: 12px;
+  grid-template-columns: 1fr;
 }
 
-.account-trainer-booking-details__summary-copy {
+.account-trainer-booking-details__fact {
   display: grid;
-  gap: 6px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
   min-width: 0;
 }
 
+.account-trainer-booking-details__fact-label {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #64748b;
+}
+
+.account-trainer-booking-details__fact-value {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #64748b;
+}
+
 .account-trainer-booking-details__status-control {
+  grid-column: 2;
+  grid-row: 1;
   display: flex;
   justify-content: flex-end;
+  align-items: flex-start;
   min-width: 0;
 }
 
@@ -330,48 +430,32 @@ function handleClosed() {
 }
 
 .account-trainer-booking-details__comment {
-  white-space: pre-line;
-  font-size: 15px;
+  margin: 0;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 1.35;
-  color: var(--black);
+  line-height: 1.4;
+  color: #64748b;
+  white-space: pre-wrap;
 }
 
-.account-trainer-booking-details__meta {
+.account-trainer-booking-details__comment--empty {
   font-size: 13px;
   font-weight: 700;
   line-height: 1.4;
   color: #64748b;
 }
 
-.account-trainer-booking-details__value {
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1.35;
-  color: var(--black);
+.account-trainer-booking-details__block-label {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #64748b;
 }
 
 .account-trainer-booking-details__field {
   margin-top: 10px;
-}
-
-.account-trainer-booking-details__details {
-  display: grid;
-  gap: 8px;
-  padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, var(--cyan) 18%, white);
-  border-radius: 10px;
-  background: rgb(246 251 255 / 0.86);
-}
-
-.account-trainer-booking-details__details-text {
-  margin: 0;
-  white-space: pre-wrap;
-  font-family: Nunito, sans-serif;
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.55;
-  color: var(--black);
 }
 
 .account-trainer-booking-details__select {
@@ -391,13 +475,9 @@ function handleClosed() {
   gap: 6px;
 }
 
-.account-trainer-booking-details__comment {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.45;
-  color: var(--black);
-  white-space: pre-wrap;
+.account-trainer-booking-details__comment-list {
+  display: grid;
+  gap: 8px;
 }
 
 .account-trainer-booking-details__alert {
@@ -426,13 +506,15 @@ function handleClosed() {
     gap: 12px;
   }
 
-  .account-trainer-booking-details__summary {
+  .account-trainer-booking-details__section--facts {
     grid-template-columns: 1fr;
   }
 
   .account-trainer-booking-details__status-control {
     justify-content: stretch;
     order: -1;
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .account-trainer-booking-details__textarea {

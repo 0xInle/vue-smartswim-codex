@@ -63,7 +63,7 @@
         </thead>
 
         <tbody>
-          <template v-if="isLoading">
+          <template v-if="props.showInitialSkeleton || (isLoading && !hasLoadedUsers)">
             <tr
               v-for="rowIndex in skeletonRows"
               :key="`users-skeleton-${rowIndex}`"
@@ -139,10 +139,6 @@
     >
       <div class="account__dialog-form account-users__dialog-form">
         <div class="account-users__dialog-head">
-          <div>
-            <h4 class="account__panel-title account-users__dialog-title">{{ dialogTitle }}</h4>
-          </div>
-
           <label class="account__field account-users__role-select">
             <span class="account__field-label">Роль</span>
             <ElSelect
@@ -150,7 +146,7 @@
               class="account__select"
               popper-class="account__select-popper"
               placeholder="Выберите роль"
-              :disabled="isAthleteRecord"
+              :disabled="isAthleteRecord || isEditDialogLoading"
             >
               <ElOption
                 v-for="option in roleAssignmentOptions"
@@ -162,180 +158,228 @@
           </label>
         </div>
 
-        <div class="account-users__summary-grid">
-          <article
-            v-for="field in activeSummaryFields"
-            :key="field.label"
-            class="account__profile-item account-users__summary-item"
-          >
-            <span class="account__profile-label">{{ field.label }}</span>
-            <strong class="account__profile-value account-users__summary-value">
-              {{ field.value || 'Не указано' }}
-            </strong>
-          </article>
-        </div>
-
-        <section v-if="showDocumentReview" class="account-users__documents-review">
-          <div class="account__panel-head account-users__documents-review-head">
-            <h4 class="account__panel-title">
-              {{ selectedAthlete || isAthleteRecord ? 'Документы спортсмена' : 'Документы пользователя' }}
-            </h4>
-            <div
-              v-if="showActiveDocumentAdmissionAction"
-              class="account-users__documents-review-head-actions"
-            >
-              <ElTag
-                v-if="activeDocumentAdmissionStatus.status === 'admitted'"
-                :type="activeDocumentAdmissionStatus.tagType"
-                effect="light"
-                class="account-users__documents-review-admission-tag"
+        <template v-if="isEditDialogLoading">
+          <div class="account-users__dialog-skeleton" aria-busy="true">
+            <div class="account-users__summary-grid account-users__summary-grid--skeleton">
+              <article
+                v-for="index in 5"
+                :key="`user-summary-skeleton-${index}`"
+                class="account__profile-item account-users__summary-item account-users__summary-item--skeleton"
               >
-                {{ activeDocumentAdmissionStatus.label }}
-              </ElTag>
-              <button
-                v-else-if="canAdmitActiveDocumentGroup"
-                type="button"
-                class="account__table-action account__table-action--delete account-users__documents-review-admit btn-reset"
-                :disabled="isActiveDocumentAdmissionLoading"
-                :aria-busy="isActiveDocumentAdmissionLoading"
-                @click="$emit('admit-document-group', activeDocumentReviewGroup)"
-              >
-                <span
-                  v-if="isActiveDocumentAdmissionLoading"
-                  class="account__button-spinner"
-                  aria-hidden="true"
-                ></span>
-                Допустить к соревнованиям
-              </button>
+                <span class="account-users__skeleton-line account-users__skeleton-line--label"></span>
+                <span class="account-users__skeleton-line account-users__skeleton-line--value"></span>
+              </article>
             </div>
-          </div>
 
-          <div class="account-users__documents-review-list">
-            <article
-              v-for="group in activeDocumentReviewGroups"
-              :key="group.id"
-              class="account-users__documents-review-group"
-            >
-              <div class="account-users__documents-review-group-head">
-                <strong class="account-users__documents-review-group-title">{{ group.title }}</strong>
-                <span class="account-users__documents-review-group-meta">{{ group.meta }}</span>
+            <section class="account-users__documents-review account-users__documents-review--skeleton">
+              <div class="account__panel-head account-users__documents-review-head">
+                <span class="account-users__skeleton-line account-users__skeleton-line--section-title"></span>
               </div>
 
-              <div class="account-users__documents-review-items">
-                <article
-                  v-for="document in group.documents"
-                  :key="document.id || `${group.id}-${document.type}`"
-                  class="account-users__documents-review-item"
-                  :class="`account-users__documents-review-item--${documentState(document)}`"
-                >
-                  <div class="account-users__documents-review-copy">
-                    <div class="account-users__documents-review-title-row">
-                      <strong class="account-users__documents-review-title">
-                        {{ document.label }}
-                      </strong>
-                      <ElTag
-                        :type="documentStatusTagType(document)"
-                        effect="light"
-                        round
-                        class="account-users__documents-review-tag"
-                      >
-                        {{ documentStatusLabel(document) }}
-                      </ElTag>
+              <article class="account-users__documents-review-group account-users__documents-review-group--skeleton">
+                <div class="account-users__documents-review-group-head">
+                  <span class="account-users__skeleton-line account-users__skeleton-line--group-title"></span>
+                  <span class="account-users__skeleton-line account-users__skeleton-line--group-meta"></span>
+                </div>
+
+                <div class="account-users__documents-review-items account-users__documents-review-items--skeleton">
+                  <article
+                    v-for="index in 2"
+                    :key="`user-document-skeleton-${index}`"
+                    class="account-users__documents-review-item account-users__documents-review-item--skeleton"
+                  >
+                    <div class="account-users__documents-review-copy account-users__documents-review-copy--skeleton">
+                      <span class="account-users__skeleton-line account-users__skeleton-line--doc-title"></span>
+                      <span class="account-users__skeleton-line account-users__skeleton-line--doc-meta"></span>
+                      <span class="account-users__skeleton-line account-users__skeleton-line--doc-meta"></span>
                     </div>
-                    <span class="account-users__documents-review-hint">
-                      {{ documentReviewHint(document) }}
-                    </span>
-                    <span class="account-users__documents-review-expiry">
-                      Срок действия: {{ formatDocumentExpiry(document) }}
-                    </span>
-                    <span class="account-users__documents-review-file">
-                      Файл:
-                      <a
-                        v-if="getDocumentPreviewUrl(document)"
-                        class="account-users__documents-review-link"
-                        :href="getDocumentPreviewUrl(document)"
-                        :download="document.fileName || document.label"
-                      >
-                        {{ document.fileName || 'Скачать' }}
-                      </a>
-                      <span v-else>{{ document.fileName || 'Не загружен' }}</span>
-                    </span>
-                  </div>
 
-                  <div class="account-users__documents-review-actions">
-                    <button
-                      type="button"
-                      class="account__table-action account__table-action--edit btn-reset"
-                      :disabled="!canApproveDocument(document) || isDocumentActionLoading(document, 'verified')"
-                      :aria-busy="isDocumentActionLoading(document, 'verified')"
-                      @click="$emit('approve-document', document)"
-                    >
-                      <span
-                        v-if="isDocumentActionLoading(document, 'verified')"
-                        class="account__button-spinner"
-                        aria-hidden="true"
-                      ></span>
-                      Одобрить
-                    </button>
-                    <button
-                      type="button"
-                      class="account__table-action account__table-action--delete btn-reset"
-                      :disabled="!canReviewDocument(document) || isDocumentActionLoading(document, 'needs_reupload')"
-                      :aria-busy="isDocumentActionLoading(document, 'needs_reupload')"
-                      @click="$emit('request-document-reupload', document)"
-                    >
-                      <span
-                        v-if="isDocumentActionLoading(document, 'needs_reupload')"
-                        class="account__button-spinner"
-                        aria-hidden="true"
-                      ></span>
-                      Запросить обновление
-                    </button>
-                  </div>
-                </article>
-
-                <p v-if="!group.documents.length" class="account-users__documents-review-empty">
-                  Документов на проверку нет.
-                </p>
-              </div>
+                    <div class="account-users__documents-review-actions account-users__documents-review-actions--skeleton">
+                      <span class="account-users__skeleton-line account-users__skeleton-line--action"></span>
+                      <span class="account-users__skeleton-line account-users__skeleton-line--action"></span>
+                    </div>
+                  </article>
+                </div>
+              </article>
+            </section>
+          </div>
+        </template>
+        <template v-else>
+          <div class="account-users__summary-grid">
+            <article
+              v-for="field in activeSummaryFields"
+              :key="field.label"
+              class="account__profile-item account-users__summary-item"
+            >
+              <span class="account__profile-label">{{ field.label }}</span>
+              <strong class="account__profile-value account-users__summary-value">
+                {{ field.value || 'Не указано' }}
+              </strong>
             </article>
           </div>
-        </section>
 
-        <section v-if="showAthleteList" class="account-users__admission-section">
-          <div class="account__panel-head account-users__admission-head">
-            <h4 class="account__panel-title">Спортсмены</h4>
-          </div>
-
-          <div v-if="viewedAthleteAdmissions.length" class="account-users__admission-list">
-            <button
-              v-for="athlete in viewedAthleteAdmissions"
-              :key="athlete.id"
-              type="button"
-              class="account-users__admission-item btn-reset"
-              @click="selectedAthleteId = athlete.id"
-            >
-              <div class="account-users__admission-copy">
-                <strong class="account-users__admission-name">{{ athlete.fullName }}</strong>
-                <span class="account-users__admission-meta">
-                  {{ athlete.birthDate || 'Дата рождения не указана' }}
-                </span>
+          <section v-if="showDocumentReview" class="account-users__documents-review">
+            <div class="account__panel-head account-users__documents-review-head">
+              <h4 class="account__panel-title">
+                {{ selectedAthlete || isAthleteRecord ? 'Документы спортсмена' : 'Документы пользователя' }}
+              </h4>
+              <div
+                v-if="showActiveDocumentAdmissionAction"
+                class="account-users__documents-review-head-actions"
+              >
+                <ElTag
+                  v-if="activeDocumentAdmissionStatus.status === 'admitted'"
+                  :type="activeDocumentAdmissionStatus.tagType"
+                  effect="light"
+                  class="account-users__documents-review-admission-tag"
+                >
+                  {{ activeDocumentAdmissionStatus.label }}
+                </ElTag>
+                <button
+                  v-else-if="canAdmitActiveDocumentGroup"
+                  type="button"
+                  class="account__table-action account__table-action--delete account-users__documents-review-admit btn-reset"
+                  :disabled="isActiveDocumentAdmissionLoading"
+                  :aria-busy="isActiveDocumentAdmissionLoading"
+                  @click="$emit('admit-document-group', activeDocumentReviewGroup)"
+                >
+                  <span
+                    v-if="isActiveDocumentAdmissionLoading"
+                    class="account__button-spinner"
+                    aria-hidden="true"
+                  ></span>
+                  Допустить к соревнованиям
+                </button>
               </div>
+            </div>
 
-              <span class="account-users__admission-status" :class="`account-users__admission-status--${athlete.admission.status}`">
-                {{ athlete.admission.label }}
-              </span>
-            </button>
-          </div>
+            <div class="account-users__documents-review-list">
+              <article
+                v-for="group in activeDocumentReviewGroups"
+                :key="group.id"
+                class="account-users__documents-review-group"
+              >
+                <div class="account-users__documents-review-group-head">
+                  <strong class="account-users__documents-review-group-title">{{ group.title }}</strong>
+                  <span class="account-users__documents-review-group-meta">{{ group.meta }}</span>
+                </div>
 
-          <p v-else class="account-users__admission-empty">
-            У этого пользователя пока нет добавленных спортсменов.
-          </p>
-        </section>
+                <div class="account-users__documents-review-items">
+                  <article
+                    v-for="document in group.documents"
+                    :key="document.id || `${group.id}-${document.type}`"
+                    class="account-users__documents-review-item"
+                    :class="`account-users__documents-review-item--${documentState(document)}`"
+                  >
+                    <div class="account-users__documents-review-copy">
+                      <div class="account-users__documents-review-title-row">
+                        <strong class="account-users__documents-review-title">
+                          {{ document.label }}
+                        </strong>
+                        <ElTag
+                          :type="documentStatusTagType(document)"
+                          effect="light"
+                          round
+                          class="account-users__documents-review-tag"
+                        >
+                          {{ documentStatusLabel(document) }}
+                        </ElTag>
+                      </div>
+                      <span class="account-users__documents-review-hint">
+                        {{ documentReviewHint(document) }}
+                      </span>
+                      <span class="account-users__documents-review-expiry">
+                        Срок действия: {{ formatDocumentExpiry(document) }}
+                      </span>
+                      <span class="account-users__documents-review-file">
+                        Файл:
+                        <a
+                          v-if="getDocumentPreviewUrl(document)"
+                          class="account-users__documents-review-link"
+                          :href="getDocumentPreviewUrl(document)"
+                          :download="document.fileName || document.label"
+                        >
+                          {{ document.fileName || 'Скачать' }}
+                        </a>
+                        <span v-else>{{ document.fileName || 'Не загружен' }}</span>
+                      </span>
+                    </div>
+
+                    <div class="account-users__documents-review-actions">
+                      <button
+                        type="button"
+                        class="account__table-action account__table-action--edit btn-reset"
+                        :disabled="!canApproveDocument(document) || isDocumentActionLoading(document, 'verified')"
+                        :aria-busy="isDocumentActionLoading(document, 'verified')"
+                        @click="$emit('approve-document', document)"
+                      >
+                        <span
+                          v-if="isDocumentActionLoading(document, 'verified')"
+                          class="account__button-spinner"
+                          aria-hidden="true"
+                        ></span>
+                        Одобрить
+                      </button>
+                      <button
+                        type="button"
+                        class="account__table-action account__table-action--delete btn-reset"
+                        :disabled="!canReviewDocument(document) || isDocumentActionLoading(document, 'needs_reupload')"
+                        :aria-busy="isDocumentActionLoading(document, 'needs_reupload')"
+                        @click="$emit('request-document-reupload', document)"
+                      >
+                        <span
+                          v-if="isDocumentActionLoading(document, 'needs_reupload')"
+                          class="account__button-spinner"
+                          aria-hidden="true"
+                        ></span>
+                        Запросить обновление
+                      </button>
+                    </div>
+                  </article>
+
+                  <p v-if="!group.documents.length" class="account-users__documents-review-empty">
+                    Документов на проверку нет.
+                  </p>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section v-if="showAthleteList" class="account-users__admission-section">
+            <div class="account__panel-head account-users__admission-head">
+              <h4 class="account__panel-title">Спортсмены</h4>
+            </div>
+
+            <div v-if="viewedAthleteAdmissions.length" class="account-users__admission-list">
+              <button
+                v-for="athlete in viewedAthleteAdmissions"
+                :key="athlete.id"
+                type="button"
+                class="account-users__admission-item btn-reset"
+                @click="selectedAthleteId = athlete.id"
+              >
+                <div class="account-users__admission-copy">
+                  <strong class="account-users__admission-name">{{ athlete.fullName }}</strong>
+                  <span class="account-users__admission-meta">
+                    {{ athlete.birthDate || 'Дата рождения не указана' }}
+                  </span>
+                </div>
+
+                <span class="account-users__admission-status" :class="`account-users__admission-status--${athlete.admission.status}`">
+                  {{ athlete.admission.label }}
+                </span>
+              </button>
+            </div>
+
+            <p v-else class="account-users__admission-empty">
+              У этого пользователя пока нет добавленных спортсменов.
+            </p>
+          </section>
+        </template>
 
         <div class="account__dialog-actions">
           <button
-            v-if="selectedAthlete"
+            v-if="selectedAthlete && !isEditDialogLoading"
             type="button"
             class="account__table-action account__table-action--ghost btn-reset"
             @click="selectedAthleteId = ''"
@@ -350,7 +394,7 @@
             Закрыть
           </button>
           <button
-            v-if="!isAthleteRecord"
+            v-if="!isEditDialogLoading && !isAthleteRecord"
             type="button"
             class="account__table-action account__table-action--delete btn-reset"
             :disabled="isDeleteSubmitting"
@@ -361,7 +405,7 @@
             Удалить
           </button>
           <button
-            v-if="!isAthleteRecord"
+            v-if="!isEditDialogLoading && !isAthleteRecord"
             type="button"
             class="account__table-action account__table-action--edit btn-reset"
             :disabled="isEditSubmitting"
@@ -498,6 +542,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  isEditDialogLoading: {
+    type: Boolean,
+    default: false,
+  },
   isDeleteSubmitting: {
     type: Boolean,
     default: false,
@@ -514,7 +562,13 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  showInitialSkeleton: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+const hasLoadedUsers = ref(false)
 
 defineEmits([
   'update:search',
@@ -539,6 +593,16 @@ defineEmits([
 
 const userRoleOptions = USER_ROLE_OPTIONS
 const skeletonRows = Array.from({ length: USERS_PAGE_SIZE }, (_, index) => index + 1)
+
+watch(
+  () => [props.isLoading, props.users.length],
+  ([isLoading, usersCount]) => {
+    if (!isLoading || usersCount > 0) {
+      hasLoadedUsers.value = true
+    }
+  },
+  { immediate: true },
+)
 const roleAssignmentOptions = [
   USER_ROLE_OPTIONS.find((option) => option.value === CRM_ROLE.ADMIN),
   USER_ROLE_OPTIONS.find((option) => option.value === CRM_ROLE.TRAINER),
@@ -924,7 +988,7 @@ watch(
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end;
 }
 
 .account-users__dialog-title {
@@ -934,6 +998,7 @@ watch(
 .account-users__role-select {
   width: min(260px, 100%);
   flex: 0 0 260px;
+  margin-left: auto;
 }
 
 .account-users__summary-grid {
@@ -946,6 +1011,14 @@ watch(
   align-content: start;
   min-width: 0;
   background: transparent;
+}
+
+.account-users__summary-item--skeleton {
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 12%, white);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.72);
 }
 
 .account-users__table-wrap .account__native-table-row,
@@ -1007,6 +1080,45 @@ watch(
   animation: account-users-skeleton 1.2s ease-in-out infinite;
 }
 
+.account-users__skeleton-line--label {
+  width: min(110px, 58%);
+  height: 12px;
+}
+
+.account-users__skeleton-line--value {
+  width: min(220px, 84%);
+}
+
+.account-users__skeleton-line--section-title {
+  width: min(170px, 54%);
+  height: 14px;
+}
+
+.account-users__skeleton-line--group-title {
+  width: min(180px, 70%);
+  height: 14px;
+}
+
+.account-users__skeleton-line--group-meta {
+  width: min(120px, 44%);
+  height: 12px;
+}
+
+.account-users__skeleton-line--doc-title {
+  width: min(190px, 74%);
+}
+
+.account-users__skeleton-line--doc-meta {
+  width: min(230px, 86%);
+  height: 12px;
+}
+
+.account-users__skeleton-line--action {
+  width: min(100%, 120px);
+  height: 34px;
+  border-radius: 10px;
+}
+
 .account-users__skeleton-line--name {
   width: min(260px, 72%);
 }
@@ -1046,6 +1158,10 @@ watch(
 .account-users__documents-review {
   display: grid;
   gap: 12px;
+}
+
+.account-users__documents-review--skeleton {
+  pointer-events: none;
 }
 
 .account-users__documents-review-head {
@@ -1096,6 +1212,10 @@ watch(
   background: transparent;
 }
 
+.account-users__documents-review-group--skeleton {
+  background: rgb(255 255 255 / 0.72);
+}
+
 .account-users__documents-review-group-head {
   display: flex;
   gap: 8px;
@@ -1123,6 +1243,10 @@ watch(
   gap: 8px;
 }
 
+.account-users__documents-review-items--skeleton {
+  gap: 10px;
+}
+
 .account-users__documents-review-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1132,6 +1256,12 @@ watch(
   border: 1px solid color-mix(in srgb, var(--cyan) 12%, white);
   border-radius: 10px;
   background: transparent;
+}
+
+.account-users__documents-review-item--skeleton {
+  align-items: stretch;
+  border-color: color-mix(in srgb, var(--cyan) 10%, white);
+  background: rgb(255 255 255 / 0.55);
 }
 
 .account-users__documents-review-item--verified {
@@ -1149,6 +1279,10 @@ watch(
   display: grid;
   gap: 5px;
   min-width: 0;
+}
+
+.account-users__documents-review-copy--skeleton {
+  gap: 8px;
 }
 
 .account-users__documents-review-title-row {
@@ -1203,6 +1337,10 @@ watch(
   align-items: stretch;
   width: min(100%, 320px);
   gap: 8px;
+}
+
+.account-users__documents-review-actions--skeleton {
+  width: min(100%, 240px);
 }
 
 .account-users__documents-review-actions > * {

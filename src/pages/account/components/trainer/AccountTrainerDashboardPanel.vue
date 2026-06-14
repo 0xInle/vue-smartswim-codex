@@ -155,7 +155,7 @@
 
 <script setup>
 import { ElCard, ElTag } from 'element-plus'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   TRAINER_BOOKING_STATUS,
 } from '@/pages/account/utils/accountConstants'
@@ -180,11 +180,28 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  showInitialSkeleton: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['select-section'])
 
-const showSkeleton = computed(() => props.isLoading && !props.bookings.length)
+const hasLoadedBookings = ref(false)
+const showSkeleton = computed(
+  () => props.showInitialSkeleton || (props.isLoading && !hasLoadedBookings.value),
+)
+
+watch(
+  () => [props.isLoading, props.bookings.length],
+  ([isLoading, bookingsCount]) => {
+    if (!isLoading || bookingsCount > 0) {
+      hasLoadedBookings.value = true
+    }
+  },
+  { immediate: true },
+)
 
 const summary = computed(() => ({
   newCount: props.bookings.filter((booking) => booking.status === TRAINER_BOOKING_STATUS.NEW).length,

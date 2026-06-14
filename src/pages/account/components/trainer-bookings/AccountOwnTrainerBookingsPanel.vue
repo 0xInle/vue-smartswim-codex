@@ -32,8 +32,48 @@
       </div>
     </template>
 
-    <div v-if="isLoading && !bookings.length" class="account__loading-state">
-      Загружаем ваши записи...
+    <div
+      v-if="props.showInitialSkeleton || (isLoading && !hasLoadedBookings)"
+      class="account-own-trainer-bookings__skeleton"
+      aria-busy="true"
+    >
+      <div class="account__native-table-wrap">
+        <table class="account__native-table account__native-table--trainer-bookings">
+          <thead class="account__native-table-head">
+            <tr>
+              <th>ФИО</th>
+              <th>Дата</th>
+              <th>Время</th>
+              <th>Статус</th>
+              <th>Действие</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr
+              v-for="index in 4"
+              :key="`own-trainer-booking-skeleton-${index}`"
+              class="account__native-table-row account-own-trainer-bookings__table-row account-own-trainer-bookings__table-row--skeleton"
+            >
+              <td class="account__native-table-cell account__native-table-cell--primary">
+                <span class="account-own-trainer-bookings__skeleton-line account-own-trainer-bookings__skeleton-line--title"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-own-trainer-bookings__skeleton-line account-own-trainer-bookings__skeleton-line--text"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-own-trainer-bookings__skeleton-line account-own-trainer-bookings__skeleton-line--text"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-own-trainer-bookings__skeleton-line account-own-trainer-bookings__skeleton-line--status"></span>
+              </td>
+              <td class="account__native-table-cell account__native-table-cell--center">
+                <span class="account-own-trainer-bookings__skeleton-line account-own-trainer-bookings__skeleton-line--button"></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div v-else-if="bookings.length" class="account__native-table-wrap">
@@ -116,7 +156,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElCard, ElEmpty, ElTag } from 'element-plus'
 import AccountOwnTrainerBookingDetailsDialog from '@/pages/account/components/trainer-bookings/AccountTrainerBookingDetailsDialog.vue'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
@@ -136,6 +176,10 @@ const props = defineProps({
   isLoading: {
     type: Boolean,
     required: true,
+  },
+  showInitialSkeleton: {
+    type: Boolean,
+    default: false,
   },
   total: {
     type: Number,
@@ -158,6 +202,17 @@ const isDetailsDialogOpen = ref(false)
 const selectedBooking = ref(null)
 const detailsError = ref('')
 const isSavingDetails = ref(false)
+const hasLoadedBookings = ref(false)
+
+watch(
+  () => [props.isLoading, props.bookings.length],
+  ([isLoading, bookingsCount]) => {
+    if (!isLoading || bookingsCount > 0) {
+      hasLoadedBookings.value = true
+    }
+  },
+  { immediate: true },
+)
 
 const sortedBookings = computed(() =>
   sortItems(props.bookings, {
@@ -228,7 +283,7 @@ function clearDetailsDialog() {
   isSavingDetails.value = false
 }
 
-async function handleDetailsSave(payload) {
+function handleDetailsSave(payload) {
   if (!payload?.bookingId) {
     return
   }
@@ -236,18 +291,21 @@ async function handleDetailsSave(payload) {
   isSavingDetails.value = true
   detailsError.value = ''
 
-  try {
-    emit('update-status', {
-      id: payload.bookingId,
-      status: payload.status,
-      comment: payload.comment,
-    })
-    closeDetailsDialog()
-  } catch (error) {
-    detailsError.value = error?.message || 'Не удалось обновить заявку.'
-  } finally {
-    isSavingDetails.value = false
-  }
+  emit('update-status', {
+    id: payload.bookingId,
+    status: payload.status,
+    comment: payload.comment,
+    done: (isSuccess) => {
+      isSavingDetails.value = false
+
+      if (isSuccess) {
+        closeDetailsDialog()
+        return
+      }
+
+      detailsError.value = 'Не удалось обновить заявку.'
+    },
+  })
 }
 </script>
 
@@ -258,5 +316,57 @@ async function handleDetailsSave(payload) {
 
 .account-own-trainer-bookings__status-badge.el-tag {
   border-radius: 5px;
+}
+
+.account-own-trainer-bookings__skeleton {
+  display: grid;
+}
+
+.account-own-trainer-bookings__table-row--skeleton {
+  pointer-events: none;
+}
+
+.account-own-trainer-bookings__skeleton-line {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  height: 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cyan) 12%, white);
+}
+
+.account-own-trainer-bookings__skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.72), transparent);
+  animation: account-own-trainer-bookings-skeleton 1.2s ease-in-out infinite;
+}
+
+.account-own-trainer-bookings__skeleton-line--title {
+  width: min(220px, 70%);
+}
+
+.account-own-trainer-bookings__skeleton-line--text {
+  width: min(110px, 60%);
+}
+
+.account-own-trainer-bookings__skeleton-line--status {
+  width: 88px;
+}
+
+.account-own-trainer-bookings__skeleton-line--button {
+  width: 96px;
+  margin-inline: auto;
+}
+
+@keyframes account-own-trainer-bookings-skeleton {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 </style>
