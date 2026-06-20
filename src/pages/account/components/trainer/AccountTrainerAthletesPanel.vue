@@ -41,8 +41,21 @@
         </label>
 
         <div class="account-trainer-athletes__meta">
-          <ElButton class="account__refresh-button" plain type="primary" @click="refresh">
-            Обновить
+          <ElButton
+            class="account__refresh-button"
+            plain
+            type="primary"
+            :disabled="isDocumentsLoading"
+            :aria-busy="isDocumentsLoading"
+            aria-label="Обновить"
+            @click="refresh"
+          >
+            <span
+              v-if="isDocumentsLoading"
+              class="account__button-spinner"
+              aria-hidden="true"
+            ></span>
+            <span v-else>Обновить</span>
           </ElButton>
         </div>
       </div>

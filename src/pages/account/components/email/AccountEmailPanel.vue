@@ -1,133 +1,82 @@
 <template>
   <ElCard class="account__panel account-email" shadow="never">
-    <div class="account-email__notice">
-      <div>
-        <p class="account__panel-eyebrow">Email foundation</p>
-        <h3 class="account__panel-title account-email__notice-title">Ручные письма и журнал</h3>
-      </div>
-      <ElTag type="warning" effect="light" round>
-        Отправка через провайдера еще не подключена
-      </ElTag>
-    </div>
-
     <div class="account-email__layout">
       <section class="account-email__composer" aria-label="Новое письмо">
         <div class="account-email__section-head">
-          <h4 class="account-email__section-title">Новое письмо</h4>
-          <span class="account-email__section-meta">
-            Отправитель MVP: почта текущего администратора. Фактическая отправка включится после подключения provider.
-          </span>
+          <h3 class="account-email__section-title">Новое письмо</h3>
         </div>
 
-        <div class="account-email__form-grid">
+        <div class="account-email__form-stack">
           <label class="account__field">
-            <span class="account__field-label">Получатели</span>
-            <ElSelect
-              v-model="form.audienceType"
-              class="account__select"
-              popper-class="account__select-popper"
-              placeholder="Выберите аудиторию"
-            >
-              <ElOption label="Выбранные пользователи" value="selected_users" />
-              <ElOption label="Участники этапа" value="stage_participants" />
-            </ElSelect>
-          </label>
-
-          <label v-if="form.audienceType === 'stage_participants'" class="account__field">
-            <span class="account__field-label">Этап</span>
-            <ElSelect
-              v-model="form.stageId"
-              class="account__select"
-              popper-class="account__select-popper"
-              placeholder="Выберите этап"
-            >
-              <ElOption
-                v-for="stage in stageOptions"
-                :key="stage.value"
-                :label="stage.label"
-                :value="stage.value"
-              />
-            </ElSelect>
-          </label>
-        </div>
-
-        <div v-if="form.audienceType === 'selected_users'" class="account-email__user-picker">
-          <label class="account__field account-email__search-field">
-            <span class="account__field-label">Поиск пользователя</span>
+            <span class="account__field-label">Email</span>
             <input
-              v-model="userSearch"
+              v-model.trim="form.recipientEmail"
               class="account__input"
-              type="search"
-              placeholder="Имя или email"
+              type="email"
+              placeholder="user@example.com"
+              :disabled="form.sendToAllUsers"
+              @input="handleRecipientEmailInput"
             />
           </label>
 
-          <div v-if="filteredUsers.length" class="account-email__user-list">
-            <label
-              v-for="user in filteredUsers"
-              :key="user.id"
-              class="account-email__user-option"
+          <label class="account__field">
+            <span class="account__field-label">Пользователь</span>
+            <ElSelect
+              ref="userSelectRef"
+              v-model="form.selectedUserId"
+              class="account__select"
+              popper-class="account__select-popper"
+              filterable
+              clearable
+              placeholder="Выберите пользователя"
+              no-match-text="Пользователь не найден"
+              :disabled="form.sendToAllUsers"
+              @clear="handleSelectedUserClear"
+              @update:model-value="handleSelectedUserChange"
+              @visible-change="handleUserSelectVisibleChange"
             >
-              <input
-                v-model="form.selectedUserIds"
-                type="checkbox"
-                :value="user.id"
-                :disabled="!user.email"
+              <ElOption
+                v-for="recipient in regularUserRecipients"
+                :key="recipient.ownerUserId"
+                :label="formatRecipientOptionLabel(recipient)"
+                :value="recipient.ownerUserId"
               />
-              <span class="account-email__user-copy">
-                <strong>{{ user.name || 'Без имени' }}</strong>
-                <small>{{ user.email || 'Почта не указана' }}</small>
-              </span>
-            </label>
-          </div>
+            </ElSelect>
+          </label>
 
-          <ElEmpty v-else description="Пользователи не найдены." />
+          <label class="account__field">
+            <span class="account__field-label">Тема</span>
+            <input
+              v-model.trim="form.subject"
+              class="account__input"
+              type="text"
+              placeholder="Например: Информация по этапу Smart Swim"
+            />
+          </label>
         </div>
 
-        <label class="account__field">
-          <span class="account__field-label">Тема</span>
-          <input
-            v-model.trim="form.subject"
-            class="account__input"
-            type="text"
-            placeholder="Например: Информация по этапу Smart Swim"
-          />
-        </label>
-
-        <label class="account__field">
+        <label class="account__field account-email__textarea-field">
           <span class="account__field-label">Текст письма</span>
           <textarea
             v-model.trim="form.body"
-            class="account__textarea account-email__textarea"
+            class="account__input account-email__textarea"
             rows="8"
-            placeholder="Текст для будущей отправки через email-провайдера"
+            placeholder="Текст письма"
           ></textarea>
         </label>
 
-        <div class="account-email__preview">
-          <div class="account-email__preview-head">
-            <span>Получатели</span>
-            <ElTag type="primary" effect="light" round>{{ recipientPreview.length }}</ElTag>
-          </div>
-
-          <div v-if="recipientPreview.length" class="account-email__recipient-chips">
-            <span
-              v-for="recipient in recipientPreview.slice(0, 8)"
-              :key="recipient.email"
-              class="account-email__recipient-chip"
-            >
-              {{ recipient.name || recipient.email }}
-            </span>
-            <span v-if="recipientPreview.length > 8" class="account-email__recipient-more">
-              +{{ recipientPreview.length - 8 }}
-            </span>
-          </div>
-          <p v-else class="account-email__empty-copy">
-            Выберите пользователей или этап, чтобы увидеть получателей.
-          </p>
-        </div>
-
         <div class="account__dialog-actions account-email__actions">
+          <label class="account-email__audience-option">
+            <input
+              v-model="form.sendToAllUsers"
+              class="account-email__audience-checkbox"
+              type="checkbox"
+            />
+            <span class="account-email__audience-copy">
+              <strong>Отправить всем пользователям</strong>
+            </span>
+          </label>
+
           <button
             type="button"
             class="account__table-action account__table-action--edit btn-reset"
@@ -140,21 +89,24 @@
               class="account__button-spinner"
               aria-hidden="true"
             ></span>
-            Поставить в очередь
+            Отправить
           </button>
         </div>
       </section>
 
       <section class="account-email__history" aria-label="Журнал писем">
         <div class="account-email__section-head">
-          <h4 class="account-email__section-title">Журнал</h4>
+          <h3 class="account-email__section-title">Журнал</h3>
           <button
             type="button"
             class="account__table-action account__table-action--ghost btn-reset"
             :disabled="isLoading"
+            :aria-busy="isLoading"
+            aria-label="Обновить"
             @click="loadMessages"
           >
-            Обновить
+            <span v-if="isLoading" class="account__button-spinner" aria-hidden="true"></span>
+            <span v-else>Обновить</span>
           </button>
         </div>
 
@@ -195,7 +147,11 @@
           </article>
         </div>
 
-        <div v-else-if="filteredMessages.length" class="account-email__message-list">
+        <div
+          v-else-if="filteredMessages.length"
+          class="account-email__message-list"
+          :class="{ 'account-email__message-list--scrollable': filteredMessages.length > 3 }"
+        >
           <article
             v-for="message in filteredMessages"
             :key="message.id"
@@ -229,50 +185,44 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
 import {
-  EMAIL_AUDIENCE_TYPE,
   formatEmailAudienceType,
   formatEmailStatus,
   getEmailStatusTagType,
 } from '@/domains/account-email/emailLifecycle'
 import {
-  createQueuedEmailMessageForAdmin,
   loadEmailMessagesForAdmin,
   subscribeToAccountEmailChanges,
 } from '@/domains/account-email/emailRepository'
-import { dedupeEmailRecipients } from '@/domains/account-email/emailMappers'
 import {
   loadAccountEmailRecipientsForAdmin,
   subscribeToAccountUsersChanges,
 } from '@/domains/account-users/accountUsersRepository'
-import { loadAllCompetitionRegistrationsForAdmin } from '@/pages/account/utils/accountCompetitionRegistrations'
-import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import { formatCompactDateTime } from '@/pages/account/utils/accountFormatters'
+import { CRM_ROLE } from '@/utils/crmRoles'
 import { showToast } from '@/utils/toast'
 
 const form = reactive({
-  audienceType: EMAIL_AUDIENCE_TYPE.SELECTED_USERS,
-  selectedUserIds: [],
-  stageId: '',
+  sendToAllUsers: false,
+  recipientEmail: '',
+  selectedUserId: '',
   subject: '',
   body: '',
 })
-const userSearch = ref('')
 const messageContextFilter = ref('all')
 const messages = ref([])
-const registrations = ref([])
 const users = ref([])
+const userSelectRef = ref(null)
 const isLoading = ref(false)
 const hasLoadedMessages = ref(false)
 const isSaving = ref(false)
-const isRegistrationsLoaded = ref(false)
-const isRegistrationsLoading = ref(false)
 let unsubscribeFromEmail = null
 let unsubscribeFromRecipientUsers = null
 let messagesRefreshTimer = null
 let recipientUsersRefreshTimer = null
+let shouldCloseUserSelectAfterClear = false
 
 const EMAIL_REFRESH_DEBOUNCE_MS = 300
 
@@ -297,76 +247,45 @@ const props = defineProps({
   },
 })
 
-function getUuidOrEmpty(value) {
-  const normalizedValue = String(value || '').trim()
-
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    normalizedValue,
-  )
-    ? normalizedValue
-    : ''
-}
-
-const stageOptions = computed(() =>
-  buildAccountCompetitionStages().map((stage) => ({
-    value: stage.id,
-    label: `${stage.competitionName} · этап ${stage.title} · ${stage.registration.competitionDateLabel}`,
-  })),
-)
-
-const filteredUsers = computed(() => {
-  const search = userSearch.value.trim().toLowerCase()
-
-  return users.value
-    .filter((user) => user.email)
-    .filter((user) => {
-      if (!search) {
-        return true
-      }
-
-      return [user.name, user.email].filter(Boolean).join(' ').toLowerCase().includes(search)
-    })
-    .slice(0, 80)
-})
-
-const selectedUserRecipients = computed(() => {
-  const selectedIds = new Set(form.selectedUserIds)
-
-  return users.value
-    .filter((user) => selectedIds.has(user.id))
+const regularUserRecipients = computed(() =>
+  users.value
+    .filter(
+      (user) =>
+        user.email &&
+        user.role !== CRM_ROLE.ADMIN &&
+        user.role !== CRM_ROLE.TRAINER,
+    )
     .map((user) => ({
       ownerUserId: user.id,
       email: user.email,
       name: user.name,
       recipientType: 'user',
-    }))
-})
-
-const stageParticipantRecipients = computed(() =>
-  registrations.value
-    .filter((registration) => registration.stageId === form.stageId)
-    .map((registration) => ({
-      ownerUserId: getUuidOrEmpty(registration.sourceUserKey),
-      email: registration.ownerEmail || registration.participantEmail,
-      name: registration.participantName || registration.ownerName,
-      recipientType: 'participant',
     })),
 )
 
-const recipientPreview = computed(() => {
-  if (form.audienceType === EMAIL_AUDIENCE_TYPE.STAGE_PARTICIPANTS) {
-    return dedupeEmailRecipients(stageParticipantRecipients.value)
-  }
+const regularRecipientsCount = computed(() => regularUserRecipients.value.length)
 
-  return dedupeEmailRecipients(selectedUserRecipients.value)
-})
+const selectedRecipient = computed(
+  () =>
+    regularUserRecipients.value.find(
+      (recipient) => recipient.ownerUserId === form.selectedUserId,
+    ) || null,
+)
+
+const recipientEmail = computed(() => form.recipientEmail.trim())
+
+const hasRecipientEmail = computed(() =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail.value),
+)
 
 const isSubmitDisabled = computed(
   () =>
     isSaving.value ||
     !form.subject.trim() ||
     !form.body.trim() ||
-    !recipientPreview.value.length,
+    (form.sendToAllUsers
+      ? !regularRecipientsCount.value
+      : !selectedRecipient.value && !hasRecipientEmail.value),
 )
 
 const filteredMessages = computed(() => {
@@ -394,11 +313,57 @@ function formatEmailContextType(contextType) {
 }
 
 function resetForm() {
-  form.selectedUserIds = []
-  form.stageId = ''
+  form.sendToAllUsers = false
+  form.recipientEmail = ''
+  form.selectedUserId = ''
   form.subject = ''
   form.body = ''
-  userSearch.value = ''
+}
+
+function handleRecipientEmailInput() {
+  if (form.recipientEmail.trim()) {
+    form.sendToAllUsers = false
+    form.selectedUserId = ''
+  }
+}
+
+function handleSelectedUserChange(userId) {
+  const recipient = regularUserRecipients.value.find(
+    (item) => item.ownerUserId === userId,
+  )
+
+  if (!recipient) {
+    return
+  }
+
+  form.sendToAllUsers = false
+  form.recipientEmail = recipient.email || ''
+}
+
+function blurUserSelectAfterClear() {
+  void nextTick(() => {
+    userSelectRef.value?.blur?.()
+  })
+}
+
+function handleSelectedUserClear() {
+  shouldCloseUserSelectAfterClear = true
+  blurUserSelectAfterClear()
+}
+
+function handleUserSelectVisibleChange(isVisible) {
+  if (!isVisible) {
+    shouldCloseUserSelectAfterClear = false
+    return
+  }
+
+  if (shouldCloseUserSelectAfterClear) {
+    blurUserSelectAfterClear()
+  }
+}
+
+function formatRecipientOptionLabel(recipient) {
+  return recipient.name || 'Без имени'
 }
 
 async function loadMessages() {
@@ -422,31 +387,15 @@ watch(
   },
 )
 
-async function loadRegistrations() {
-  isRegistrationsLoading.value = true
-
-  try {
-    registrations.value = await loadAllCompetitionRegistrationsForAdmin()
-    isRegistrationsLoaded.value = true
-  } catch {
-    registrations.value = []
-    isRegistrationsLoaded.value = false
-  } finally {
-    isRegistrationsLoading.value = false
-  }
-}
-
-function ensureRegistrationsLoaded() {
-  if (
-    form.audienceType !== EMAIL_AUDIENCE_TYPE.STAGE_PARTICIPANTS ||
-    isRegistrationsLoaded.value ||
-    isRegistrationsLoading.value
-  ) {
-    return
-  }
-
-  void loadRegistrations()
-}
+watch(
+  () => form.sendToAllUsers,
+  (sendToAllUsers) => {
+    if (sendToAllUsers) {
+      form.recipientEmail = ''
+      form.selectedUserId = ''
+    }
+  },
+)
 
 async function loadRecipientUsers() {
   try {
@@ -499,22 +448,8 @@ async function handleSubmit() {
   isSaving.value = true
 
   try {
-    const normalizedSubject = form.subject.trim()
-    const normalizedBody = form.body.trim()
-
-    await createQueuedEmailMessageForAdmin({
-      audienceType: form.audienceType,
-      contextType:
-        form.audienceType === EMAIL_AUDIENCE_TYPE.STAGE_PARTICIPANTS ? 'stage' : 'manual',
-      contextId:
-        form.audienceType === EMAIL_AUDIENCE_TYPE.STAGE_PARTICIPANTS ? form.stageId : '',
-      subject: normalizedSubject,
-      body: normalizedBody,
-      recipients: recipientPreview.value,
-    })
-    showToast('Письмо поставлено в очередь. Отправка включится после подключения провайдера.')
+    showToast('Каркас отправки готов. Подключение email-провайдера будет отдельным шагом.')
     resetForm()
-    await loadMessages()
   } catch (error) {
     showToast(error, { type: 'error' })
   } finally {
@@ -533,11 +468,6 @@ onMounted(() => {
     scheduleRecipientUsersRefresh()
   })
 })
-
-watch(
-  () => [form.audienceType, form.stageId],
-  ensureRegistrationsLoaded,
-)
 
 onBeforeUnmount(() => {
   cancelEmailRefreshTimers()
@@ -559,21 +489,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.account-email__notice {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.account-email__notice-title {
-  margin: 4px 0 0;
-}
-
 .account-email__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 18px;
 }
 
@@ -602,125 +519,98 @@ onBeforeUnmount(() => {
   color: var(--black);
 }
 
-.account-email__section-meta {
-  max-width: 280px;
-  font-size: 13px;
-  line-height: 1.35;
-  color: color-mix(in srgb, var(--black) 58%, transparent);
-  text-align: right;
-}
-
 .account-email__history-filter {
   margin-bottom: 14px;
 }
 
-.account-email__form-grid {
+.account-email__form-stack {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
-.account-email__user-picker {
-  display: grid;
-  gap: 10px;
-  margin: 14px 0;
+.account-email .account__field {
+  width: 50%;
+  max-width: 100%;
+  margin-bottom: 14px;
 }
 
-.account-email__search-field {
-  margin: 0;
+.account-email .account-email__textarea-field {
+  width: 100%;
 }
 
-.account-email__user-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  max-height: 240px;
-  overflow: auto;
-  padding: 2px;
+.account-email .account__input,
+.account-email :deep(.account__select) {
+  width: 50%;
+  max-width: 100%;
 }
 
-.account-email__user-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--light-blue) 48%, transparent);
-  border-radius: 10px;
-  padding: 10px;
-  cursor: pointer;
+.account-email .account__field > .account__input,
+.account-email .account__field > :deep(.account__select),
+.account-email :deep(.account__select .el-select__wrapper) {
+  width: 100%;
 }
 
-.account-email__user-copy {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-
-.account-email__user-copy strong,
-.account-email__user-copy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.account-email__user-copy small {
-  color: color-mix(in srgb, var(--black) 56%, transparent);
+.account-email .account__input,
+.account-email :deep(.account__select .el-select__wrapper),
+.account-email :deep(.account__select .el-select__selected-item),
+.account-email :deep(.account__select .el-select__placeholder),
+.account-email :deep(.account__select .el-select__input) {
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .account-email__textarea {
+  width: 100%;
   min-height: 156px;
-  resize: vertical;
+  max-height: none;
+  padding-block: 12px;
+  line-height: 1.5;
+  resize: none;
 }
 
-.account-email__preview {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--very-light-blue) 58%, transparent);
-  padding: 12px;
-}
-
-.account-email__preview-head {
+.account-email__audience-option {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  font-weight: 800;
+  cursor: pointer;
 }
 
-.account-email__recipient-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.account-email__recipient-chip,
-.account-email__recipient-more {
-  border-radius: 999px;
-  background: var(--white);
-  padding: 6px 10px;
-  font-size: 13px;
-  font-weight: 800;
-  color: color-mix(in srgb, var(--black) 74%, transparent);
-}
-
-.account-email__recipient-more {
-  color: var(--cyan);
-}
-
-.account-email__empty-copy {
+.account-email__audience-checkbox {
+  width: 18px;
+  height: 18px;
   margin: 0;
-  color: color-mix(in srgb, var(--black) 56%, transparent);
+  accent-color: var(--cyan);
+}
+
+.account-email__audience-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-email__audience-copy strong {
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--black);
 }
 
 .account-email__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
   margin-top: 16px;
 }
 
 .account-email__message-list {
   display: grid;
   gap: 10px;
+}
+
+.account-email__message-list--scrollable {
+  max-height: 294px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .account-email__message-list--skeleton {
@@ -808,22 +698,18 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 980px) {
-  .account-email__layout,
-  .account-email__form-grid,
-  .account-email__user-list {
-    grid-template-columns: 1fr;
+  .account-email .account__input,
+  .account-email :deep(.account__select),
+  .account-email__form-stack,
+  .account-email .account__field {
+    width: 100%;
   }
 
-  .account-email__notice,
   .account-email__section-head,
-  .account-email__message {
+  .account-email__message,
+  .account-email__actions {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .account-email__section-meta {
-    max-width: none;
-    text-align: left;
   }
 }
 </style>

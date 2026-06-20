@@ -9,9 +9,12 @@
         type="button"
         class="account__table-action account__table-action--ghost btn-reset"
         :disabled="isLoading"
+        :aria-busy="isLoading"
+        aria-label="Обновить"
         @click="loadMessages"
       >
-        Обновить
+        <span v-if="isLoading" class="account__button-spinner" aria-hidden="true"></span>
+        <span v-else>Обновить</span>
       </button>
     </div>
 

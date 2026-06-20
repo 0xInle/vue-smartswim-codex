@@ -43,10 +43,11 @@
           class="account__refresh-button btn-reset"
           :disabled="isLoading"
           :aria-busy="isLoading"
+          aria-label="Обновить"
           @click="$emit('refresh')"
         >
           <span v-if="isLoading" class="account__button-spinner" aria-hidden="true"></span>
-          Обновить
+          <span v-else>Обновить</span>
         </button>
       </div>
     </div>
