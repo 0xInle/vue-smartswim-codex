@@ -954,8 +954,8 @@ watch(
   align-items: center;
   justify-content: center;
   width: 125px;
-  min-height: 38px;
-  padding: 8px 14px;
+  min-height: 32px;
+  padding: 6px 12px;
   border: 1px solid #e7edf5;
   border-radius: 10px;
   background-color: var(--button-current-bg, #f5fbfd);
@@ -1067,6 +1067,14 @@ watch(
 
 .account__native-table--competition-registrations .account__native-table-cell:first-child {
   text-align: left;
+}
+
+.account__native-table--competition-registrations .account__native-table-head th {
+  padding-block: 10px;
+}
+
+.account__native-table--competition-registrations .account__native-table-cell {
+  padding: 9px 10px;
 }
 
 .account__native-table--competition-history .account__table-action--edit {
