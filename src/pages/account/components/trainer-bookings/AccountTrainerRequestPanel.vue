@@ -71,6 +71,8 @@
               placeholder="Выберите тренера"
               filterable
               clearable
+              no-match-text="Нет результатов"
+              no-data-text="Нет результатов"
               :aria-invalid="Boolean(errors.trainerId)"
             >
               <ElOption
@@ -98,6 +100,8 @@
               placeholder="Выберите участника"
               filterable
               clearable
+              no-match-text="Нет результатов"
+              no-data-text="Нет результатов"
               :aria-invalid="Boolean(errors.fullName)"
               @change="handleParticipantSelect"
               @visible-change="handleParticipantDropdownVisibleChange"
@@ -115,13 +119,14 @@
           <label class="account__field">
             <span class="account__field-label">Телефон</span>
             <input
-              v-model.trim="form.phone"
+              :value="form.phone"
               class="account__input"
               type="tel"
               name="trainer-request-phone"
               inputmode="tel"
               placeholder="Введите телефон"
               :aria-invalid="Boolean(errors.phone)"
+              @input="handlePhoneInput"
             />
             <span v-if="errors.phone" class="account__field-error">{{ errors.phone }}</span>
           </label>
@@ -165,15 +170,14 @@
           <label class="account__field">
             <span class="account__field-label">Возраст</span>
             <input
-              v-model.trim="form.age"
+              :value="form.age"
               class="account__input"
-              type="number"
+              type="text"
               name="trainer-request-age"
               inputmode="numeric"
-              min="1"
-              max="100"
               placeholder="Введите возраст"
               :aria-invalid="Boolean(errors.age)"
+              @input="handleAgeInput"
             />
             <span v-if="errors.age" class="account__field-error">{{ errors.age }}</span>
           </label>
@@ -324,7 +328,8 @@
           :disabled="isSubmitting"
           :aria-busy="isSubmitting"
         >
-          {{ isSubmitting ? 'Отправляем...' : 'Отправить заявку' }}
+          <span v-if="isSubmitting" class="account__button-spinner" aria-hidden="true"></span>
+          <span v-else>Отправить заявку</span>
         </button>
       </div>
     </form>
@@ -340,7 +345,8 @@ import {
   loadAccountProfileForCurrentUser,
 } from '@/domains/account-data/accountDataRepository'
 import { createTrainerBooking } from '@/utils/supabaseDatabase'
-import { formatPhone, isValidPhone } from '@/utils/phone'
+import { formatRussianPhone, formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
+import { sanitizeIntegerInput } from '@/utils/inputSanitizers'
 
 const props = defineProps({
   currentUser: {
@@ -476,8 +482,8 @@ function validateForm() {
 
   if (!normalizedPhone) {
     errors.phone = 'Укажите телефон.'
-  } else if (!isValidPhone(normalizedPhone)) {
-    errors.phone = 'Укажите телефон в международном формате.'
+  } else if (!isRussianPhone(normalizedPhone)) {
+    errors.phone = 'Укажите российский телефон из 11 цифр, например 89604709999.'
   }
 
   if (!normalizedEmail) {
@@ -611,13 +617,24 @@ function handleParticipantSelect(value) {
     return
   }
 
-  form.participantId = value
-  form.fullName = value
+  form.participantId = ''
+  form.fullName = ''
   form.gender = ''
   form.age = ''
   form.club = ''
   form.rank = ''
+  errors.fullName = 'Выберите участника из списка.'
   submitStatus.message = ''
+}
+
+function handlePhoneInput(event) {
+  form.phone = formatRussianPhoneInput(event.target.value)
+  errors.phone = ''
+}
+
+function handleAgeInput(event) {
+  form.age = sanitizeIntegerInput(event.target.value, { maxLength: 3 })
+  errors.age = ''
 }
 
 function handleParticipantDropdownVisibleChange(isVisible) {
@@ -722,7 +739,7 @@ async function handleSubmit() {
       trainerName: selectedTrainer.name,
       firstName,
       lastName,
-      phone: formatPhone(form.phone),
+      phone: formatRussianPhone(form.phone),
       email: normalizedEmail,
       preferredDate: todayIsoDate.value,
       preferredTime: normalizedPreferredTime,

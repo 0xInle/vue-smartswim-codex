@@ -70,12 +70,12 @@
         <label class="account__field">
           <span class="account__field-label">Лимит мест</span>
           <input
-            v-model.number="form.registrationLimit"
+            :value="form.registrationLimit"
             class="account__input"
-            type="number"
-            min="0"
+            type="text"
             inputmode="numeric"
             placeholder="0 - без лимита"
+            @input="handleRegistrationLimitInput"
           />
         </label>
       </div>
@@ -148,6 +148,7 @@ import {
   formatCompetitionStageLabel,
 } from '@/pages/account/utils/accountFormatters'
 import AccountDatePicker from '@/pages/account/components/shared/AccountDatePicker.vue'
+import { sanitizeIntegerInput } from '@/utils/inputSanitizers'
 
 const props = defineProps({
   modelValue: {
@@ -230,6 +231,10 @@ function submitForm() {
     certificateUrl: form.certificateUrl.trim(),
     memoUrl: form.memoUrl.trim(),
   })
+}
+
+function handleRegistrationLimitInput(event) {
+  form.registrationLimit = sanitizeIntegerInput(event.target.value, { maxLength: 8 })
 }
 
 function resetForm() {

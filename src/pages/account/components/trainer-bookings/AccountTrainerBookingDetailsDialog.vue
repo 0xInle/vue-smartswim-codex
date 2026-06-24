@@ -110,7 +110,7 @@
             :aria-busy="isSaving"
           >
             <span v-if="isSaving" class="account__button-spinner" aria-hidden="true"></span>
-            Сохранить
+            <span v-else>Сохранить</span>
           </button>
         </div>
       </div>

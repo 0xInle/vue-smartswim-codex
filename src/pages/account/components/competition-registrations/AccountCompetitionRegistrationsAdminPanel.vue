@@ -103,7 +103,7 @@
                 class="account__button-spinner"
                 aria-hidden="true"
               ></span>
-              Выполнен
+              <span v-else>Выполнен</span>
             </button>
             <button
               type="button"
@@ -117,7 +117,7 @@
                 class="account__button-spinner"
                 aria-hidden="true"
               ></span>
-              Отклонить
+              <span v-else>Отклонить</span>
             </button>
           </div>
         </article>

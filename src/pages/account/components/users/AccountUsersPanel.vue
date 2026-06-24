@@ -248,7 +248,7 @@
                     class="account__button-spinner"
                     aria-hidden="true"
                   ></span>
-                  Допустить к соревнованиям
+                  <span v-else>Допустить к соревнованиям</span>
                 </button>
               </div>
             </div>
@@ -318,7 +318,7 @@
                           class="account__button-spinner"
                           aria-hidden="true"
                         ></span>
-                        Одобрить
+                        <span v-else>Одобрить</span>
                       </button>
                       <button
                         type="button"
@@ -332,7 +332,7 @@
                           class="account__button-spinner"
                           aria-hidden="true"
                         ></span>
-                        Запросить обновление
+                        <span v-else>Запросить обновление</span>
                       </button>
                     </div>
                   </article>
@@ -402,7 +402,7 @@
             @click="$emit('delete-user', props.editForm)"
           >
             <span v-if="isDeleteSubmitting" class="account__button-spinner" aria-hidden="true"></span>
-            Удалить
+            <span v-else>Удалить</span>
           </button>
           <button
             v-if="!isEditDialogLoading && !isAthleteRecord"
@@ -413,7 +413,7 @@
             @click="$emit('submit-edit')"
           >
             <span v-if="isEditSubmitting" class="account__button-spinner" aria-hidden="true"></span>
-            Сохранить
+            <span v-else>Сохранить</span>
           </button>
         </div>
       </div>
@@ -461,7 +461,7 @@
           @click="$emit('confirm-delete')"
         >
           <span v-if="isDeleteSubmitting" class="account__button-spinner" aria-hidden="true"></span>
-          Удалить
+          <span v-else>Удалить</span>
         </button>
       </div>
     </ElDialog>

@@ -86,7 +86,7 @@
             class="account__button-spinner"
             aria-hidden="true"
           ></span>
-          Загрузить
+          <span v-else>Загрузить</span>
         </button>
       </div>
     </form>

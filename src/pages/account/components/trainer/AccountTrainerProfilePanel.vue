@@ -27,7 +27,7 @@
             name="trainer-full-name"
             placeholder="Введите ФИО"
             :aria-invalid="Boolean(errors.fullName)"
-            @input="updateTextField('fullName', $event.target.value, { trim: true })"
+            @input="handleFullNameInput"
           />
           <span v-if="errors.fullName" class="account__field-error">{{ errors.fullName }}</span>
         </label>
@@ -209,7 +209,7 @@
           :aria-busy="isSaving"
         >
           <span v-if="isSaving" class="account__button-spinner" aria-hidden="true"></span>
-          Сохранить
+          <span v-else>Сохранить</span>
         </button>
       </div>
     </form>
@@ -221,6 +221,7 @@ import { computed, reactive, ref, toRef, watch } from 'vue'
 import { ElCard } from 'element-plus'
 import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
 import { normalizeDateInput } from '@/utils/dateInput'
+import { sanitizeDateFieldInput, sanitizePersonNameInput } from '@/utils/inputSanitizers'
 import { showToast } from '@/utils/toast'
 import {
   loadAccountProfileForCurrentUser,
@@ -345,7 +346,7 @@ function validateProfile() {
   if (!profile.phone) {
     errors.phone = 'Укажите телефон.'
   } else if (!isRussianPhone(profile.phone)) {
-    errors.phone = 'Укажите телефон в международном формате, например +7 (961) 471-33-80.'
+    errors.phone = 'Укажите российский телефон из 11 цифр, например 89604709999.'
   }
 
   if (!profile.email) {
@@ -361,8 +362,13 @@ function updateTextField(field, value, { trim = false } = {}) {
   profile[field] = trim ? String(value || '').trim() : String(value || '')
 }
 
+function handleFullNameInput(event) {
+  profile.fullName = sanitizePersonNameInput(event.target.value)
+  errors.fullName = ''
+}
+
 function handleBirthDateInput(event) {
-  profile.birthDate = String(event.target.value || '')
+  profile.birthDate = sanitizeDateFieldInput(event.target.value)
   errors.birthDate = ''
 }
 

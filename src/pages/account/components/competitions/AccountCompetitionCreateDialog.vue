@@ -27,12 +27,13 @@
         <label class="account__field">
           <span class="account__field-label">Этап</span>
           <input
-            v-model.number="form.stage"
+            :value="form.stage"
             class="account__input"
-            type="number"
-            min="1"
+            type="text"
+            inputmode="numeric"
             placeholder="10"
             required
+            @input="handleStageInput"
           />
         </label>
       </div>
@@ -95,7 +96,7 @@
           :aria-busy="isSubmitting"
         >
           <span v-if="isSubmitting" class="account__button-spinner" aria-hidden="true"></span>
-          Создать
+          <span v-else>Создать</span>
         </button>
       </div>
     </form>
@@ -107,6 +108,7 @@ import { Close } from '@element-plus/icons-vue'
 import { reactive, watch } from 'vue'
 import { ElDialog } from 'element-plus'
 import AccountDatePicker from '@/pages/account/components/shared/AccountDatePicker.vue'
+import { sanitizeIntegerInput } from '@/utils/inputSanitizers'
 
 const props = defineProps({
   modelValue: {
@@ -170,6 +172,10 @@ function submitForm() {
     certificateUrl: form.certificateUrl.trim(),
     memoUrl: form.memoUrl.trim(),
   })
+}
+
+function handleStageInput(event) {
+  form.stage = sanitizeIntegerInput(event.target.value, { maxLength: 8 })
 }
 
 function resetForm() {

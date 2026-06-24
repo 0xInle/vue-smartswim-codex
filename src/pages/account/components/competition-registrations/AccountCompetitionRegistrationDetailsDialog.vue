@@ -290,7 +290,7 @@
           "
         >
           <span v-if="isActionLoading('save')" class="account__button-spinner" aria-hidden="true"></span>
-          Сохранить
+          <span v-else>Сохранить</span>
         </button>
         <button
           v-if="showPaymentButton"
@@ -301,7 +301,7 @@
           @click="emit('create-payment')"
         >
           <span v-if="isActionLoading('create-payment')" class="account__button-spinner" aria-hidden="true"></span>
-          {{ paymentButtonLabel }}
+          <span v-else>{{ paymentButtonLabel }}</span>
         </button>
         <button
           v-if="showRefundButton"
@@ -312,7 +312,7 @@
           @click="emit('request-refund')"
         >
           <span v-if="isActionLoading('request-refund')" class="account__button-spinner" aria-hidden="true"></span>
-          {{ refundButtonLabel }}
+          <span v-else>{{ refundButtonLabel }}</span>
         </button>
         <button
           v-if="showMarkPaymentSucceededButton"
@@ -323,7 +323,7 @@
           @click="emit('mark-payment-succeeded')"
         >
           <span v-if="isActionLoading('mark-payment-succeeded')" class="account__button-spinner" aria-hidden="true"></span>
-          Отметить оплаченной
+          <span v-else>Отметить оплаченной</span>
         </button>
         <button
           v-if="showMarkPaymentFailedButton"
@@ -334,7 +334,7 @@
           @click="emit('mark-payment-failed')"
         >
           <span v-if="isActionLoading('mark-payment-failed')" class="account__button-spinner" aria-hidden="true"></span>
-          Ошибка оплаты
+          <span v-else>Ошибка оплаты</span>
         </button>
         <button
           v-if="showResolveRefundSucceededButton"
@@ -345,7 +345,7 @@
           @click="emit('resolve-refund-succeeded')"
         >
           <span v-if="isActionLoading('resolve-refund-succeeded')" class="account__button-spinner" aria-hidden="true"></span>
-          Возврат выполнен
+          <span v-else>Возврат выполнен</span>
         </button>
         <button
           v-if="showResolveRefundRejectedButton"
@@ -356,7 +356,7 @@
           @click="emit('resolve-refund-rejected')"
         >
           <span v-if="isActionLoading('resolve-refund-rejected')" class="account__button-spinner" aria-hidden="true"></span>
-          Возврат отклонен
+          <span v-else>Возврат отклонен</span>
         </button>
         <button
           v-if="showAdmitButton"
@@ -367,7 +367,7 @@
           @click="emit('admit')"
         >
           <span v-if="isActionLoading('admit')" class="account__button-spinner" aria-hidden="true"></span>
-          {{ admitButtonLabel }}
+          <span v-else>{{ admitButtonLabel }}</span>
         </button>
         <button
           v-if="showWithdrawButton && registration.status !== 'withdrawn' && registration.status !== 'rejected'"

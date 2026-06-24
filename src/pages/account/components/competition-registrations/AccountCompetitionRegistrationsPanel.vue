@@ -100,12 +100,9 @@
           </table>
         </div>
 
-        <div v-else class="account-competition-registrations__empty-state">
-          <div class="account-competition-registrations__empty-state-title">Пока нет заявок</div>
-          <div class="account-competition-registrations__empty-state-text">
-            Здесь появятся спортсмены и владельцы кабинета, когда будут отправлены заявки на соревнования.
-          </div>
-        </div>
+        <p v-else class="account-competition-registrations__empty-text">
+          Заявок на соревнования пока нет.
+        </p>
       </section>
 
       <section class="account-competition-registrations__section">
@@ -343,7 +340,7 @@
             @click="confirmDeleteHistoryRegistration"
           >
             <span v-if="isDeletingHistoryRegistration" class="account__button-spinner" aria-hidden="true"></span>
-            <span>Удалить</span>
+            <span v-else>Удалить</span>
           </button>
         </div>
       </div>
@@ -393,7 +390,7 @@ const emit = defineEmits(['consume-target'])
 
 const competitionFilter = ref('all')
 const statusFilter = ref('all')
-const hideClosedCompetitions = ref(true)
+const hideClosedCompetitions = ref(false)
 const isSubmitting = ref(false)
 const selectedHistoryRegistration = ref(null)
 const isHistoryDetailsDialogOpen = ref(false)
@@ -945,27 +942,9 @@ watch(
   text-align: left;
 }
 
-.account-competition-registrations__empty-state {
-  display: grid;
-  gap: 8px;
-  padding: 18px 16px;
-  border: 1px dashed color-mix(in srgb, var(--cyan) 24%, white);
-  border-radius: 10px;
-  background:
-    radial-gradient(circle at top, color-mix(in srgb, var(--aqua) 12%, white), transparent 58%),
-    linear-gradient(180deg, rgb(246 251 255 / 0.94) 0%, rgb(255 255 255 / 0.84) 100%);
-}
-
-.account-competition-registrations__empty-state-title {
-  font-family: Oswald, sans-serif;
-  font-size: 22px;
-  line-height: 1.05;
-  text-transform: uppercase;
-  color: var(--black);
-}
-
-.account-competition-registrations__empty-state-text {
-  font-size: 14px;
+.account-competition-registrations__empty-text {
+  margin: 0;
+  font-size: 15px;
   line-height: 1.5;
   color: #526072;
 }

@@ -10,7 +10,7 @@
           name="athlete-full-name"
           placeholder="Введите ФИО спортсмена"
           :aria-invalid="Boolean(errors.fullName)"
-          @input="updateField('fullName', $event.target.value, { trim: true })"
+          @input="updateField('fullName', sanitizePersonNameInput($event.target.value))"
         />
         <span v-if="errors.fullName" class="account__field-error">{{ errors.fullName }}</span>
       </label>
@@ -25,7 +25,7 @@
           inputmode="numeric"
           placeholder="дд.мм.гггг"
           :aria-invalid="Boolean(errors.birthDate)"
-          @input="updateField('birthDate', $event.target.value, { trim: true })"
+          @input="updateField('birthDate', sanitizeDateFieldInput($event.target.value))"
         />
         <span v-if="errors.birthDate" class="account__field-error">{{ errors.birthDate }}</span>
       </label>
@@ -121,12 +121,8 @@
         :disabled="isSubmitting"
         :aria-busy="isSubmitting"
       >
-        <span
-          v-if="isSubmitting"
-          class="account__button-spinner"
-          aria-hidden="true"
-        ></span>
-        {{ editingAthleteId ? 'Сохранить изменения' : 'Добавить спортсмена' }}
+        <span v-if="isSubmitting" class="account__button-spinner" aria-hidden="true"></span>
+        <span v-else>{{ editingAthleteId ? 'Сохранить изменения' : 'Добавить спортсмена' }}</span>
       </button>
     </div>
 
@@ -146,6 +142,7 @@ import { ElAutocomplete } from 'element-plus'
 import 'element-plus/es/components/autocomplete/style/css'
 import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
 import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
+import { sanitizeDateFieldInput, sanitizePersonNameInput } from '@/utils/inputSanitizers'
 
 defineProps({
   form: {

@@ -137,7 +137,7 @@
           class="account__button-spinner"
           aria-hidden="true"
         ></span>
-        Сменить пароль
+        <span v-else>Сменить пароль</span>
       </button>
     </form>
   </ElCard>

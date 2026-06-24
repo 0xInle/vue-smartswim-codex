@@ -132,7 +132,7 @@
             class="account__button-spinner"
             aria-hidden="true"
           ></span>
-          <span>Зарегистрироваться</span>
+          <span v-else>Зарегистрироваться</span>
         </button>
       </div>
     </form>

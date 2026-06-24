@@ -2,6 +2,8 @@ import { computed, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { trainers } from '@/pages/trainers/trainersData'
 import { ElMessageBox } from 'element-plus'
 import { showToast } from '@/utils/toast'
+import { normalizeDateInput } from '@/utils/dateInput'
+import { sanitizeDateFieldInput, sanitizePersonNameInput } from '@/utils/inputSanitizers'
 import {
   createAccountDocumentRemovalPatch,
   createAccountDocumentUploadPatch,
@@ -326,6 +328,18 @@ export function useAccountAthletes({ currentUser }) {
       return
     }
 
+    if (field === 'fullName') {
+      form.fullName = sanitizePersonNameInput(value)
+      errors.fullName = ''
+      return
+    }
+
+    if (field === 'birthDate') {
+      form.birthDate = sanitizeDateFieldInput(value)
+      errors.birthDate = ''
+      return
+    }
+
     form[field] = value
   }
 
@@ -412,13 +426,15 @@ export function useAccountAthletes({ currentUser }) {
   function validateForm() {
     resetErrors()
     const birthDatePattern = /^\d{2}\.\d{2}\.\d{4}$/
+    const normalizedBirthDate = normalizeDateInput(form.birthDate)
+
     if (!form.fullName) {
       errors.fullName = 'Укажите ФИО спортсмена.'
     }
 
-    if (!form.birthDate) {
+    if (!normalizedBirthDate) {
       errors.birthDate = 'Укажите дату рождения.'
-    } else if (!birthDatePattern.test(form.birthDate)) {
+    } else if (!birthDatePattern.test(normalizedBirthDate)) {
       errors.birthDate = 'Введите дату в формате дд.мм.гггг.'
     }
 
@@ -442,7 +458,7 @@ export function useAccountAthletes({ currentUser }) {
     const payload = normalizeAthlete({
       id: editingAthleteId.value,
       fullName: form.fullName,
-      birthDate: form.birthDate,
+      birthDate: normalizeDateInput(form.birthDate),
       gender: form.gender,
       club: form.club,
       rank: form.rank,

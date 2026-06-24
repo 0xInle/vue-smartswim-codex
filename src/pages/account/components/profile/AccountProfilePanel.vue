@@ -61,12 +61,13 @@
         <label class="account__field account-profile__field--wide">
           <span class="account__field-label">ФИО</span>
           <input
-            v-model.trim="profile.fullName"
+            :value="profile.fullName"
             class="account__input"
             type="text"
             name="profile-full-name"
             placeholder="Введите ФИО"
             :aria-invalid="Boolean(errors.fullName)"
+            @input="handleFullNameInput"
           />
           <span v-if="errors.fullName" class="account__field-error">{{ errors.fullName }}</span>
         </label>
@@ -74,13 +75,14 @@
         <label class="account__field">
           <span class="account__field-label">Дата рождения</span>
           <input
-            v-model.trim="profile.birthDate"
+            :value="profile.birthDate"
             class="account__input"
             type="text"
             name="profile-birth-date"
             inputmode="numeric"
             placeholder="дд.мм.гггг"
             :aria-invalid="Boolean(errors.birthDate)"
+            @input="handleBirthDateInput"
           />
           <span v-if="errors.birthDate" class="account__field-error">{{ errors.birthDate }}</span>
         </label>
@@ -146,12 +148,8 @@
           :disabled="isProfileSaving"
           :aria-busy="isProfileSaving"
         >
-          <span
-            v-if="isProfileSaving"
-            class="account__button-spinner"
-            aria-hidden="true"
-          ></span>
-          Сохранить
+          <span v-if="isProfileSaving" class="account__button-spinner" aria-hidden="true"></span>
+          <span v-else>Сохранить</span>
         </button>
       </div>
     </form>
@@ -171,8 +169,9 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { ElCard } from 'element-plus'
-import { formatPhoneInput, isValidPhone } from '@/utils/phone'
+import { formatRussianPhoneInput, isRussianPhone } from '@/utils/phone'
 import { normalizeDateInput } from '@/utils/dateInput'
+import { sanitizeDateFieldInput, sanitizePersonNameInput } from '@/utils/inputSanitizers'
 import { showToast } from '@/utils/toast'
 import AccountDocumentChecklist from '@/pages/account/components/documents/AccountDocumentChecklist.vue'
 import AccountDocumentUploadDialog from '@/pages/account/components/documents/AccountDocumentUploadDialog.vue'
@@ -364,8 +363,8 @@ function validateProfile() {
 
   if (!profile.phone) {
     errors.phone = 'Укажите телефон.'
-  } else if (!isValidPhone(profile.phone)) {
-    errors.phone = 'Укажите телефон в международном формате, например +7 (961) 471-33-80.'
+  } else if (!isRussianPhone(profile.phone)) {
+    errors.phone = 'Укажите российский телефон из 11 цифр, например 89604709999.'
   }
 
   if (!profile.email) {
@@ -377,8 +376,18 @@ function validateProfile() {
   return !Object.values(errors).some(Boolean)
 }
 
+function handleFullNameInput(event) {
+  profile.fullName = sanitizePersonNameInput(event.target.value)
+  errors.fullName = ''
+}
+
+function handleBirthDateInput(event) {
+  profile.birthDate = sanitizeDateFieldInput(event.target.value)
+  errors.birthDate = ''
+}
+
 function handlePhoneInput(event) {
-  profile.phone = formatPhoneInput(event.target.value)
+  profile.phone = formatRussianPhoneInput(event.target.value)
   errors.phone = ''
 }
 

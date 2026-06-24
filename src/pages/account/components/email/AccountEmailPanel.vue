@@ -89,7 +89,7 @@
               class="account__button-spinner"
               aria-hidden="true"
             ></span>
-            Отправить
+            <span v-else>Отправить</span>
           </button>
         </div>
       </section>

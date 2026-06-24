@@ -36,7 +36,7 @@
           @click="confirmDelete"
         >
           <span v-if="isSubmitting" class="account__button-spinner" aria-hidden="true"></span>
-          Удалить
+          <span v-else>Удалить</span>
         </button>
       </div>
     </div>
