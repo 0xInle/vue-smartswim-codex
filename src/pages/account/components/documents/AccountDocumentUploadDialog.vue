@@ -86,7 +86,7 @@
             class="account__button-spinner"
             aria-hidden="true"
           ></span>
-          <span v-else>Загрузить</span>
+          <span :class="{ 'account__button-label--loading': isSubmitting }">Загрузить</span>
         </button>
       </div>
     </form>

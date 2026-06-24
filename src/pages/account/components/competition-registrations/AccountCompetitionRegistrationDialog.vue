@@ -132,7 +132,7 @@
             class="account__button-spinner"
             aria-hidden="true"
           ></span>
-          <span v-else>Зарегистрироваться</span>
+          <span :class="{ 'account__button-label--loading': isSubmitting }">Зарегистрироваться</span>
         </button>
       </div>
     </form>

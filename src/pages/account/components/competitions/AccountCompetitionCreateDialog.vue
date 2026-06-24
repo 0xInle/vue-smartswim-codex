@@ -96,7 +96,7 @@
           :aria-busy="isSubmitting"
         >
           <span v-if="isSubmitting" class="account__button-spinner" aria-hidden="true"></span>
-          <span v-else>Создать</span>
+          <span :class="{ 'account__button-label--loading': isSubmitting }">Создать</span>
         </button>
       </div>
     </form>

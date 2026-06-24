@@ -248,7 +248,7 @@
                     class="account__button-spinner"
                     aria-hidden="true"
                   ></span>
-                  <span v-else>Допустить к соревнованиям</span>
+                  <span :class="{ 'account__button-label--loading': isActiveDocumentAdmissionLoading }">Допустить к соревнованиям</span>
                 </button>
               </div>
             </div>
@@ -318,7 +318,7 @@
                           class="account__button-spinner"
                           aria-hidden="true"
                         ></span>
-                        <span v-else>Одобрить</span>
+                        <span :class="{ 'account__button-label--loading': isDocumentActionLoading(document, 'verified') }">Одобрить</span>
                       </button>
                       <button
                         type="button"
@@ -332,7 +332,7 @@
                           class="account__button-spinner"
                           aria-hidden="true"
                         ></span>
-                        <span v-else>Запросить обновление</span>
+                        <span :class="{ 'account__button-label--loading': isDocumentActionLoading(document, 'needs_reupload') }">Запросить обновление</span>
                       </button>
                     </div>
                   </article>
@@ -402,7 +402,7 @@
             @click="$emit('delete-user', props.editForm)"
           >
             <span v-if="isDeleteSubmitting" class="account__button-spinner" aria-hidden="true"></span>
-            <span v-else>Удалить</span>
+            <span :class="{ 'account__button-label--loading': isDeleteSubmitting }">Удалить</span>
           </button>
           <button
             v-if="!isEditDialogLoading && !isAthleteRecord"
@@ -413,7 +413,7 @@
             @click="$emit('submit-edit')"
           >
             <span v-if="isEditSubmitting" class="account__button-spinner" aria-hidden="true"></span>
-            <span v-else>Сохранить</span>
+            <span :class="{ 'account__button-label--loading': isEditSubmitting }">Сохранить</span>
           </button>
         </div>
       </div>
@@ -461,7 +461,7 @@
           @click="$emit('confirm-delete')"
         >
           <span v-if="isDeleteSubmitting" class="account__button-spinner" aria-hidden="true"></span>
-          <span v-else>Удалить</span>
+          <span :class="{ 'account__button-label--loading': isDeleteSubmitting }">Удалить</span>
         </button>
       </div>
     </ElDialog>

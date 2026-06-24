@@ -383,6 +383,7 @@ textarea.account__input {
 }
 
 .account__submit {
+  position: relative;
   box-sizing: border-box;
   justify-self: start;
   height: 38px;
@@ -419,6 +420,9 @@ textarea.account__input {
 }
 
 .account__button-spinner {
+  position: absolute;
+  top: calc(50% - 7px);
+  left: calc(50% - 7px);
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
@@ -426,6 +430,10 @@ textarea.account__input {
   border-top-color: currentColor;
   border-radius: 50%;
   animation: account-button-spinner 0.8s linear infinite;
+}
+
+.account__button-label--loading {
+  visibility: hidden;
 }
 
 @keyframes account-button-spinner {
@@ -725,6 +733,7 @@ textarea.account__input {
 }
 
 .account__refresh-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -795,6 +804,7 @@ textarea.account__input {
 }
 
 .account__table-action {
+  position: relative;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;

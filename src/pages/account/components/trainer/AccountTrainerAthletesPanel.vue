@@ -55,7 +55,7 @@
               class="account__button-spinner"
               aria-hidden="true"
             ></span>
-            <span v-else>Обновить</span>
+            <span :class="{ 'account__button-label--loading': isDocumentsLoading }">Обновить</span>
           </ElButton>
         </div>
       </div>

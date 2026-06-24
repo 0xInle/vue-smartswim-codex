@@ -124,7 +124,7 @@
                   class="account__button-spinner"
                   aria-hidden="true"
                 ></span>
-                <span v-else>Сохранить</span>
+                <span :class="{ 'account__button-label--loading': isLinkSaving(link.key) }">Сохранить</span>
               </button>
             </div>
           </div>
@@ -206,7 +206,7 @@
           :aria-busy="isStageSaving"
         >
           <span v-if="isStageSaving" class="account__button-spinner" aria-hidden="true"></span>
-          <span v-else>Сохранить</span>
+          <span :class="{ 'account__button-label--loading': isStageSaving }">Сохранить</span>
         </button>
       </div>
     </form>

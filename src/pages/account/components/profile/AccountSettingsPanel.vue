@@ -137,7 +137,7 @@
           class="account__button-spinner"
           aria-hidden="true"
         ></span>
-        <span v-else>Сменить пароль</span>
+        <span :class="{ 'account__button-label--loading': status === 'loading' }">Сменить пароль</span>
       </button>
     </form>
   </ElCard>

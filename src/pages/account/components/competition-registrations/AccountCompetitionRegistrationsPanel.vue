@@ -340,7 +340,7 @@
             @click="confirmDeleteHistoryRegistration"
           >
             <span v-if="isDeletingHistoryRegistration" class="account__button-spinner" aria-hidden="true"></span>
-            <span v-else>Удалить</span>
+            <span :class="{ 'account__button-label--loading': isDeletingHistoryRegistration }">Удалить</span>
           </button>
         </div>
       </div>

@@ -209,7 +209,7 @@
           :aria-busy="isSaving"
         >
           <span v-if="isSaving" class="account__button-spinner" aria-hidden="true"></span>
-          <span v-else>Сохранить</span>
+          <span :class="{ 'account__button-label--loading': isSaving }">Сохранить</span>
         </button>
       </div>
     </form>

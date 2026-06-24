@@ -14,7 +14,7 @@
         @click="loadMessages"
       >
         <span v-if="isLoading" class="account__button-spinner" aria-hidden="true"></span>
-        <span v-else>Обновить</span>
+        <span :class="{ 'account__button-label--loading': isLoading }">Обновить</span>
       </button>
     </div>
 

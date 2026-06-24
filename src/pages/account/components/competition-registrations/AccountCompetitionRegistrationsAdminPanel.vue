@@ -103,7 +103,7 @@
                 class="account__button-spinner"
                 aria-hidden="true"
               ></span>
-              <span v-else>Выполнен</span>
+              <span :class="{ 'account__button-label--loading': isRefundActionLoading(item.refund.id, refundSucceededStatus) }">Выполнен</span>
             </button>
             <button
               type="button"
@@ -117,7 +117,7 @@
                 class="account__button-spinner"
                 aria-hidden="true"
               ></span>
-              <span v-else>Отклонить</span>
+              <span :class="{ 'account__button-label--loading': isRefundActionLoading(item.refund.id, refundRejectedStatus) }">Отклонить</span>
             </button>
           </div>
         </article>
