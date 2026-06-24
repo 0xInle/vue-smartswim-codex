@@ -73,6 +73,40 @@ create trigger account_profiles_touch_updated_at
 before update on public.account_profiles
 for each row execute procedure public.touch_account_profiles_updated_at();
 
+create or replace function public.sync_crm_user_name_from_account_profile()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  normalized_full_name text;
+begin
+  normalized_full_name := nullif(trim(new.full_name), '');
+
+  if normalized_full_name is not null then
+    update public.crm_users
+    set name = normalized_full_name
+    where id = new.owner_user_id
+      and name is distinct from normalized_full_name;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists account_profiles_sync_crm_user_name on public.account_profiles;
+create trigger account_profiles_sync_crm_user_name
+after insert or update of full_name on public.account_profiles
+for each row execute procedure public.sync_crm_user_name_from_account_profile();
+
+update public.crm_users
+set name = nullif(trim(account_profiles.full_name), '')
+from public.account_profiles
+where account_profiles.owner_user_id = crm_users.id
+  and nullif(trim(account_profiles.full_name), '') is not null
+  and crm_users.name is distinct from nullif(trim(account_profiles.full_name), '');
+
 create or replace function public.touch_account_athletes_updated_at()
 returns trigger
 language plpgsql
