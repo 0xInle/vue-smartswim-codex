@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
+import { ensureCompetitionDirectionsLoaded } from '@/pages/competitions/competitionData'
 import {
   countCompetitionRegistrationsByStageIdFromSource,
   createCompetitionRegistration,
@@ -851,6 +852,7 @@ export function useAccountCompetitionRegistrations({ currentUser }) {
   }
 
   watch(currentUserKey, () => {
+    void ensureCompetitionDirectionsLoaded()
     void syncSnapshots()
     void loadRegistrations()
     void loadPaymentRecords()

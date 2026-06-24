@@ -39,9 +39,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { ElCard, ElEmpty, ElTag } from 'element-plus'
 import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
+import { ensureCompetitionDirectionsLoaded } from '@/pages/competitions/competitionData'
 import {
   formatCompetitionCalendarDateShort,
   formatCompetitionStageLabel,
@@ -93,6 +94,10 @@ function buildMaterialTitle(typeLabel, stage) {
 
   return `${typeLabel}: ${stageTitle}`
 }
+
+onMounted(() => {
+  void ensureCompetitionDirectionsLoaded()
+})
 </script>
 
 <style scoped>

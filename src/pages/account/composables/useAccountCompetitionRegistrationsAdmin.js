@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
+import { ensureCompetitionDirectionsLoaded } from '@/pages/competitions/competitionData'
 import {
   deleteCompetitionRegistration,
   patchCompetitionRegistrationByUserKey,
@@ -905,6 +906,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
   }
 
   onMounted(() => {
+    void ensureCompetitionDirectionsLoaded()
     void loadRegistrations()
 
     unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
