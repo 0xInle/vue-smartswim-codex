@@ -256,6 +256,7 @@
                 @approve-document="handleApproveUserDocument"
                 @request-document-reupload="handleRequestUserDocumentReupload"
                 @admit-document-group="handleAdmitUserDocumentGroup"
+                @update-edit-field="handleUserEditFieldUpdate"
               />
 
               <AccountSettingsPanel
@@ -697,6 +698,14 @@ function handleOpenAccountFromRegistration(accountKey) {
     id: normalizedAccountKey,
     isAthleteRecord: false,
   })
+}
+
+function handleUserEditFieldUpdate({ field, value } = {}) {
+  if (!field || !Object.prototype.hasOwnProperty.call(userEditForm, field)) {
+    return
+  }
+
+  userEditForm[field] = value
 }
 
 function handleCompetitionTargetConsumed() {

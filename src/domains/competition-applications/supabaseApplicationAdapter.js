@@ -133,6 +133,33 @@ export async function fetchLatestCompetitionApplicationsForAdmin({ limit = 4 } =
   return (data ?? []).map(mapSupabaseCompetitionApplicationRow)
 }
 
+export async function searchCompetitionApplicationsPageForAdmin({
+  page = 1,
+  pageSize = 20,
+  search = '',
+  status = 'all',
+  paymentStatus = 'all',
+} = {}) {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+
+  const { data, error } = await getSupabaseClient().rpc('search_competition_applications_for_admin', {
+    search_query: String(search || '').trim(),
+    status_filter: status || 'all',
+    payment_status_filter: paymentStatus || 'all',
+    page_number: Math.max(1, Number(page) || 1),
+    page_size: Math.max(1, Number(pageSize) || 20),
+  })
+
+  if (error) {
+    throwCompetitionApplicationError(error, 'Не удалось загрузить заявки на соревнования.')
+  }
+
+  return {
+    items: (data ?? []).map(mapSupabaseCompetitionApplicationRow),
+    total: Number(data?.[0]?.total_count || 0),
+  }
+}
+
 export async function fetchCompetitionApplicationStageRefsForAdmin() {
   await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
 

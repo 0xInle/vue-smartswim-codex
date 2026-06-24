@@ -1,10 +1,10 @@
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { buildAccountCompetitionStages } from '@/pages/account/accountCompetitionStages.data'
 import {
-  loadAllCompetitionRegistrationsForAdmin,
   deleteCompetitionRegistration,
   patchCompetitionRegistrationByUserKey,
+  searchCompetitionRegistrationsListPageForAdmin,
   subscribeToCompetitionRegistrationChanges,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 import {
@@ -12,6 +12,7 @@ import {
   subscribeToAccountDocumentChanges,
 } from '@/domains/account-documents/documentRepository'
 import {
+  COMPETITION_REGISTRATIONS_PAGE_SIZE,
   COMPETITION_REGISTRATION_RECORD_STATUS,
   isCompetitionRegistrationActiveStatus,
 } from '@/pages/account/utils/accountConstants'
@@ -27,10 +28,10 @@ import { resolveCompetitionRegistrationState } from '@/utils/competitionRegistra
 import { formatCompetitionDateLabel } from '@/utils/competitionRegistration'
 import { showToast } from '@/utils/toast'
 import {
-  loadAllPaymentsForAdmin,
-  loadAllRefundsForAdmin,
   markCompetitionPaymentFailed,
   markCompetitionPaymentSucceeded,
+  loadPaymentsForApplicationsForAdmin,
+  loadRefundsForApplicationsForAdmin,
   resolveCompetitionRefundForAdmin,
   subscribeToCompetitionPaymentChanges,
   subscribeToCompetitionRefundChanges,
@@ -147,6 +148,8 @@ export function useAccountCompetitionRegistrationsAdmin() {
   const search = ref('')
   const statusFilter = ref('all')
   const paymentStatusFilter = ref('all')
+  const registrationsTotal = ref(0)
+  const registrationsPage = ref(1)
   const selectedRegistrationId = ref('')
   const isDetailsDialogOpen = ref(false)
   const isRegistrationsLoading = ref(false)
@@ -165,16 +168,27 @@ export function useAccountCompetitionRegistrationsAdmin() {
     registrationsError.value = ''
 
     try {
-      const nextRegistrations = await loadAllCompetitionRegistrationsForAdmin()
+      const result = await searchCompetitionRegistrationsListPageForAdmin({
+        page: registrationsPage.value,
+        pageSize: COMPETITION_REGISTRATIONS_PAGE_SIZE,
+        search: search.value,
+        status: statusFilter.value,
+        paymentStatus: paymentStatusFilter.value,
+      })
+      const nextRegistrations = result.items
 
       if (requestId === loadRequestId) {
         registrations.value = nextRegistrations
+        registrationsTotal.value = result.total
         void loadAccountDocumentsLookup(nextRegistrations)
+        void loadPaymentRecords(nextRegistrations)
       }
     } catch (error) {
       if (requestId === loadRequestId) {
         registrationsError.value =
           error instanceof Error ? error.message : 'Не удалось загрузить заявки.'
+        registrations.value = []
+        registrationsTotal.value = 0
       }
     } finally {
       if (requestId === loadRequestId) {
@@ -198,11 +212,23 @@ export function useAccountCompetitionRegistrationsAdmin() {
     }
   }
 
-  async function loadPaymentRecords() {
+  function getRegistrationIds(sourceRegistrations = registrations.value) {
+    return Array.from(
+      new Set(
+        (Array.isArray(sourceRegistrations) ? sourceRegistrations : [])
+          .map((registration) => registration.id)
+          .filter(Boolean),
+      ),
+    )
+  }
+
+  async function loadPaymentRecords(sourceRegistrations = registrations.value) {
+    const applicationIds = getRegistrationIds(sourceRegistrations)
+
     try {
       const [nextPayments, nextRefunds] = await Promise.all([
-        loadAllPaymentsForAdmin(),
-        loadAllRefundsForAdmin(),
+        loadPaymentsForApplicationsForAdmin(applicationIds),
+        loadRefundsForApplicationsForAdmin(applicationIds),
       ])
 
       payments.value = nextPayments
@@ -292,50 +318,22 @@ export function useAccountCompetitionRegistrationsAdmin() {
     })),
   )
 
-  const filteredRegistrations = computed(() => {
-    const normalizedSearch = normalizeSearchValue(search.value)
-
-    return registrations.value
-      .filter((registration) => {
-        if (statusFilter.value !== 'all' && registration.status !== statusFilter.value) {
-          return false
-        }
-
-        if (
-          paymentStatusFilter.value !== 'all' &&
-          getRegistrationPaymentSummary(registration).applicationStatus !== paymentStatusFilter.value
-        ) {
-          return false
-        }
-
-        if (!normalizedSearch) {
-          return true
-        }
-
-        const haystack = [
-          registration.competitionName,
-          registration.stageLabel,
-          registration.participantName,
-          registration.ownerName,
-          registration.ownerEmail,
-          registration.comment,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-
-        return haystack.includes(normalizedSearch)
-      })
+  const registrationsPageCount = computed(() =>
+    Math.max(1, Math.ceil(registrationsTotal.value / COMPETITION_REGISTRATIONS_PAGE_SIZE)),
+  )
+  const filteredRegistrations = computed(() =>
+    registrations.value
+      .slice()
       .sort((left, right) => {
         const leftTime = Date.parse(left.updatedAt || left.statusChangedAt || left.createdAt || 0) || 0
         const rightTime = Date.parse(right.updatedAt || right.statusChangedAt || right.createdAt || 0) || 0
 
         return rightTime - leftTime
-      })
-  })
+      }),
+  )
 
   const summary = computed(() => ({
-    total: registrations.value.length,
+    total: registrationsTotal.value,
     active: registrations.value.filter((registration) => isCompetitionRegistrationActiveStatus(registration.status)).length,
     withdrawn: registrations.value.filter(
       (registration) => registration.status === COMPETITION_REGISTRATION_RECORD_STATUS.WITHDRAWN,
@@ -387,9 +385,10 @@ export function useAccountCompetitionRegistrationsAdmin() {
       return
     }
 
-    payments.value = payments.value.map((payment) =>
-      payment.id === updatedPayment.id ? updatedPayment : payment,
-    )
+    const hasPayment = payments.value.some((payment) => payment.id === updatedPayment.id)
+    payments.value = hasPayment
+      ? payments.value.map((payment) => payment.id === updatedPayment.id ? updatedPayment : payment)
+      : [updatedPayment, ...payments.value]
   }
 
   function replaceRefund(updatedRefund) {
@@ -397,9 +396,10 @@ export function useAccountCompetitionRegistrationsAdmin() {
       return
     }
 
-    refunds.value = refunds.value.map((refund) =>
-      refund.id === updatedRefund.id ? updatedRefund : refund,
-    )
+    const hasRefund = refunds.value.some((refund) => refund.id === updatedRefund.id)
+    refunds.value = hasRefund
+      ? refunds.value.map((refund) => refund.id === updatedRefund.id ? updatedRefund : refund)
+      : [updatedRefund, ...refunds.value]
   }
 
   async function updateSelectedRegistration(
@@ -412,7 +412,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
       return null
     }
 
-    let updatedRegistration = null
+    let updatedRegistration
 
     try {
       updatedRegistration = await patchCompetitionRegistrationByUserKey(
@@ -555,20 +555,6 @@ export function useAccountCompetitionRegistrationsAdmin() {
       payment: null,
       refund: null,
     }
-  }
-
-  function getRegistrationDocumentsSortValue(registration) {
-    const status = getRegistrationDocumentsStatus(registration)?.status || 'unknown'
-    const rank = {
-      attention: 1,
-      missing: 2,
-      pending: 3,
-      ready: 4,
-      admitted: 5,
-      unknown: 6,
-    }
-
-    return `${rank[status] || rank.unknown} ${status}`
   }
 
   function getRegistrationCompetitionDateSortValue(registration) {
@@ -900,6 +886,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     try {
       await deleteCompetitionRegistration(null, targetId)
       removeRegistration(targetId)
+      registrationsTotal.value = Math.max(0, registrationsTotal.value - 1)
       closeDetailsDialog()
 
       return true
@@ -912,9 +899,13 @@ export function useAccountCompetitionRegistrationsAdmin() {
     }
   }
 
+  function handleRegistrationsPageChange(page) {
+    registrationsPage.value = Math.max(1, Number(page) || 1)
+    void loadRegistrations()
+  }
+
   onMounted(() => {
     void loadRegistrations()
-    void loadPaymentRecords()
 
     unsubscribeFromCompetitionApplications = subscribeToCompetitionRegistrationChanges(() => {
       scheduledRegistrationsRefresh.schedule()
@@ -931,6 +922,14 @@ export function useAccountCompetitionRegistrationsAdmin() {
       scheduledRegistrationsRefresh.schedule()
     })
   })
+
+  watch(
+    () => [search.value, statusFilter.value, paymentStatusFilter.value],
+    () => {
+      registrationsPage.value = 1
+      scheduledRegistrationsRefresh.schedule()
+    },
+  )
 
   onBeforeUnmount(() => {
     scheduledRegistrationsRefresh.cancel()
@@ -960,6 +959,9 @@ export function useAccountCompetitionRegistrationsAdmin() {
 
   return {
     registrations,
+    registrationsTotal,
+    registrationsPage,
+    registrationsPageCount,
     search,
     statusFilter,
     paymentStatusFilter,
@@ -983,6 +985,7 @@ export function useAccountCompetitionRegistrationsAdmin() {
     getRegistrationPaymentSummary,
     getRegistrationCompetitionDateSortValue,
     handleRegistrationSave,
+    handleRegistrationsPageChange,
     handleWithdrawSelectedRegistration,
     handleDeleteSelectedRegistration,
     handleMarkPaymentSucceeded,

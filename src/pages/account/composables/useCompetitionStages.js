@@ -78,7 +78,7 @@ function createStageRow({
       competitionDateLabel: formatCompetitionDateLabel(date),
       closeNote: DEFAULT_REGISTRATION_NOTE,
       participantLimit: registrationLimit ?? 0,
-      ...(registration || {}),
+      ...registration,
     },
   }
 }
@@ -683,7 +683,7 @@ export function useCompetitionStages({ isEnabled = true } = {}) {
       return
     }
 
-    let activeRegistrationsCount = 0
+    let activeRegistrationsCount
 
     try {
       activeRegistrationsCount = await countActiveRegistrationsForStage(targetStage)

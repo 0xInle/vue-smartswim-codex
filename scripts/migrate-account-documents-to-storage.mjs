@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import process from 'node:process'
+import { Buffer } from 'node:buffer'
 import { createClient } from '@supabase/supabase-js'
 
 const ENV_PATH = resolve(process.cwd(), '.env.local')

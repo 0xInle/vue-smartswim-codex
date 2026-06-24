@@ -10,6 +10,7 @@ import {
 import {
   loadAccountAdmissionWorkflowForCurrentUser,
   loadAccountAdmissionWorkflowForOwnerForStaff,
+  loadAccountAdmissionWorkflowForOwnersForStaff,
   loadAllAccountAdmissionWorkflowForStaff,
   saveAccountAdmission,
 } from '@/domains/account-admissions/accountAdmissionRepository'
@@ -116,6 +117,15 @@ export async function refreshAllAccountAdmissionWorkflowForStaff() {
 
 export async function refreshAccountAdmissionWorkflowForOwnerForStaff(ownerUserId) {
   const workflow = await loadAccountAdmissionWorkflowForOwnerForStaff(ownerUserId)
+  mergeCachedAdmissionWorkflow(workflow)
+  return {
+    applications: workflow.applications || [],
+    admissions: workflow.admissions || [],
+  }
+}
+
+export async function refreshAccountAdmissionWorkflowForOwnersForStaff(ownerUserIds = []) {
+  const workflow = await loadAccountAdmissionWorkflowForOwnersForStaff(ownerUserIds)
   mergeCachedAdmissionWorkflow(workflow)
   return {
     applications: workflow.applications || [],

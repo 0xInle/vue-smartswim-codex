@@ -9,6 +9,7 @@ import {
 
 export const ACCOUNT_SYNC_COOLDOWN_MS = 1200
 export const USERS_PAGE_SIZE = 20
+export const COMPETITION_REGISTRATIONS_PAGE_SIZE = 20
 export const MIN_PASSWORD_LENGTH = SUPABASE_MIN_PASSWORD_LENGTH
 
 export const CONSULTATION_STATUS = Object.freeze({

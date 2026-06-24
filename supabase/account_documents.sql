@@ -277,6 +277,7 @@ alter table public.account_document_events
 create or replace function public.touch_account_document_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());
@@ -328,8 +329,13 @@ create trigger account_documents_log_status_event
 after insert or update on public.account_documents
 for each row execute procedure public.log_account_document_status_event();
 
+revoke execute on function public.log_account_document_status_event() from public, anon, authenticated;
+
 create index if not exists account_documents_owner_user_id_idx
   on public.account_documents (owner_user_id);
+
+create index if not exists account_documents_reviewed_by_idx
+  on public.account_documents (reviewed_by);
 
 create index if not exists account_documents_scope_idx
   on public.account_documents (scope, scope_id);
@@ -352,6 +358,9 @@ create index if not exists account_documents_created_at_idx
 
 create index if not exists account_document_events_document_id_idx
   on public.account_document_events (document_id, created_at desc);
+
+create index if not exists account_document_events_actor_id_idx
+  on public.account_document_events (actor_id);
 
 alter table public.account_documents enable row level security;
 alter table public.account_document_events enable row level security;

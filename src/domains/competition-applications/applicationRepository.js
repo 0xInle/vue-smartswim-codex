@@ -12,6 +12,7 @@ import {
   fetchCompetitionApplicationStageRefsForAdmin,
   fetchLatestCompetitionApplicationsForAdmin,
   fetchCompetitionApplicationsForCurrentUser,
+  searchCompetitionApplicationsPageForAdmin,
   subscribeToCompetitionApplications,
   updateSupabaseCompetitionApplication,
 } from './supabaseApplicationAdapter.js'
@@ -119,7 +120,7 @@ export async function updateCompetitionApplicationStatus(
   return patchCompetitionApplication(currentUser, applicationId, { status }, { statusChangedBy })
 }
 
-export async function loadCompetitionApplicationsForCurrentUser(currentUser) {
+export async function loadCompetitionApplicationsForCurrentUser(_currentUser) {
   return fetchCompetitionApplicationsForCurrentUser()
 }
 
@@ -133,6 +134,10 @@ export async function loadCompetitionApplicationStageRefsForAdmin() {
 
 export async function loadLatestCompetitionApplicationsForAdmin(params = {}) {
   return fetchLatestCompetitionApplicationsForAdmin(params)
+}
+
+export async function searchCompetitionApplicationsListPageForAdmin(params = {}) {
+  return searchCompetitionApplicationsPageForAdmin(params)
 }
 
 export async function createCompetitionApplication(currentUser, application) {
@@ -207,13 +212,13 @@ export async function countCompetitionApplicationsForParticipantFromSource(
   return countApplicationsForParticipant(applications, { participantKind, participantId, status })
 }
 
-export async function syncCompetitionApplicationOwnerSnapshotFromSource(currentUser, profile = {}) {
+export async function syncCompetitionApplicationOwnerSnapshotFromSource(_currentUser, _profile = {}) {
   return 0
 }
 
 export async function syncCompetitionApplicationAthleteSnapshotFromSource(
-  currentUser,
-  athlete = {},
+  _currentUser,
+  _athlete = {},
 ) {
   return 0
 }

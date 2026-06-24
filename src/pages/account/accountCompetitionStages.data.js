@@ -89,7 +89,7 @@ function createCompetitionStageRow({
       competitionDateLabel: formatCompetitionDateLabel(date),
       closeNote: registrationNote,
       participantLimit: registrationLimit,
-      ...(registration || {}),
+      ...registration,
     },
   }
 }

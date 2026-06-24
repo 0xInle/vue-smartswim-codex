@@ -285,6 +285,7 @@ const props = defineProps({
 
 const { groupedRows, isLoading: isDocumentsLoading, refresh } = useAccountDocumentReviews({
   currentUser: toRef(props, 'currentUser'),
+  participantKind: 'athlete',
 })
 
 const search = ref('')

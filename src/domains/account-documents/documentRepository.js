@@ -18,8 +18,8 @@ export async function saveAccountDocumentForCurrentUser(params = {}) {
   return upsertAccountDocumentForCurrentUser(params)
 }
 
-export async function loadAllAccountDocumentReviewsForAdmin() {
-  return fetchAllAccountDocumentReviewsForAdmin()
+export async function loadAllAccountDocumentReviewsForAdmin(params = {}) {
+  return fetchAllAccountDocumentReviewsForAdmin(params)
 }
 
 export async function loadAccountDocumentReviewsForOwnerForAdmin(ownerUserId, options = {}) {

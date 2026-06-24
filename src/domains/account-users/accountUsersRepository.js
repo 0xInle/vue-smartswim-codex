@@ -3,6 +3,8 @@ import { CRM_ROLE } from '@/utils/crmRoles'
 import {
   deleteCrmUserForAdmin,
   fetchAllCrmUsersForAdmin,
+  fetchCrmEmailRecipientsForAdmin,
+  fetchCrmUsersDashboardSummaryForAdmin,
   fetchCrmUsersPageForAdmin,
   fetchCrmUserForAdmin,
   mergeCrmUserWithProfile,
@@ -209,7 +211,7 @@ export async function loadAccountUserDetailsForAdmin(userId) {
 }
 
 export async function loadAccountEmailRecipientsForAdmin() {
-  const crmUsers = await fetchAllCrmUsersForAdmin()
+  const crmUsers = await fetchCrmEmailRecipientsForAdmin()
 
   return crmUsers
     .filter((user) => user.email)
@@ -222,20 +224,7 @@ export async function loadAccountEmailRecipientsForAdmin() {
 }
 
 export async function loadAccountUsersDashboardSummaryForAdmin() {
-  const crmUsers = await fetchAllCrmUsersForAdmin()
-
-  return crmUsers.reduce(
-    (summary, user) => ({
-      usersCount: summary.usersCount + 1,
-      trainersCount: summary.trainersCount + (user.role === CRM_ROLE.TRAINER ? 1 : 0),
-      unpaidUsersCount: summary.unpaidUsersCount + (user.status === 'unpaid' ? 1 : 0),
-    }),
-    {
-      usersCount: 0,
-      trainersCount: 0,
-      unpaidUsersCount: 0,
-    },
-  )
+  return fetchCrmUsersDashboardSummaryForAdmin()
 }
 
 export async function saveAccountUserForAdmin(userId, patch = {}) {

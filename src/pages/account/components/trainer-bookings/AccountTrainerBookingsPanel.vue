@@ -220,7 +220,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['refresh', 'update:search', 'update:status-filter'])
+defineEmits(['refresh', 'update:search', 'update:status-filter'])
 
 const isDetailsDialogOpen = ref(false)
 const selectedBooking = ref(null)

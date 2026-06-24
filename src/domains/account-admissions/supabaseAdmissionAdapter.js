@@ -87,9 +87,16 @@ async function requireCurrentSession(message) {
   return session
 }
 
-async function fetchWorkflowRows({ ownerOnly = false, ownerUserId = '' } = {}) {
+async function fetchWorkflowRows({ ownerOnly = false, ownerUserId = '', ownerUserIds = [] } = {}) {
   const session = await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
   const client = getSupabaseClient()
+  const normalizedOwnerUserIds = Array.from(
+    new Set(
+      (Array.isArray(ownerUserIds) ? ownerUserIds : [])
+        .map((value) => String(value || '').trim())
+        .filter(Boolean),
+    ),
+  )
   let applicationsQuery = client
     .from(ACCOUNT_ATHLETE_APPLICATIONS_TABLE)
     .select(ACCOUNT_ATHLETE_APPLICATION_SELECT)
@@ -107,6 +114,9 @@ async function fetchWorkflowRows({ ownerOnly = false, ownerUserId = '' } = {}) {
   if (ownerUserId) {
     applicationsQuery = applicationsQuery.eq('owner_user_id', ownerUserId)
     admissionsQuery = admissionsQuery.eq('owner_user_id', ownerUserId)
+  } else if (normalizedOwnerUserIds.length) {
+    applicationsQuery = applicationsQuery.in('owner_user_id', normalizedOwnerUserIds)
+    admissionsQuery = admissionsQuery.in('owner_user_id', normalizedOwnerUserIds)
   }
 
   const [applicationsResult, admissionsResult] = await Promise.all([
@@ -146,6 +156,17 @@ export async function fetchAllAccountAdmissionWorkflowForStaff() {
 
 export async function fetchAccountAdmissionWorkflowForOwnerForStaff(ownerUserId) {
   return fetchWorkflowRows({ ownerUserId })
+}
+
+export async function fetchAccountAdmissionWorkflowForOwnersForStaff(ownerUserIds = []) {
+  if (!Array.isArray(ownerUserIds) || !ownerUserIds.some((value) => String(value || '').trim())) {
+    return {
+      applications: [],
+      admissions: [],
+    }
+  }
+
+  return fetchWorkflowRows({ ownerUserIds })
 }
 
 export async function upsertAthleteApplication(record = {}) {

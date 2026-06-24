@@ -329,6 +329,7 @@ as $$
 $$;
 
 grant execute on function public.search_account_users_for_admin(text, text, integer, integer) to authenticated;
+revoke execute on function public.search_account_users_for_admin(text, text, integer, integer) from public, anon;
 
 alter table public.crm_users enable row level security;
 alter table public.allowed_admin_emails enable row level security;
@@ -368,6 +369,7 @@ using (public.current_crm_role() = 'admin');
 create or replace function public.resolve_crm_role(user_email text)
 returns text
 language plpgsql
+set search_path = public
 stable
 as $$
 begin
@@ -403,8 +405,9 @@ as $$
   where crm_users.id = auth.uid();
 $$;
 
-grant execute on function public.resolve_crm_role(text) to anon, authenticated;
+revoke execute on function public.resolve_crm_role(text) from public, anon, authenticated;
 grant execute on function public.current_crm_role() to authenticated;
+revoke execute on function public.current_crm_role() from public, anon;
 
 create or replace function public.handle_auth_user_created()
 returns trigger
@@ -437,6 +440,8 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_auth_user_created();
+
+revoke execute on function public.handle_auth_user_created() from public, anon, authenticated;
 
 insert into public.crm_users (id, email, name, role, account_status, registered_at)
 select

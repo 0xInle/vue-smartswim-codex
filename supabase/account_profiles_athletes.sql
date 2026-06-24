@@ -60,6 +60,7 @@ create index if not exists account_profiles_updated_at_idx
 create or replace function public.touch_account_profiles_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());
@@ -75,6 +76,7 @@ for each row execute procedure public.touch_account_profiles_updated_at();
 create or replace function public.touch_account_athletes_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());

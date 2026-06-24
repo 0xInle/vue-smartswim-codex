@@ -142,7 +142,7 @@
           <label class="account__field account-users__role-select">
             <span class="account__field-label">Роль</span>
             <ElSelect
-              v-model="editForm.role"
+              v-model="editRole"
               class="account__select"
               popper-class="account__select-popper"
               placeholder="Выберите роль"
@@ -570,7 +570,7 @@ const props = defineProps({
 
 const hasLoadedUsers = ref(false)
 
-defineEmits([
+const emit = defineEmits([
   'update:search',
   'update:role-filter',
   'page-change',
@@ -589,6 +589,7 @@ defineEmits([
   'request-document-reupload',
   'admit-document-group',
   'toggle-sort',
+  'update-edit-field',
 ])
 
 const userRoleOptions = USER_ROLE_OPTIONS
@@ -733,13 +734,14 @@ const isAthleteRecord = computed(() => Boolean(props.editForm?.isAthleteRecord))
 const isUserView = computed(() =>
   isAthleteRecord.value || [CRM_ROLE.USER, CRM_ROLE.ATHLETE].includes(props.editForm?.role),
 )
-
-const dialogTitle = computed(() => {
-  if (selectedAthlete.value) {
-    return selectedAthlete.value.fullName || 'Спортсмен без имени'
-  }
-
-  return props.editForm?.name || 'Пользователь без имени'
+const editRole = computed({
+  get: () => props.editForm?.role || CRM_ROLE.USER,
+  set: (value) => {
+    emit('update-edit-field', {
+      field: 'role',
+      value,
+    })
+  },
 })
 
 const adminSummaryFields = computed(() => [

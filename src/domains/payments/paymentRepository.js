@@ -3,7 +3,9 @@ import {
   createSupabaseCompetitionRefund,
   fetchAllCompetitionPaymentsForAdmin,
   fetchAllCompetitionRefundsForAdmin,
+  fetchCompetitionPaymentsForApplicationsForAdmin,
   fetchCompetitionPaymentsForCurrentUser,
+  fetchCompetitionRefundsForApplicationsForAdmin,
   fetchCompetitionRefundsForCurrentUser,
   subscribeToCompetitionPayments,
   subscribeToCompetitionRefunds,
@@ -20,12 +22,20 @@ export async function loadAllPaymentsForAdmin() {
   return fetchAllCompetitionPaymentsForAdmin()
 }
 
+export async function loadPaymentsForApplicationsForAdmin(applicationIds = []) {
+  return fetchCompetitionPaymentsForApplicationsForAdmin(applicationIds)
+}
+
 export async function loadRefundsForCurrentUser() {
   return fetchCompetitionRefundsForCurrentUser()
 }
 
 export async function loadAllRefundsForAdmin() {
   return fetchAllCompetitionRefundsForAdmin()
+}
+
+export async function loadRefundsForApplicationsForAdmin(applicationIds = []) {
+  return fetchCompetitionRefundsForApplicationsForAdmin(applicationIds)
 }
 
 export async function createPendingCompetitionPaymentForCurrentUser(

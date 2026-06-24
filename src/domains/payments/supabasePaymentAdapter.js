@@ -126,6 +126,33 @@ export async function fetchAllCompetitionPaymentsForAdmin() {
   return (data ?? []).map(mapSupabaseCompetitionPaymentRow)
 }
 
+export async function fetchCompetitionPaymentsForApplicationsForAdmin(applicationIds = []) {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+  const normalizedApplicationIds = Array.from(
+    new Set(
+      (Array.isArray(applicationIds) ? applicationIds : [])
+        .map((value) => String(value || '').trim())
+        .filter(Boolean),
+    ),
+  )
+
+  if (!normalizedApplicationIds.length) {
+    return []
+  }
+
+  const { data, error } = await getSupabaseClient()
+    .from(COMPETITION_PAYMENTS_TABLE)
+    .select(COMPETITION_PAYMENT_SELECT)
+    .in('application_id', normalizedApplicationIds)
+    .order('updated_at', { ascending: false })
+
+  if (error) {
+    throwCompetitionPaymentError(error, 'Не удалось загрузить оплаты для заявок.')
+  }
+
+  return (data ?? []).map(mapSupabaseCompetitionPaymentRow)
+}
+
 export async function fetchCompetitionRefundsForCurrentUser() {
   const session = await requireCurrentSession('Сессия истекла. Войдите в личный кабинет заново.')
 
@@ -137,6 +164,33 @@ export async function fetchCompetitionRefundsForCurrentUser() {
 
   if (error) {
     throwCompetitionPaymentError(error, 'Не удалось загрузить возвраты.')
+  }
+
+  return (data ?? []).map(mapSupabaseCompetitionRefundRow)
+}
+
+export async function fetchCompetitionRefundsForApplicationsForAdmin(applicationIds = []) {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+  const normalizedApplicationIds = Array.from(
+    new Set(
+      (Array.isArray(applicationIds) ? applicationIds : [])
+        .map((value) => String(value || '').trim())
+        .filter(Boolean),
+    ),
+  )
+
+  if (!normalizedApplicationIds.length) {
+    return []
+  }
+
+  const { data, error } = await getSupabaseClient()
+    .from(COMPETITION_REFUNDS_TABLE)
+    .select(COMPETITION_REFUND_SELECT)
+    .in('application_id', normalizedApplicationIds)
+    .order('updated_at', { ascending: false })
+
+  if (error) {
+    throwCompetitionPaymentError(error, 'Не удалось загрузить возвраты по заявкам.')
   }
 
   return (data ?? []).map(mapSupabaseCompetitionRefundRow)

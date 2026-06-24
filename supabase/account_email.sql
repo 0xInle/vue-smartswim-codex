@@ -149,6 +149,7 @@ alter table public.email_events
 create or replace function public.touch_email_template_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());
@@ -164,6 +165,7 @@ for each row execute procedure public.touch_email_template_updated_at();
 create or replace function public.touch_email_message_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());
@@ -179,6 +181,7 @@ for each row execute procedure public.touch_email_message_updated_at();
 create or replace function public.touch_email_recipient_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());
@@ -196,6 +199,15 @@ create index if not exists email_templates_key_idx
 
 create index if not exists email_templates_category_idx
   on public.email_templates (category);
+
+create index if not exists email_templates_created_by_user_id_idx
+  on public.email_templates (created_by_user_id);
+
+create index if not exists email_messages_template_id_idx
+  on public.email_messages (template_id);
+
+create index if not exists email_messages_created_by_user_id_idx
+  on public.email_messages (created_by_user_id);
 
 create index if not exists email_messages_status_idx
   on public.email_messages (status);

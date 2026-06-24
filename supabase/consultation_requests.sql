@@ -74,6 +74,7 @@ alter table public.consultation_requests
 create or replace function public.normalize_phone(input_phone text)
 returns text
 language sql
+set search_path = public
 immutable
 as $$
   select regexp_replace(coalesce(input_phone, ''), '\D', '', 'g');
@@ -82,6 +83,7 @@ $$;
 create or replace function public.prepare_consultation_request()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 declare
   duplicate_slot_exists boolean;

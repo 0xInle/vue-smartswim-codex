@@ -398,10 +398,7 @@ import {
   formatCompactDateTime,
   formatCompetitionRegistrationRecordStatus,
 } from '@/pages/account/utils/accountFormatters'
-import {
-  COMPETITION_REGISTRATION_RECORD_STATUS,
-  COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS,
-} from '@/pages/account/utils/accountConstants'
+import { COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS } from '@/pages/account/utils/accountConstants'
 
 const props = defineProps({
   modelValue: {

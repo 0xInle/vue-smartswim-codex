@@ -4,9 +4,9 @@
       <div class="account__panel-head">
         <div class="account__panel-actions">
           <ElTag type="primary" effect="light" round>{{ summary.total }} заявок</ElTag>
-          <ElTag type="success" effect="light" round>{{ summary.active }} активных</ElTag>
-          <ElTag type="danger" effect="light" round>{{ summary.withdrawn }} снятых</ElTag>
-          <ElTag type="warning" effect="light" round>{{ summary.refunds }} возвратов</ElTag>
+          <ElTag type="success" effect="light" round>{{ summary.active }} активных на странице</ElTag>
+          <ElTag type="danger" effect="light" round>{{ summary.withdrawn }} снятых на странице</ElTag>
+          <ElTag type="warning" effect="light" round>{{ summary.refunds }} возвратов на странице</ElTag>
         </div>
       </div>
 
@@ -261,6 +261,18 @@
 
     <ElEmpty v-else description="Заявки не найдены." />
 
+    <div v-if="registrationsPageCount > 1" class="account__pagination-wrap">
+      <ElPagination
+        background
+        class="account-competition-registrations-admin__pagination"
+        layout="prev, pager, next"
+        :current-page="registrationsPage"
+        :page-size="registrationsPageSize"
+        :total="registrationsTotal"
+        @current-change="handleRegistrationsPageChange"
+      />
+    </div>
+
     <AccountCompetitionRegistrationDetailsDialog
       :model-value="isDetailsDialogOpen"
       :registration="selectedRegistration"
@@ -314,9 +326,12 @@
 </template>
 
 <script setup>
-import { ElCard, ElEmpty, ElOption, ElSelect, ElTag } from 'element-plus'
+import { ElCard, ElEmpty, ElOption, ElPagination, ElSelect, ElTag } from 'element-plus'
 import { computed, ref, watch } from 'vue'
-import { COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS } from '@/pages/account/utils/accountConstants'
+import {
+  COMPETITION_REGISTRATIONS_PAGE_SIZE,
+  COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS,
+} from '@/pages/account/utils/accountConstants'
 import { useAccountCompetitionRegistrationsAdmin } from '@/pages/account/composables/useAccountCompetitionRegistrationsAdmin'
 import { useTriStateTextSort } from '@/pages/account/composables/useTriStateTextSort'
 import AccountCompetitionRegistrationDetailsDialog from '@/pages/account/components/competition-registrations/AccountCompetitionRegistrationDetailsDialog.vue'
@@ -333,6 +348,9 @@ const {
   search,
   statusFilter,
   paymentStatusFilter,
+  registrationsTotal,
+  registrationsPage,
+  registrationsPageCount,
   filteredRegistrations,
   summary,
   activeRefundRequests,
@@ -345,7 +363,6 @@ const {
   closeDetailsDialog,
   selectedRegistrationDocumentsStatus,
   selectedRegistrationStatusOptions,
-  getRegistrationDocumentsStatus,
   getRegistrationPayment,
   getRegistrationRefund,
   getRegistrationPaymentSummary,
@@ -357,12 +374,14 @@ const {
   competitionRegistrationRecordStatusType,
   formatCompetitionRegistrationRecordStatus,
   handleRegistrationSave,
+  handleRegistrationsPageChange,
 } = useAccountCompetitionRegistrationsAdmin()
 
 const registrationStatusOptions = COMPETITION_REGISTRATION_RECORD_STATUS_OPTIONS
 const paymentStatusOptions = COMPETITION_PAYMENT_STATUS_OPTIONS
 const refundSucceededStatus = COMPETITION_REFUND_STATUS.SUCCEEDED
 const refundRejectedStatus = COMPETITION_REFUND_STATUS.REJECTED
+const registrationsPageSize = COMPETITION_REGISTRATIONS_PAGE_SIZE
 const detailsActionLoading = ref('')
 const hasLoadedRegistrations = ref(false)
 const { sortKey, toggleSort, getSortState, sortItems } =

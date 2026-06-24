@@ -123,6 +123,7 @@ alter table public.account_admissions
 create or replace function public.touch_account_athlete_application_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());
@@ -138,6 +139,7 @@ for each row execute procedure public.touch_account_athlete_application_updated_
 create or replace function public.touch_account_admission_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());

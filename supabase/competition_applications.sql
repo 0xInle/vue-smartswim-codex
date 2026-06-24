@@ -148,6 +148,7 @@ alter table public.competition_application_events
 create or replace function public.touch_competition_application_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());
@@ -204,6 +205,8 @@ create trigger competition_applications_log_status_event
 after insert or update on public.competition_applications
 for each row execute procedure public.log_competition_application_status_event();
 
+revoke execute on function public.log_competition_application_status_event() from public, anon, authenticated;
+
 create index if not exists competition_applications_owner_user_id_idx
   on public.competition_applications (owner_user_id);
 
@@ -237,12 +240,169 @@ as $$
 $$;
 
 grant execute on function public.get_competition_stage_active_registration_count(text) to authenticated;
+revoke execute on function public.get_competition_stage_active_registration_count(text) from public, anon;
 
 create index if not exists competition_applications_created_at_idx
   on public.competition_applications (created_at desc);
 
+create index if not exists competition_applications_status_updated_at_idx
+  on public.competition_applications (status, updated_at desc);
+
+create index if not exists competition_applications_payment_status_updated_at_idx
+  on public.competition_applications (payment_status, updated_at desc);
+
 create index if not exists competition_application_events_application_id_idx
   on public.competition_application_events (application_id, created_at desc);
+
+create index if not exists competition_application_events_actor_id_idx
+  on public.competition_application_events (actor_id);
+
+create or replace function public.search_competition_applications_for_admin(
+  search_query text default '',
+  status_filter text default 'all',
+  payment_status_filter text default 'all',
+  page_number integer default 1,
+  page_size integer default 20
+)
+returns table (
+  id uuid,
+  owner_user_id uuid,
+  owner_email text,
+  owner_name text,
+  owner_phone text,
+  participant_kind text,
+  participant_id text,
+  participant_snapshot jsonb,
+  competition_slug text,
+  competition_name text,
+  stage_id text,
+  stage_label text,
+  competition_date_label text,
+  competition_window_label text,
+  registration_kind text,
+  payment_option_id text,
+  payment_option_title text,
+  team_name text,
+  seed_time text,
+  comment text,
+  status text,
+  admission_status text,
+  payment_status text,
+  status_changed_at timestamptz,
+  status_changed_by text,
+  created_at timestamptz,
+  updated_at timestamptz,
+  total_count bigint
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with normalized_params as (
+    select
+      nullif(trim(coalesce(search_query, '')), '') as query,
+      case
+        when status_filter in (
+          'submitted',
+          'reviewing',
+          'needs_fix',
+          'approved',
+          'payment_pending',
+          'paid',
+          'admitted',
+          'withdrawn',
+          'rejected'
+        ) then status_filter
+        else 'all'
+      end as status,
+      case
+        when payment_status_filter in ('not_required', 'pending', 'paid', 'failed', 'refunded') then payment_status_filter
+        else 'all'
+      end as payment_status,
+      greatest(coalesce(page_number, 1), 1) as page,
+      least(greatest(coalesce(page_size, 20), 1), 100) as size
+  ),
+  filtered_applications as (
+    select
+      applications.*,
+      count(*) over () as total_count
+    from public.competition_applications as applications
+    cross join normalized_params
+    where public.current_crm_role() = 'admin'
+      and (
+        normalized_params.status = 'all'
+        or applications.status = normalized_params.status
+      )
+      and (
+        normalized_params.payment_status = 'all'
+        or applications.payment_status = normalized_params.payment_status
+      )
+      and (
+        normalized_params.query is null
+        or concat_ws(
+          ' ',
+          applications.owner_email,
+          applications.owner_name,
+          applications.owner_phone,
+          applications.competition_slug,
+          applications.competition_name,
+          applications.stage_id,
+          applications.stage_label,
+          applications.competition_date_label,
+          applications.competition_window_label,
+          applications.registration_kind,
+          applications.payment_option_title,
+          applications.team_name,
+          applications.seed_time,
+          applications.comment,
+          applications.status,
+          applications.payment_status,
+          applications.participant_snapshot ->> 'name',
+          applications.participant_snapshot ->> 'fullName',
+          applications.participant_snapshot ->> 'club',
+          applications.participant_snapshot ->> 'phone',
+          applications.participant_snapshot ->> 'email'
+        ) ilike '%' || normalized_params.query || '%'
+      )
+  )
+  select
+    filtered_applications.id,
+    filtered_applications.owner_user_id,
+    filtered_applications.owner_email,
+    filtered_applications.owner_name,
+    filtered_applications.owner_phone,
+    filtered_applications.participant_kind,
+    filtered_applications.participant_id,
+    filtered_applications.participant_snapshot,
+    filtered_applications.competition_slug,
+    filtered_applications.competition_name,
+    filtered_applications.stage_id,
+    filtered_applications.stage_label,
+    filtered_applications.competition_date_label,
+    filtered_applications.competition_window_label,
+    filtered_applications.registration_kind,
+    filtered_applications.payment_option_id,
+    filtered_applications.payment_option_title,
+    filtered_applications.team_name,
+    filtered_applications.seed_time,
+    filtered_applications.comment,
+    filtered_applications.status,
+    filtered_applications.admission_status,
+    filtered_applications.payment_status,
+    filtered_applications.status_changed_at,
+    filtered_applications.status_changed_by,
+    filtered_applications.created_at,
+    filtered_applications.updated_at,
+    filtered_applications.total_count
+  from filtered_applications
+  order by filtered_applications.updated_at desc
+  limit (select size from normalized_params)
+  offset (select (page - 1) * size from normalized_params);
+$$;
+
+grant execute on function public.search_competition_applications_for_admin(text, text, text, integer, integer) to authenticated;
+revoke execute on function public.search_competition_applications_for_admin(text, text, text, integer, integer) from public, anon;
 
 alter table public.competition_applications enable row level security;
 alter table public.competition_application_events enable row level security;

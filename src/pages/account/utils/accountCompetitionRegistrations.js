@@ -10,6 +10,7 @@ import {
   loadAllCompetitionApplicationsForAdmin,
   loadLatestCompetitionApplicationsForAdmin,
   loadCompetitionApplicationsForCurrentUser,
+  searchCompetitionApplicationsListPageForAdmin,
   patchCompetitionApplication,
   patchCompetitionApplicationByUserKey,
   resolveCompetitionApplicationStageId,
@@ -40,6 +41,8 @@ export const loadCompetitionRegistrationStageRefsForAdmin =
   loadCompetitionApplicationStageRefsForAdmin
 export const loadLatestCompetitionRegistrationsForAdmin =
   loadLatestCompetitionApplicationsForAdmin
+export const searchCompetitionRegistrationsListPageForAdmin =
+  searchCompetitionApplicationsListPageForAdmin
 export const createCompetitionRegistration = createCompetitionApplication
 export const patchCompetitionRegistration = patchCompetitionApplication
 export const patchCompetitionRegistrationByUserKey = patchCompetitionApplicationByUserKey

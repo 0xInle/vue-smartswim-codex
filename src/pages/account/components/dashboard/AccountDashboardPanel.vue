@@ -174,7 +174,7 @@ import {
 } from '@/pages/account/utils/accountFormatters'
 import { CONSULTATION_STATUS, TRAINER_BOOKING_STATUS } from '@/pages/account/utils/accountConstants'
 import {
-  loadAllCompetitionRegistrationsForAdmin,
+  loadLatestCompetitionRegistrationsForAdmin,
   subscribeToCompetitionRegistrationChanges,
 } from '@/pages/account/utils/accountCompetitionRegistrations'
 
@@ -282,7 +282,9 @@ async function loadCompetitionRegistrations() {
   competitionRegistrationsLoadRequestId = requestId
 
   try {
-    const nextRegistrations = await loadAllCompetitionRegistrationsForAdmin()
+    const nextRegistrations = await loadLatestCompetitionRegistrationsForAdmin({
+      limit: DASHBOARD_ACTIVITY_ROWS_COUNT,
+    })
 
     if (requestId === competitionRegistrationsLoadRequestId) {
       competitionRegistrations.value = nextRegistrations

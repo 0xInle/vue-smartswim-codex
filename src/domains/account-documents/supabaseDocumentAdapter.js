@@ -395,13 +395,26 @@ export async function upsertAccountDocumentForCurrentUser({
   return mapSupabaseAccountDocumentRowWithSignedUrl(data)
 }
 
-export async function fetchAllAccountDocumentReviewsForAdmin() {
+export async function fetchAllAccountDocumentReviewsForAdmin({
+  excludeMissing = false,
+  participantKind = '',
+} = {}) {
   await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
 
-  const { data, error } = await getSupabaseClient()
+  let query = getSupabaseClient()
     .from(ACCOUNT_DOCUMENTS_TABLE)
     .select(ACCOUNT_DOCUMENT_META_SELECT)
     .order('updated_at', { ascending: false })
+
+  if (excludeMissing) {
+    query = query.neq('status', 'missing')
+  }
+
+  if (participantKind) {
+    query = query.eq('participant_kind', participantKind)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     throwAccountDocumentError(error, 'Не удалось загрузить документы для проверки.')

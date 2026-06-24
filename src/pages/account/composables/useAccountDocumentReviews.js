@@ -13,7 +13,7 @@ import {
 } from '@/pages/account/utils/accountDocumentTypes'
 import {
   admitAccountParticipant,
-  refreshAllAccountAdmissionWorkflowForStaff,
+  refreshAccountAdmissionWorkflowForOwnersForStaff,
   resolveAccountAdmissionStatus,
 } from '@/pages/account/utils/accountAdmissions'
 import { showToast } from '@/utils/toast'
@@ -37,7 +37,7 @@ function resolveReviewerName(currentUser) {
   return currentUser?.value?.name || currentUser?.name || 'Администратор'
 }
 
-export function useAccountDocumentReviews({ currentUser }) {
+export function useAccountDocumentReviews({ currentUser, participantKind = '' }) {
   const records = ref([])
   const search = ref('')
   const statusFilter = ref('all')
@@ -63,14 +63,21 @@ export function useAccountDocumentReviews({ currentUser }) {
     isLoading.value = true
 
     try {
-      const [sourceRecords] = await Promise.all([
-        loadAllAccountDocumentReviewsForAdmin(),
-        refreshAllAccountAdmissionWorkflowForStaff(),
-      ])
-
-      records.value = sourceRecords.filter(
-        (record) => record.status !== ACCOUNT_DOCUMENT_STATUS.MISSING,
+      const sourceRecords = await loadAllAccountDocumentReviewsForAdmin({
+        excludeMissing: true,
+        participantKind,
+      })
+      const ownerUserIds = Array.from(
+        new Set(
+          sourceRecords
+            .map((record) => record.ownerUserId || record.ownerUserKey)
+            .filter(Boolean),
+        ),
       )
+
+      await refreshAccountAdmissionWorkflowForOwnersForStaff(ownerUserIds)
+
+      records.value = sourceRecords
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : 'Не удалось загрузить документы из Supabase',

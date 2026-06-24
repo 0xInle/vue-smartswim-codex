@@ -76,6 +76,7 @@ alter table public.trainer_bookings
 create or replace function public.normalize_email(input_email text)
 returns text
 language sql
+set search_path = public
 immutable
 as $$
   select lower(trim(coalesce(input_email, '')));
@@ -84,6 +85,7 @@ $$;
 create or replace function public.touch_trainer_booking_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());
@@ -94,6 +96,7 @@ $$;
 create or replace function public.prepare_trainer_booking()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 declare
   duplicate_slot_exists boolean;
@@ -204,6 +207,7 @@ as $$
 $$;
 
 grant execute on function public.current_crm_email() to authenticated;
+revoke execute on function public.current_crm_email() from public, anon;
 
 create policy "Allow public insert trainer bookings"
 on public.trainer_bookings

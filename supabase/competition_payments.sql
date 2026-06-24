@@ -175,6 +175,7 @@ alter table public.payment_events
 create or replace function public.touch_competition_payment_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());
@@ -190,6 +191,7 @@ for each row execute procedure public.touch_competition_payment_updated_at();
 create or replace function public.touch_competition_refund_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := timezone('utc', now());
@@ -291,6 +293,8 @@ create trigger competition_refunds_sync_application_payment_status
 after insert or update on public.competition_refunds
 for each row execute procedure public.sync_competition_application_payment_status();
 
+revoke execute on function public.sync_competition_application_payment_status() from public, anon, authenticated;
+
 create or replace function public.log_competition_payment_event()
 returns trigger
 language plpgsql
@@ -336,6 +340,8 @@ drop trigger if exists competition_payments_log_status_event on public.competiti
 create trigger competition_payments_log_status_event
 after insert or update on public.competition_payments
 for each row execute procedure public.log_competition_payment_event();
+
+revoke execute on function public.log_competition_payment_event() from public, anon, authenticated;
 
 create or replace function public.log_competition_refund_event()
 returns trigger
@@ -385,6 +391,8 @@ create trigger competition_refunds_log_status_event
 after insert or update on public.competition_refunds
 for each row execute procedure public.log_competition_refund_event();
 
+revoke execute on function public.log_competition_refund_event() from public, anon, authenticated;
+
 create index if not exists competition_payments_application_id_idx
   on public.competition_payments (application_id);
 
@@ -410,6 +418,9 @@ create index if not exists competition_refunds_application_id_idx
 create index if not exists competition_refunds_owner_user_id_idx
   on public.competition_refunds (owner_user_id);
 
+create index if not exists competition_refunds_resolved_by_idx
+  on public.competition_refunds (resolved_by);
+
 create index if not exists competition_refunds_status_idx
   on public.competition_refunds (status);
 
@@ -428,6 +439,9 @@ create index if not exists payment_events_refund_id_idx
 
 create index if not exists payment_events_application_id_idx
   on public.payment_events (application_id, created_at desc);
+
+create index if not exists payment_events_actor_id_idx
+  on public.payment_events (actor_id);
 
 alter table public.competition_payments enable row level security;
 alter table public.competition_refunds enable row level security;

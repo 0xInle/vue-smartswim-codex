@@ -146,6 +146,52 @@ export async function fetchAllCrmUsersForAdmin() {
   return (data ?? []).map(mapSupabaseCrmUserRow)
 }
 
+export async function fetchCrmEmailRecipientsForAdmin() {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+
+  const { data, error } = await getSupabaseClient()
+    .from(CRM_USERS_TABLE)
+    .select(CRM_USER_SELECT)
+    .in('role', [CRM_ROLE.USER, CRM_ROLE.ATHLETE])
+    .order('registered_at', { ascending: false })
+
+  if (error) {
+    throwCrmUsersError(error, 'Не удалось загрузить получателей email.')
+  }
+
+  return (data ?? []).map(mapSupabaseCrmUserRow)
+}
+
+async function countCrmUsersForAdmin(applyFilters = (query) => query) {
+  const { error, count } = await applyFilters(
+    getSupabaseClient()
+      .from(CRM_USERS_TABLE)
+      .select('id', { count: 'exact', head: true }),
+  )
+
+  if (error) {
+    throwCrmUsersError(error, 'Не удалось загрузить сводку пользователей CRM.')
+  }
+
+  return count ?? 0
+}
+
+export async function fetchCrmUsersDashboardSummaryForAdmin() {
+  await requireCurrentSession('Сессия истекла. Войдите в CRM заново.')
+
+  const [usersCount, trainersCount, unpaidUsersCount] = await Promise.all([
+    countCrmUsersForAdmin(),
+    countCrmUsersForAdmin((query) => query.eq('role', CRM_ROLE.TRAINER)),
+    countCrmUsersForAdmin((query) => query.eq('account_status', 'unpaid')),
+  ])
+
+  return {
+    usersCount,
+    trainersCount,
+    unpaidUsersCount,
+  }
+}
+
 export async function fetchCrmUsersPageForAdmin({
   page = 1,
   pageSize = 20,

@@ -450,13 +450,11 @@ export function useAccountAthletes({ currentUser }) {
       documents: form.documents,
     })
 
-    let savedAthlete = null
     isSubmitting.value = true
 
     try {
-      savedAthlete = await saveAccountAthleteForCurrentUser({ athlete: payload })
-      savedAthlete = {
-        ...savedAthlete,
+      const savedAthlete = {
+        ...(await saveAccountAthleteForCurrentUser({ athlete: payload })),
         documents: normalizeAccountDocumentsState(payload.documents),
       }
 
