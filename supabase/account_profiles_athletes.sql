@@ -100,6 +100,8 @@ create trigger account_profiles_sync_crm_user_name
 after insert or update of full_name on public.account_profiles
 for each row execute procedure public.sync_crm_user_name_from_account_profile();
 
+revoke execute on function public.sync_crm_user_name_from_account_profile() from public, anon, authenticated;
+
 update public.crm_users
 set name = nullif(trim(account_profiles.full_name), '')
 from public.account_profiles

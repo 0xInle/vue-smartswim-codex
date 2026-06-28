@@ -103,13 +103,12 @@ npm run dev
 Этот SQL:
 
 - создает таблицу `public.crm_users`
-- создает таблицу `public.allowed_admin_emails`
-- создает таблицу `public.trainers`
+- создает приватные allowlist-таблицы `private.allowed_admin_emails` и `private.trainers`
 - добавляет поле `role` со значениями `admin | trainer | user`
 - включает `row level security`
 - создает policy для чтения собственного профиля
 - создает trigger, который синхронизирует пользователя из `auth.users` в `crm_users`
-- назначает роль `admin` только тем email, которые заранее внесены в `public.allowed_admin_emails`
+- назначает роль `admin` только тем email, которые заранее внесены в `private.allowed_admin_emails`
 
 SQL для `consultation_requests`:
 
@@ -190,14 +189,14 @@ Runtime `localStorage` / `sessionStorage` в `src` не используется
 
 Почему это сработает:
 
-- `smartswim@inbox.ru` заранее добавляется в `public.allowed_admin_emails`;
+- `smartswim@inbox.ru` заранее добавляется в `private.allowed_admin_emails`;
 - при регистрации trigger проверяет именно эту allowlist-таблицу, а не сам email как магическое правило;
 - все остальные новые регистрации создаются с ролью `user`.
 
 Если нужно выдать роль `admin` другому пользователю:
 
 ```sql
-insert into public.allowed_admin_emails (email, note)
+insert into private.allowed_admin_emails (email, note)
 values ('admin2@example.com', 'Дополнительный администратор')
 on conflict (email) do update
 set note = excluded.note;
@@ -207,10 +206,10 @@ set role = 'admin'
 where lower(email) = lower('admin2@example.com');
 ```
 
-Если нужно выдать роль `trainer`, email должен быть заранее внесен в таблицу `public.trainers`:
+Если нужно выдать роль `trainer`, email должен быть заранее внесен в таблицу `private.trainers`:
 
 ```sql
-insert into public.trainers (email, name, note)
+insert into private.trainers (email, name, note)
 values ('trainer@example.com', 'Имя тренера', 'Тренерский доступ')
 on conflict (email) do update
 set
@@ -222,7 +221,7 @@ set role = 'trainer'
 where lower(email) = lower('trainer@example.com');
 ```
 
-При новой регистрации trigger сам присвоит `trainer`, если email уже существует в `public.trainers`.
+При новой регистрации trigger сам присвоит `trainer`, если email уже существует в `private.trainers`.
 
 ## Команды
 

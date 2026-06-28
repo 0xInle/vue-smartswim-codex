@@ -6,13 +6,17 @@ const ENV_PATH = resolve(process.cwd(), '.env.local')
 const PROJECTS_API_BASE_URL = 'https://api.supabase.com/v1/projects'
 
 const REQUIRED_OBJECTS = {
-  table: ['public.crm_users', 'public.allowed_admin_emails', 'public.trainers'],
-  rls: ['public.crm_users', 'public.allowed_admin_emails', 'public.trainers'],
+  table: ['public.crm_users', 'private.allowed_admin_emails', 'private.trainers'],
+  rls: ['public.crm_users', 'private.allowed_admin_emails', 'private.trainers'],
   policy: [
     'Allow authenticated users to read own crm profile',
     'Allow admin read crm users',
     'Allow admin update crm users',
     'Allow admin delete crm users',
+    'Allow admin read allowed admin emails',
+    'Allow admin manage allowed admin emails',
+    'Allow admin read trainer allowlist',
+    'Allow admin manage trainer allowlist',
   ],
   constraint: [
     'crm_users_pkey',
@@ -108,8 +112,14 @@ async function queryContract({ accessToken, projectRef }) {
             'table' as object_type,
             table_schema || '.' || table_name as object_name
           from information_schema.tables
-          where table_schema = 'public'
-            and table_name in ('crm_users', 'allowed_admin_emails', 'trainers')
+          where (
+              table_schema = 'public'
+              and table_name = 'crm_users'
+            )
+            or (
+              table_schema = 'private'
+              and table_name in ('allowed_admin_emails', 'trainers')
+            )
 
           union all
 
@@ -119,8 +129,14 @@ async function queryContract({ accessToken, projectRef }) {
           from pg_class as class
           join pg_namespace as namespace
             on namespace.oid = class.relnamespace
-          where namespace.nspname = 'public'
-            and class.relname in ('crm_users', 'allowed_admin_emails', 'trainers')
+          where (
+              namespace.nspname = 'public'
+              and class.relname = 'crm_users'
+            )
+            or (
+              namespace.nspname = 'private'
+              and class.relname in ('allowed_admin_emails', 'trainers')
+            )
             and class.relrowsecurity = true
 
           union all
@@ -129,8 +145,14 @@ async function queryContract({ accessToken, projectRef }) {
             'policy' as object_type,
             policy.policyname as object_name
           from pg_policies as policy
-          where policy.schemaname = 'public'
-            and policy.tablename = 'crm_users'
+          where (
+              policy.schemaname = 'public'
+              and policy.tablename = 'crm_users'
+            )
+            or (
+              policy.schemaname = 'private'
+              and policy.tablename in ('allowed_admin_emails', 'trainers')
+            )
 
           union all
 
@@ -142,8 +164,14 @@ async function queryContract({ accessToken, projectRef }) {
             on class.oid = constraint_info.conrelid
           join pg_namespace as namespace
             on namespace.oid = class.relnamespace
-          where namespace.nspname = 'public'
-            and class.relname in ('crm_users', 'allowed_admin_emails', 'trainers')
+          where (
+              namespace.nspname = 'public'
+              and class.relname = 'crm_users'
+            )
+            or (
+              namespace.nspname = 'private'
+              and class.relname in ('allowed_admin_emails', 'trainers')
+            )
 
           union all
 

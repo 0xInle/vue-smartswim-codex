@@ -14,7 +14,7 @@ set
   registration_limit = 50
 where id in ('smartswimcup-stage-6', 'smartiki-stage-6');
 
-insert into public.trainers (email, name, note)
+insert into private.trainers (email, name, note)
 values (
   'ss-biryukoff@yandex.ru',
   'Тестовый тренер',

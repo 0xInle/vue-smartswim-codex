@@ -7,7 +7,11 @@ create table if not exists public.crm_users (
   registered_at timestamptz not null default timezone('utc', now())
 );
 
-create table if not exists public.allowed_admin_emails (
+create schema if not exists private;
+
+revoke all on schema private from public, anon, authenticated;
+
+create table if not exists private.allowed_admin_emails (
   email text primary key,
   note text,
   created_at timestamptz not null default timezone('utc', now()),
@@ -15,7 +19,7 @@ create table if not exists public.allowed_admin_emails (
     check (nullif(trim(email), '') is not null)
 );
 
-create table if not exists public.trainers (
+create table if not exists private.trainers (
   email text primary key,
   name text,
   note text,
@@ -24,12 +28,12 @@ create table if not exists public.trainers (
     check (nullif(trim(email), '') is not null)
 );
 
-insert into public.allowed_admin_emails (email, note)
+insert into private.allowed_admin_emails (email, note)
 values ('smartswim@inbox.ru', 'Первый администратор Smart Swim')
 on conflict (email) do update
 set note = excluded.note;
 
-insert into public.trainers (email, name, note)
+insert into private.trainers (email, name, note)
 values ('ss-biryukoff@yandex.ru', '', 'Тренер Smart Swim')
 on conflict (email) do update
 set
@@ -46,12 +50,12 @@ update public.crm_users
 set role = case
   when exists (
     select 1
-    from public.allowed_admin_emails as allowed_admin_emails
+    from private.allowed_admin_emails as allowed_admin_emails
     where lower(allowed_admin_emails.email) = lower(public.crm_users.email)
   ) then 'admin'
   when exists (
     select 1
-    from public.trainers as trainers
+    from private.trainers as trainers
     where lower(trainers.email) = lower(public.crm_users.email)
   ) then 'trainer'
   else 'user'
@@ -332,14 +336,18 @@ grant execute on function public.search_account_users_for_admin(text, text, inte
 revoke execute on function public.search_account_users_for_admin(text, text, integer, integer) from public, anon;
 
 alter table public.crm_users enable row level security;
-alter table public.allowed_admin_emails enable row level security;
-alter table public.trainers enable row level security;
+alter table private.allowed_admin_emails enable row level security;
+alter table private.trainers enable row level security;
 
 drop policy if exists "Allow public read crm users" on public.crm_users;
 drop policy if exists "Allow authenticated users to read own crm profile" on public.crm_users;
 drop policy if exists "Allow admin read crm users" on public.crm_users;
 drop policy if exists "Allow admin update crm users" on public.crm_users;
 drop policy if exists "Allow admin delete crm users" on public.crm_users;
+drop policy if exists "Allow admin read allowed admin emails" on private.allowed_admin_emails;
+drop policy if exists "Allow admin manage allowed admin emails" on private.allowed_admin_emails;
+drop policy if exists "Allow admin read trainer allowlist" on private.trainers;
+drop policy if exists "Allow admin manage trainer allowlist" on private.trainers;
 
 create policy "Allow authenticated users to read own crm profile"
 on public.crm_users
@@ -366,16 +374,42 @@ for delete
 to authenticated
 using (public.current_crm_role() = 'admin');
 
+create policy "Allow admin read allowed admin emails"
+on private.allowed_admin_emails
+for select
+to authenticated
+using (public.current_crm_role() = 'admin');
+
+create policy "Allow admin manage allowed admin emails"
+on private.allowed_admin_emails
+for all
+to authenticated
+using (public.current_crm_role() = 'admin')
+with check (public.current_crm_role() = 'admin');
+
+create policy "Allow admin read trainer allowlist"
+on private.trainers
+for select
+to authenticated
+using (public.current_crm_role() = 'admin');
+
+create policy "Allow admin manage trainer allowlist"
+on private.trainers
+for all
+to authenticated
+using (public.current_crm_role() = 'admin')
+with check (public.current_crm_role() = 'admin');
+
 create or replace function public.resolve_crm_role(user_email text)
 returns text
 language plpgsql
-set search_path = public
+set search_path = public, private
 stable
 as $$
 begin
   if exists (
     select 1
-    from public.allowed_admin_emails as allowed_admin_emails
+    from private.allowed_admin_emails as allowed_admin_emails
     where lower(allowed_admin_emails.email) = lower(coalesce(user_email, ''))
   ) then
     return 'admin';
@@ -383,7 +417,7 @@ begin
 
   if exists (
     select 1
-    from public.trainers as trainers
+    from private.trainers as trainers
     where lower(trainers.email) = lower(coalesce(user_email, ''))
   ) then
     return 'trainer';

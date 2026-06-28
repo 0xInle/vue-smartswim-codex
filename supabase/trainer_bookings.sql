@@ -200,7 +200,6 @@ create or replace function public.current_crm_email()
 returns text
 language sql
 stable
-security definer
 set search_path = public
 as $$
   select lower(trim(coalesce(auth.jwt() ->> 'email', '')));
