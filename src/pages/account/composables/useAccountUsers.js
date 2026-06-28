@@ -14,11 +14,10 @@ import {
 } from '@/pages/account/utils/accountDocumentTypes'
 import { formatUserStatus } from '@/pages/account/utils/accountFormatters'
 import { getPhoneSearchValue } from '@/utils/phone'
-import { CRM_ROLE, getCrmRoleLabel } from '@/utils/crmRoles'
+import { getCrmRoleLabel } from '@/utils/crmRoles'
 import { showToast } from '@/utils/toast'
 import {
   loadAccountUserDetailsForAdmin,
-  loadAccountUsersPageForAdmin,
   removeAccountUserFromCrmForAdmin,
   saveAccountUserForAdmin,
   searchAccountUsersListPageForAdmin,
@@ -94,19 +93,12 @@ export function useAccountUsers({
     isUsersLoading.value = true
 
     try {
-      const shouldUseSimpleServerPage = shouldUseSimpleServerUsersPage()
-      const result = shouldUseSimpleServerPage
-        ? await loadAccountUsersPageForAdmin({
-            page: usersPage.value,
-            pageSize: USERS_PAGE_SIZE,
-            roleFilter: usersRoleFilter.value,
-          })
-        : await searchAccountUsersListPageForAdmin({
-            page: usersPage.value,
-            pageSize: USERS_PAGE_SIZE,
-            search: usersSearch.value,
-            roleFilter: usersRoleFilter.value,
-          })
+      const result = await searchAccountUsersListPageForAdmin({
+        page: usersPage.value,
+        pageSize: USERS_PAGE_SIZE,
+        search: usersSearch.value,
+        roleFilter: usersRoleFilter.value,
+      })
       const nextUsers = result.users
       const nextTotal = result.total
 
@@ -146,10 +138,6 @@ export function useAccountUsers({
     }
 
     return loadUsers()
-  }
-
-  function shouldUseSimpleServerUsersPage() {
-    return !usersSearch.value.trim() && usersRoleFilter.value !== CRM_ROLE.ATHLETE
   }
 
   function shouldUseServerUsersPage() {

@@ -1302,16 +1302,13 @@ watch(
   line-height: 1.25;
 }
 
-.account-users__documents-review-tag {
+.account-users__documents-review-tag.el-tag {
   flex: 0 0 auto;
+  border-radius: 5px;
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0;
   text-transform: uppercase;
-}
-
-.account-users__documents-review-item--verified .account-users__documents-review-tag {
-  border-radius: 5px;
 }
 
 .account-users__documents-review-hint,
