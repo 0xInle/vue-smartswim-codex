@@ -421,6 +421,7 @@ for insert
 to authenticated
 with check (
   owner_user_id = auth.uid()
+  and public.current_crm_role() = 'user'
   and nullif(trim(owner_email), '') is not null
   and nullif(trim(competition_slug), '') is not null
   and nullif(trim(competition_name), '') is not null
